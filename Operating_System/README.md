@@ -18,6 +18,13 @@ An Operting System is the low-level software that supports a computer's basic fu
 
 [OS main concepts](https://www.tutorialspoint.com/operating_system/index.htm)
 
+### Exercises
+
+* Run 'File Explorer' on Windows to see files
+* Run 'Device Manager' to see IO devices
+* Run 'Resource Monitor' on Windows to see processes
+* Run 'Network Status'
+
 ## Virtual Machines
 
 ### Definition
@@ -53,13 +60,23 @@ An Operting System is the low-level software that supports a computer's basic fu
 
 [Docker architecture](https://geekflare.com/docker-architecture/)
 
+### Docker Desktop
+
+Docker desktop is a GUI (Graphical User Interface) that lets you manage your containers, applications, and images directly from your machine. 
+
+[Install docker desktop](https://docs.docker.com/desktop/install/windows-install/)
+
+### Exercise
+
+Find an interesting yes simple docker image in GitHub, run it as a container in docker desktop and use it.
+
 ## Windows Command line
 
 ### Functions
 
 * work with windows without GUI
 
-### SoSelected basic commands
+### Selected basic commands
 
 * file system: dir, cd, mkdir, rmdir, fc, tree, findstr
 * os info: systeminfo, ver, shutdown
@@ -72,3 +89,7 @@ An Operting System is the low-level software that supports a computer's basic fu
 * [Short video about windows cmd](https://www.youtube.com/watch?v=A3nwRCV-bTU)
 * [Windows cmd examples](https://www.makeuseof.com/tag/windows-batch-if-statements/?newsletter_popup=1)
 * [More Windows cmd examples](https://github.com/Richu-Antony/Usefull-Windows-Scripts-and-Applications)
+
+### Exercises
+
+Create and run a simple .bat script. See [.bat script tutorial](https://www.howtogeek.com/263177/how-to-write-a-batch-script-on-windows/)
