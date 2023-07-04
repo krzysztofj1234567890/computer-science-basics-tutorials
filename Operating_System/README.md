@@ -11,7 +11,7 @@ Properties:
 * cpu cores
 * clock speed
 
-### RAM (random access memory)
+#### RAM (random access memory)
 
 Temporarily stores data
 
@@ -20,7 +20,7 @@ Properties:
 * size (GB)
 * speed
 
-## Video Card
+### Video Card
 
 Expansion card that allows the computer to send graphical information to a video display device. All of them contain GPU (graphics processing unit)
 
@@ -29,7 +29,7 @@ Properties:
 * outputs (HDMI, DVI etc.)
 * RAM
 
-### Drive or Data storage
+#### Drive or Data storage
 
 Data storage device
 
@@ -40,7 +40,7 @@ Properties:
 * size (GB)
 * speed
 
-### Motherboard: 
+#### Motherboard: 
 
 ## Basic OS concepts
 
