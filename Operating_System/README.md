@@ -2,7 +2,7 @@
 
 ## Computer Hardware components
 
-## CPU (central processing unit): 
+### CPU (central processing unit): 
 
 Executes commands 
 
