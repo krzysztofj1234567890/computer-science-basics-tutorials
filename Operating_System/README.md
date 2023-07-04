@@ -1,5 +1,47 @@
 # Operating System
 
+## Computer Hardware components
+
+### CPU (central processing unit): 
+
+Executes commands 
+
+Properties:
+
+* cpu cores
+* clock speed
+
+#### RAM (random access memory)
+
+Temporarily stores data
+
+Properties:
+
+* size (GB)
+* speed
+
+### Video Card
+
+Expansion card that allows the computer to send graphical information to a video display device. All of them contain GPU (graphics processing unit)
+
+Properties:
+
+* outputs (HDMI, DVI etc.)
+* RAM
+
+#### Drive or Data storage
+
+Data storage device
+
+HDD (Hard disk drive) or SSD (Solid state drive)
+
+Properties:
+
+* size (GB)
+* speed
+
+#### Motherboard: 
+
 ## Basic OS concepts
 
 ### Definition
@@ -68,7 +110,7 @@ Docker desktop is a GUI (Graphical User Interface) that lets you manage your con
 
 ### Exercise
 
-Find an interesting yes simple docker image in GitHub, run it as a container in docker desktop and use it.
+Find an interesting yes simple docker image in GitHub, run it as a container in docker desktop and use it. If you cannot find it, try to use this one: https://github.com/purrbot-site/ImageAPI
 
 ## Windows Command line
 
