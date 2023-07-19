@@ -153,3 +153,111 @@ Transaction is a set of logically related operations is known as a transaction
 
 [ACID](https://www.geeksforgeeks.org/acid-properties-in-dbms/?ref=lbp)
 
+## Install and run postgres database
+
+We will install:
+* postgres rdbms: relational database system
+* pgadmin : web based administration tool for the PostgreSQL database
+
+### Install postgres and pgadmin using containers
+
+I assume that you have docker desktop installed.
+
+#### start postgres container:
+
+You will install the following image: https://hub.docker.com/_/postgres
+
+To do that open docker desktop -> images and search for postgres. Find the above docker image, download it and run it.
+
+Start the container with the following settings:
+* Name:	postgres
+* Port: 	5432:5432
+* POSTGRES_PASSWORD: <create and remember the password>
+
+#### start pgadmin container:
+
+You will install the following image: https://hub.docker.com/r/dpage/pgadmin4/
+
+To do that open docker desktop -> images and search for pgadmin. Find the above docker image, download it and run it.
+
+Start the container with the following settings:
+* Name:	 pgadmin
+* HOST PORT:	1234:80
+* PGADMIN_DEFAULT_EMAIL: <your fake email>
+* PGADMIN_DEFAULT_PASSWORD: <create and remember the password>
+
+#### connect containers
+
+Both containers work in isolation and do not see each other. They need to be put in the same network. To do that you will use 'docker network' command: create new network and add both containers to it:
+
+In cmd (command line) type the following:
+
+```
+docker network ls
+docker network create --driver bridge pgnetwork
+docker network connect pgnetwork pgadmin
+docker network connect pgnetwork postgres
+docker network inspect pgnetwork
+```
+
+#### connect to database using pgadmin
+
+Now you will use pgadmin web client to connect and manage your postgres database.
+
+1. In your web browser open the following url: http://localhost:1234/browser/. Note that the '1234' is the port you have exposed in the setting of the docker container configuration
+2. Login using the credentials specified in your docker container settings
+3. Add Server
+    1. General
+        1. Name: postgres
+    2. Connection
+        1. Hostname: postgres
+	    2. Port: 5432
+	    3. database: postgres
+	    4. username: postgres
+	    5. password: <password you have defined>
+
+You are connected to the database server
+
+#### create database
+
+Now create your database. In the pgadmin session do the following:
+
+Object Explorer -> Query Tool
+
+```
+CREATE DATABASE TomDB ;
+```
+
+Refresh your panel to see the created database:
+
+Object Explorer -> Servers -> postgres -> Refresh (right click)
+
+#### create table
+
+Object Explorer -> Query Tool
+
+```
+CREATE TABLE student (
+    id INT PRIMARY KEY,
+    name VARCHAR(50),
+    phone VARCHAR(10),
+    age int(2)
+);
+```
+
+Insert new rows:
+
+```
+INSERT INTO student VALUES ('1','Chris','1234567890', 40);
+INSERT INTO student VALUES ('2','Tom','1234567891', 10);
+INSERT INTO student VALUES ('3','Kate','1234567892', 11);
+INSERT INTO student VALUES ('4','Mom','1234567893', NULL);
+```
+
+#### Run some queries
+
+Object Explorer -> Query Tool
+
+```
+SELECT * FROM student
+```
