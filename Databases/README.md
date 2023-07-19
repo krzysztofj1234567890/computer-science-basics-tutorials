@@ -172,7 +172,7 @@ To do that open docker desktop -> images and search for postgres. Find the above
 Start the container with the following settings:
 * Name:	postgres
 * Port: 	5432:5432
-* POSTGRES_PASSWORD: <create and remember the password>
+* POSTGRES_PASSWORD: create and remember the password
 
 #### start pgadmin container:
 
@@ -183,8 +183,8 @@ To do that open docker desktop -> images and search for pgadmin. Find the above 
 Start the container with the following settings:
 * Name:	 pgadmin
 * HOST PORT:	1234:80
-* PGADMIN_DEFAULT_EMAIL: <your fake email>
-* PGADMIN_DEFAULT_PASSWORD: <create and remember the password>
+* PGADMIN_DEFAULT_EMAIL: your fake email
+* PGADMIN_DEFAULT_PASSWORD: create and remember the password
 
 #### connect containers
 
@@ -214,7 +214,7 @@ Now you will use pgadmin web client to connect and manage your postgres database
 	    2. Port: 5432
 	    3. database: postgres
 	    4. username: postgres
-	    5. password: <password you have defined>
+	    5. password: password you have defined
 
 You are connected to the database server
 
