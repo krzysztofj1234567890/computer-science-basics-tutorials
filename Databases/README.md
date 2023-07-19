@@ -285,7 +285,7 @@ Insert data into them - as above.
 
 ##### group by, order by
 
-Use the UFO sightings data and insert it into a table. To do that copy and past the following statement and run the query in pgadmin:
+Use the UFO sightings data fromn https://nuforc.org/webreports/ndxevent.html and insert it into a table. To do that copy and past the following statement and run the query in pgadmin:
 
 ```
 CREATE TABLE UFO_REPORT (timestamp, city, state, country, shape, duration) AS
