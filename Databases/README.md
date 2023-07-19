@@ -101,17 +101,14 @@ SQL is a standard database language used to access and manipulate data in databa
 
 #### DDL = data definition language
 
+```
 CREATE TABLE student (
-
     id INT PRIMARY KEY,
-
     name VARCHAR(50),
-
     phone VARCHAR(10),
-
     age int(2)
-
 );
+```
 
 #### DML = data manipulation language
 
@@ -232,6 +229,10 @@ Refresh your panel to see the created database:
 
 Object Explorer -> Servers -> postgres -> Refresh (right click)
 
+#### Connect to the new database
+
+Right click on 'tomdb' database. Select the connection: 'tomdb/postgres@postgres'
+
 #### create table
 
 Object Explorer -> Query Tool
@@ -241,9 +242,11 @@ CREATE TABLE student (
     id INT PRIMARY KEY,
     name VARCHAR(50),
     phone VARCHAR(10),
-    age int(2)
+    age int
 );
 ```
+
+Execute query
 
 Insert new rows:
 
@@ -254,6 +257,8 @@ INSERT INTO student VALUES ('3','Kate','1234567892', 11);
 INSERT INTO student VALUES ('4','Mom','1234567893', NULL);
 ```
 
+Execute query
+
 #### Run some queries
 
 Object Explorer -> Query Tool
@@ -261,3 +266,6 @@ Object Explorer -> Query Tool
 ```
 SELECT * FROM student
 ```
+
+Execute query
+
