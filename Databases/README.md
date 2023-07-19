@@ -269,3 +269,139 @@ SELECT * FROM student
 
 Execute query
 
+#### Exercise
+
+##### Create more database tables
+
+Create ADDRESS and STUDENT_ADDRESS database tables defined in the first section.
+
+Insert data into them - as above.
+
+##### Run Select and Join queries
+
+* Write and run query to select all rows from ADDRESS table.
+* Write query to select only one row from STUDENT table, where name = 'Tom'
+* Join STUDENT, STUDENT_ADDRESS and ADDRESS tables to find the address of Tom
+
+##### group by, order by
+
+Use the UFO sightings data and insert it into a table. To do that copy and past the following statement and run the query in pgadmin:
+
+```
+CREATE TABLE UFO_REPORT (timestamp, city, state, country, shape, duration) AS
+SELECT '07/10/23 11:45 PM','Tacoma','WA','USA','Orb','5 mins'
+UNION SELECT '07/09/23 11:54 PM','Melbourne','FL','USA','Circle','15 seconds'
+UNION SELECT '07/09/23 11:15 PM','North Myrtle Beach','OH','USA','Light','45 Seconds'
+UNION SELECT '07/09/23 10:40 PM','Moundridge','KS','USA','Other','3 seconds'
+UNION SELECT '07/08/23 11:40 PM','South Saint Paul','MN','USA','Orb','Multiple time at least 4'
+UNION SELECT '07/08/23 09:43 PM','Winston salem','NC','USA','Fireball','4.5 minutes'
+UNION SELECT '07/08/23 09:40 PM','Crystal River','FL','USA','Fireball','45 seconds to 1 minute'
+UNION SELECT '07/08/23 06:20 PM','Des Moines','WA','USA','Light','20 seconds I was driving'
+UNION SELECT '07/08/23 03:24 PM','Turku','Varsinais-Suomi','Finland','Triangle','20 second'
+UNION SELECT '07/08/23 09:30 AM','coatesville','PA','USA','Light','3 minutes'
+UNION SELECT '07/08/23 12:45 AM','Rupert','WV','USA','Light','Maybe 10 to 15 seconds.'
+UNION SELECT '07/07/23 10:09 PM','Durham','NC','USA','Light','Under 1 minute'
+UNION SELECT '07/07/23 09:40 PM','Commerce','GA','USA','Triangle','5 minutes'
+UNION SELECT '07/07/23 09:20 PM','Kansas City','MO','USA','Light','30 mins'
+UNION SELECT '07/07/23 08:53 PM','Roseburg','OR','USA','Cylinder','4 minutes'
+UNION SELECT '07/07/23 08:33 PM','Hurst','TX','USA','Oval','About 2 minutes'
+UNION SELECT '07/07/23 12:36 PM','Proctor','VT','USA','Flash','~1 sec'
+UNION SELECT '07/07/23 12:19 PM','Bamber Bridge','Lancashire','United Kingdom','Circle','30 seconds'
+UNION SELECT '07/06/23 10:12 PM','Forest City','NC','USA','Orb','45 seconds'
+UNION SELECT '07/06/23 10:00 PM','Blaine','MN','USA','Circle','2 min'
+UNION SELECT '07/06/23 11:00 AM','Spokane Valley','WA','USA','Other','3 seconds'
+UNION SELECT '07/06/23 07:50 AM','Pottstown','PA','USA','Circle','1-2 minutes'
+UNION SELECT '07/05/23 11:38 PM','Reno','OH','USA','Light','5-7 seconds'
+UNION SELECT '07/05/23 11:20 PM','Boise','ID','USA','Formation','30 seconds'
+UNION SELECT '07/05/23 11:00 PM','Milton','VT','USA','Cylinder','15-20 seconds'
+UNION SELECT '07/05/23 09:50 PM','Concord','CA','USA','Light',''
+UNION SELECT '07/05/23 08:25 PM','Boston','MA','USA','Circle','10 minutes 34 seconds'
+UNION SELECT '07/05/23 01:16 PM','San Jacinto','CA','USA','Light','2mins'
+UNION SELECT '07/05/23 10:45 AM','Bad axe','MI','USA','Triangle','Five minutes'
+UNION SELECT '07/05/23 09:15 AM','Ocean springs','MS','USA','Cylinder','2 minutes'
+UNION SELECT '07/05/23 07:38 AM','Grand Prarie','TX','USA','Sphere','1-2 min'
+UNION SELECT '07/04/23 11:40 PM','Cheektowaga','NY','USA','Light','1 minute or less'
+UNION SELECT '07/04/23 11:30 PM','Tacoma','WA','USA','Circle','About 5 min'
+UNION SELECT '07/04/23 10:33 PM','Westland','MI','USA','Changing','15 - 20 minutes'
+UNION SELECT '07/04/23 10:30 PM','Red Bluff','CA','USA','Star','12 to 15 minutes'
+UNION SELECT '07/04/23 10:19 PM','Macomb','MI','USA','Light','20 minutes'
+UNION SELECT '07/04/23 10:12 PM','Mount Holly springs','PA','USA','Other','30 min'
+UNION SELECT '07/04/23 10:00 PM','Gresham','OR','USA','Star','5 min or more'
+UNION SELECT '07/04/23 10:00 PM','Spokane','WA','USA','Rectangle','est 15-20 mins'
+UNION SELECT '07/04/23 09:38 PM','Fresno','CA','USA','Orb','15mins'
+UNION SELECT '07/04/23 09:35 PM','Brunswick','MD','USA','Formation','2 or 3 minutes'
+UNION SELECT '07/04/23 09:33 PM','Isiolo','Isiolo County','Kenya','Formation','Around a minute'
+UNION SELECT '07/04/23 09:30 PM','Tucson','AZ','USA','Unknown','About a minute.'
+UNION SELECT '07/04/23 09:30 PM','reno','NV','USA','Light','about 20 minutes'
+UNION SELECT '07/04/23 09:25 PM','Mission Viejo','CA','USA','Rectangle','5 seconds'
+UNION SELECT '07/04/23 09:21 PM','El Paso','TX','USA','Changing','45 mins'
+UNION SELECT '07/04/23 09:14 PM','Pirtsmouth','VA','USA','Circle','10 minutes'
+UNION SELECT '07/04/23 09:00 PM','Columbia','NC','USA','Light','5 minutes'
+UNION SELECT '07/04/23 08:50 PM','Waynesville','MO','USA','Changing','3 minutes'
+UNION SELECT '07/04/23 08:47 PM','Pelham','NY','USA','Other','7 minutes'
+UNION SELECT '07/04/23 06:30 PM','Orange','VA','USA','Orb','10 minutes'
+UNION SELECT '07/04/23 08:55 AM','sarasota','FL','USA','Circle','7 min'
+UNION SELECT '07/03/23 11:00 PM','Lincoln','NE','USA','Chevron','30sec'
+UNION SELECT '07/03/23 10:10 PM','Knoxville','TN','USA','Orb','Approximately 1 minute'
+UNION SELECT '07/03/23 09:50 PM','Jackson','WI','USA','Orb','10 minutes'
+UNION SELECT '07/03/23 09:48 PM','Bellevue','WA','USA','Changing','30 seconds'
+UNION SELECT '07/03/23 09:20 PM','Justice','IL','USA','Light','two minutes'
+UNION SELECT '07/03/23 08:42 PM','Phoenix','AZ','USA','Star','5:00 minutes'
+UNION SELECT '07/03/23 10:26 AM','Timnath','CO','USA','Sphere','40 seconds maybe'
+UNION SELECT '07/03/23 05:04 AM','NYC','NY','USA','Disk','1 second'
+UNION SELECT '07/03/23 03:45 AM','Portland','OR','USA','Sphere','Brief… very fast.'
+UNION SELECT '07/03/23 01:30 AM','Monroe','WA','USA','Light','3-4 sec'
+UNION SELECT '07/02/23 09:45 PM','Elizabethtown','PA','USA','Light','30-40 seconds maybe.'
+UNION SELECT '07/02/23 09:40 PM','Rapid City','SD','USA','Light','Approx 3 minutes'
+UNION SELECT '07/02/23 09:35 PM','Vandergrift','PA','USA','Orb','4 minutes'
+UNION SELECT '07/02/23 09:30 PM','St. George','UT','USA','Disk','45 min or so'
+UNION SELECT '07/02/23 07:05 PM','Montgomeryville','PA','USA','Sphere','1 to 2 minutes'
+UNION SELECT '07/02/23 01:34 PM','Abo ruins near Belen','NM','USA','Circle','2 sec'
+UNION SELECT '07/02/23 01:26 AM','Ashford','Kent','United Kingdom','Star','Between 10 and 20minutes.'
+UNION SELECT '07/02/23 01:19 AM','Coalinga','CA','USA','Other','2 mins'
+UNION SELECT '07/01/23 11:23 PM','Avenal, CA','CA','USA','Rectangle','2 minutes'
+UNION SELECT '07/01/23 09:57 PM','Eden Prairie','MN','USA','Cigar','15 seconds'
+UNION SELECT '07/01/23 09:33 PM','Shenandoah','VA','USA','Cigar','Less than 1 second'
+UNION SELECT '07/01/23 09:13 PM','West Orange','NJ','USA','Formation','5-6 minutes'
+UNION SELECT '07/01/23 09:12 PM','Woodridge','IL','USA','Orb','5 minutes. Recording 2 mi'
+UNION SELECT '07/01/23 08:57 PM','Milford','IA','USA','Circle','At least 10 mins'
+UNION SELECT '07/01/23 08:50 PM','Marion','IL','USA','Orb','5 minutes'
+UNION SELECT '07/01/23 11:30 AM','Warsaw','KY','USA','Disk',''
+UNION SELECT '07/01/23 10:09 AM','Bogotá','Cundinamarca Department','Colombia','Triangle',''
+UNION SELECT '07/01/23 03:30 AM','Approx. 2.5 NM off coast of Sloop Point','NJ','USA','Cube','1 minute'
+UNION SELECT '07/01/23 12:07 AM','Killiney','County Dublin','Ireland','Oval','3 minutes'
+```
+
+To find out number of ufo sighttings by state run a query:
+
+```
+SELECT state, count(*)
+FROM ufo_report 
+GROUP BY state
+```
+
+Write similar query to find out number of ufo sightings by city.
+
+Write query to find out ufo sighttings by shape
+
+What was the state with most 'Fireball' ufo sightings? Hint: use 'ORDER BY' clause.
+
+Write a query to find out all cities with more then one UFO sighting. Hint: GROUP BY ... HAVING COUNT
+
+##### Join
+
+Run the following query to load the following country data:
+
+```
+CREATE TABLE COUNTRY (country, continent) AS
+SELECT 'USA','North America'
+UNION SELECT 'Finland','Europe'
+UNION SELECT 'United Kingdom','Europe'
+UNION SELECT 'Kenya','Africa'
+UNION SELECT 'Colombia','South America'
+UNION SELECT 'Ireland','Europe'
+```
+
+Write a query to find out the continent with most UFO sightings. Hint: use JOIN clause 
+
+Write a query to find out all continents with more then 3 'Circle' sightings.
