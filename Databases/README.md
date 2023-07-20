@@ -215,7 +215,9 @@ Now you will use pgadmin web client to connect and manage your postgres database
 
 You are connected to the database server
 
-#### create database
+### SQL 
+
+##### create database
 
 Now create your database. In the pgadmin session do the following:
 
@@ -229,7 +231,7 @@ Refresh your panel to see the created database:
 
 Object Explorer -> Servers -> postgres -> Refresh (right click)
 
-#### Connect to the new database
+#### connect to the new database
 
 Right click on 'tomdb' database. Select the connection: 'tomdb/postgres@postgres'
 
@@ -257,7 +259,7 @@ INSERT INTO student VALUES ('3','Kate','1234567892', 11);
 INSERT INTO student VALUES ('4','Mom','1234567893', NULL);
 ```
 
-Execute query
+Execute query above
 
 #### Run some queries
 
@@ -267,7 +269,7 @@ Object Explorer -> Query Tool
 SELECT * FROM student
 ```
 
-Execute query
+Execute query above
 
 #### Exercise
 
@@ -388,7 +390,7 @@ What was the state with most 'Fireball' ufo sightings? Hint: use 'ORDER BY' clau
 
 Write a query to find out all cities with more then one UFO sighting. Hint: GROUP BY ... HAVING COUNT
 
-##### Join
+##### Joins
 
 Run the following query to load the following country data:
 
@@ -405,3 +407,41 @@ UNION SELECT 'Ireland','Europe'
 Write a query to find out the continent with most UFO sightings. Hint: use JOIN clause 
 
 Write a query to find out all continents with more then 3 'Circle' sightings.
+
+### Updates
+
+CEO of the company you work asked you to change the UFO model in the following way:
+* add currency symbol to each country. For USA the currency us 'american dollar' with symbol 'USD'.
+* change country symbol from 3 to 2 letters: For 'USA' it should be 'US'
+
+Write a SQL query that will do that:
+
+ALTER TABLE UFO_REPORT ADD COLUMN 'currency'
+
+UPDATE TABLE UFO_REPORT SET country = 'US' WHERE country = 'USA'
+
+Issues:
+* to change 'USA' to 'US' - you have to change many rows. This translates to many disk IO operations and will be expensive for large data sets.
+* additionally you will need to make this change in all tables that use 3-character country code (the other table is 'COUNTRY')
+
+To solve this data duplication problem you need to normalize the schema.
+
+Database schema is considered the "blueprint" of a database which describes how the data may relate to other tables or other data models. It can be defined as a set of all 'CREATE' statements in the database that creates all database objects (tables, views, functions etc. )
+
+### Database normalization
+
+Database normalization is the process of organizing the attributes of the database to reduce or eliminate data redundancy
+
+[Read about db normalization](https://www.geeksforgeeks.org/introduction-of-database-normalization/?ref=lbp)
+
+[First Normal Form](https://www.geeksforgeeks.org/first-normal-form-1nf/?ref=lbp)
+
+Second Normal Form: https://www.geeksforgeeks.org/second-normal-form-2nf/?ref=lbp
+
+Third Normal Form: https://www.geeksforgeeks.org/boyce-codd-normal-form-bcnf/?ref=lbp
+
+Change the UFO and COUNTRY into 3rd normal form. Create DB tables.
+
+##### Disadvantages of normalization
+
+Performance (need to do joins)
