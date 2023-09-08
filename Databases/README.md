@@ -442,6 +442,56 @@ Third Normal Form: https://www.geeksforgeeks.org/boyce-codd-normal-form-bcnf/?re
 
 Change the UFO and COUNTRY into 3rd normal form. Create DB tables.
 
+##### Normalization - solution
+
+```
+CREATE TABLE UFO_EVENT (timestamp, city_id, shape, duration)
+```
+| timestamp         | city_id | shape    | duration    |
+| ----------------- | ------- | -------- | ----------- |
+| 07/09/23 11:54 PM | 1       | 'Circle' | '15 seconds'|
+| 07/09/23 11:15 PM | 2       | 'Light'  | '45 Seconds'|
+| 07/09/23 10:40 PM | 1       | 'Other'  | '3 seconds' |
+
+```
+CREATE TABLE CITY (city_id, city, state, country)
+```
+| city_id | city        | state | country |
+| ------- | ----------- | ----- | ------- |
+| 1       | 'Tacoma'    | 'WA'  | 'USA'   |
+| 2       | 'Melbourne' | 'FL'  | 'USA'   |
+
+
 ##### Disadvantages of normalization
 
 Performance (need to do joins)
+
+### Issues with rdbms
+
+- Scalability: rdbms usually implements ACID transactions. To run transactions across multiple servers is slow and limits system performance. That is why you should run your database on one server. This means that you can improve the db server performance only by adding more resources to the server i.e. vertical scalability. The issue is that: there is a limit how many CPUs or memory you can add and the cost of very large servers with 100s of CPUs is very expensive.
+
+- Difficult to change schema: systems evolve and you need to modify your database schema. Adding new tables, adding new columns to existing tables or changing the type of columns is possible in rdbms, but expensive: you need to update your applications that use the data, migrate the data to new schemas etc.
+
+- Modelling: modelling data structure like graphs is difficult
+
+- Difficult to operate on very large data sets (1PB), executing joins on 2 or more very large tables.
+
+- Not great at managing binary data types like images, sound, videos
+
+## NoSQL Databases
+
+NoSQL databases (aka "not only SQL") are non-tabular databases and store data differently than relational tables. NoSQL databases come in a variety of types based on their data model. They provide flexible schemas and scale easily with large amounts of data and high user loads.
+
+Usually they do not implement multi-entity transactions but provide better performance, horizontal scalability, flexibility for a given use case.
+
+### Document databases
+
+Databases that store data as semi-structured documents, such as JSON or XML, and can be queried using document-oriented query languages.
+    
+### Key-value stores 
+
+Databases that store data as key-value pairs, and are optimized for simple and fast read/write operations.
+
+### Graph databases
+
+These databases store data as nodes and edges, and are designed to handle complex relationships between data.
