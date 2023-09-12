@@ -587,3 +587,16 @@ Partition key is used to calculate how to distribute documents between different
 This is the way document databases achieve horizontal scaling.
 
 Drawback: no ACID transactions
+
+#### Schemas
+
+NoSQL databases are sometimes called 'dynamic schema'.
+
+They do not require a database schema and each document in such a database can have different schema.
+
+However, this is bad modelling practice because it makes it difficult for users of these databaes to use them.
+Basically the application does not know how to interpret the data.
+
+That is why you should always have a database schema. It defines the contract that applications use to interpret the data.
+
+This schema can be flexible and evolve. The schema evolution is much easier for noSQL vs rdbms
