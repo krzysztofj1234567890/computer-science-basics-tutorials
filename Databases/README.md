@@ -573,3 +573,17 @@ Create another document: some fields have different type:
    "duration":3
 }
 ```
+
+Inspect the collection and note that all documents look different.
+
+### More about Mongo
+
+#### Partitioning and Shards
+
+Proper usage of document databases requires partition key. It consists of columns in a collection.
+
+Partition key is used to calculate how to distribute documents between different servers. This is called sharding.
+
+This is the way document databases achieve horizontal scaling.
+
+Drawback: no ACID transactions
