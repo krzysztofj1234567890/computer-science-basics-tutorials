@@ -495,3 +495,81 @@ Databases that store data as key-value pairs, and are optimized for simple and f
 ### Graph databases
 
 These databases store data as nodes and edges, and are designed to handle complex relationships between data.
+
+### Exercise
+
+#### Install MongoDB - document database
+
+Open cmd and:
+
+```
+# create network
+docker network create mongo-network
+
+# install mongo database container
+docker run -d -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=pass1 --name mongodb --net mongo-network mongo
+
+# install mongo client: mongo-express
+docker run -d -p 8081:8081 -e ME_CONFIG_MONGODB_ADMINUSERNAME=root -e ME_CONFIG_MONGODB_ADMINPASSWORD=pass1 -e ME_CONFIG_MONGODB_SERVER=mongodb --name mongo-express --net mongo-network mongo-express
+
+```
+
+Test: in web browser open: http://localhost:8081 
+
+#### Create mongo database and populate it
+
+Create database: tomek
+
+Create collection: UFO_EVENT
+
+Note: 
+* 'collection' is equivalent to a 'table' in rdbms
+* you do not need to specify database schema that defines all documents in this collection.
+
+Create document:
+```
+{
+   "timestamp":"07/10/23 11:45 PM",
+   "city":"Tacoma",
+   "state":"WA",
+   "country":"USA",
+   "shape":"Orb",
+   "duration":"15 min"
+}
+```
+
+Note:
+* mongo is a document database and each document can have different fields. There is no formal schema
+* each document must be in .json format
+
+Create another document: some fields are mising:
+```
+{
+   "timestamp":"07/09/23 11:54 PM",
+   "city":"Melbourne",
+   "state":"FL",
+   "country":"USA"
+}
+```
+
+Create another document: some fields have different name:
+{
+   "timestamp":"07/09/23 11:15 PM",
+   "miasto":"North Myrtle Beach",
+   "stan":"FL",
+   "panstwo":"USA",
+   "ksztalt:": "swiatlo",
+   "czas_trwania": '45 Sekund'
+}
+
+Create another document: some fields have different type:
+```
+{
+   "timestamp":123456,
+   "city":"Moundridge",
+   "state":"WA",
+   "country":"KS",
+   "shape":"Other",
+   "duration":3
+}
+```
