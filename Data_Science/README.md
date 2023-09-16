@@ -107,6 +107,31 @@ print( "\n---- Creating an array from tuple" )
 arr = np.array((1, 3, 2))
 print("\nArray created using passed tuple:\n", arr)
 ```
+### Data Types in Numpy
+
+Every Numpy array is a table of elements (usually numbers), all of the same type, indexed by a tuple of positive integers. Every ndarray has an associated data type (dtype) object. This data type object (dtype) provides information about the layout of the array. 
+
+In Numpy, datatypes of Arrays need not to be defined unless a specific datatype is required. Numpy tries to guess the datatype for Arrays which are not predefined in the constructor function.
+
+```
+# Python Program to create a data type object
+import numpy as np
+ 
+# Integer datatype guessed by Numpy
+x = np.array([1, 2])  
+print("Integer Datatype: ")
+print(x.dtype)         
+ 
+# Float datatype guessed by Numpy
+x = np.array([1.0, 2.0]) 
+print("\nFloat Datatype: ")
+print(x.dtype)  
+ 
+# Forced Datatype
+x = np.array([1, 2], dtype = np.int64)   
+print("\nForcing a Datatype: ")
+print(x.dtype)
+```
 
 ### Basic Array Operations
 ```
@@ -145,6 +170,98 @@ Trans_arr = a.T
 print("\nTranspose of Array: ")
 print(Trans_arr)
 ```
+
+## Python Machine Learning Library with scikit-learn 
+
+scikit-learn is an open-source Python library that implements a range of machine learning, pre-processing, cross-validation, and visualization algorithms using a unified interface.
+
+* Simple and efficient tools for data mining and data analysis. It features various classification, regression and clustering algorithms including support vector machines, random forests, gradient boosting, k-means, etc.
+* Built on the top of NumPy, SciPy, and matplotlib.
+
+### Installation
+
+```
+pip install -U scikit-learn
+```
+
+### Load an exemplar dataset
+
+```
+from sklearn.datasets import load_iris 
+iris = load_iris() 
+    
+# store the feature matrix (X) and response vector (y) 
+X = iris.data 
+y = iris.target 
+    
+# store the feature and target names 
+feature_names = iris.feature_names 
+target_names = iris.target_names 
+    
+# printing features and target names of our dataset 
+print("Feature names:", feature_names) 
+print("Target names:", target_names) 
+    
+# X and y are numpy arrays 
+print("\nType of X is:", type(X)) 
+    
+# printing first 5 input rows 
+print("\nFirst 5 rows of X:\n", X[:5])
+```
+
+### Splitting the dataset
+
+One important aspect of all machine learning models is to determine their accuracy. Now, in order to determine their accuracy, one can train the model using the given dataset and then predict the response values for the same dataset using that model and hence, find the accuracy of the model. 
+
+```
+# splitting X and y into training and testing sets
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=1)
+  
+# printing the shapes of the new X objects
+print(X_train.shape)
+print(X_test.shape)
+  
+# printing the shapes of the new y objects
+print(y_train.shape)
+print(y_test.shape)
+```
+
+### Training the model
+
+Scikit-learn provides a wide range of machine learning algorithms that have a unified/consistent interface for fitting, predicting accuracy, etc.
+
+```
+# training the model on training set
+from sklearn.neighbors import KNeighborsClassifier
+
+# We create a knn classifier object using:
+knn = KNeighborsClassifier(n_neighbors=3)
+
+# The classifier is trained using X_train data. The process is termed fitting
+knn.fit(X_train, y_train)
+  
+# making predictions on the testing set, test our classifier on the X_test data. knn.predict method is used for this
+y_pred = knn.predict(X_test)
+  
+# comparing actual response values (y_test) with predicted response values (y_pred)
+from sklearn import metrics
+print("kNN model accuracy:", metrics.accuracy_score(y_test, y_pred))
+  
+# making prediction for out of sample data
+sample = [[3, 5, 4, 2], [2, 3, 5, 4]]
+preds = knn.predict(sample)
+pred_species = [iris.target_names[p] for p in preds]
+print("Predictions:", pred_species)
+  
+# saving the model
+import joblib
+joblib.dump(knn, 'iris_knn.pkl')
+```
+
+### Introduction to Matplotlib
+
+
 
 ## References
 
