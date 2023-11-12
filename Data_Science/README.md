@@ -259,8 +259,34 @@ import joblib
 joblib.dump(knn, 'iris_knn.pkl')
 ```
 
-### Introduction to Matplotlib
+## Introduction to Matplotlib
 
+Matplotlib is a multi-platform data visualization library built on NumPy arrays and designed to work with the broader SciPy stack.
+
+### Installation
+
+```
+pip install -U matplotlib
+```
+
+### Basic plots in Matplotlib
+
+```
+# importing matplotlib module
+from matplotlib import pyplot as plt
+ 
+# x-axis values
+x = [5, 2, 9, 4, 7]
+ 
+# Y-axis values
+y = [10, 5, 8, 4, 2]
+ 
+# Function to plot
+plt.plot(x,y)
+ 
+# function to show the plot
+plt.show()
+```
 
 
 ## References
