@@ -74,6 +74,85 @@ You need to create 'STAGE', test 'COPY' command and create 'Notification' (to tr
 
 ## Time Travel
 
+Go back 60 s
+
+```
+SELECT * FROM <table> AT (OFFSET => -60 )
+```
+
+Go back before date
+
+```
+SELECT * FROM <table> BEFORE (timestamp => '2023-11-12 ...'::timestamp)
+```
+
+To recreate table at an older monent, create a new table and reinsert all data
+
+To undrop a dropped table:
+
+```
+UNDROP TABLE <table>
+```
+
+## Table types
+
+* Permanent: 'CREATE TABLE'. default, normal type wuth time travel and fail-safe
+* Transient: 'CREATE TANSIENT TABLE'. No fail-safe
+* Temporary: 'CREATE TEMPORARY TABLE'. No fail-safe. Exists only in current session i.e. other users or sessions do not see it.
+
+## Zero-copy cloning
+
+## Data Sharing
+
+* data sharing without copy data
+* shared data consumed by own compute
+
+```
+CREATE SHARE <share>
+```
+
+Reader account: non snowflake user. We pay for this account.
+
+## Data Sampling
+
+Take random sample of you data.
+
+* Row method: every row has x% of being selected
+* Block: every block has %x of being selected
+
+## Streams
+
+Objects that record changes made to a table. Follows CDC pattern: insert, update, delete statements are propagated.
+
+```
+CREATE STREAM <name> ON TABLE <table name>
+SELECT * FROM <stream name>
+```
+## Best practices
+
+Warehouse:
+* set auto suspend (for ETL: immediately, SELECT queries: 10 min (use cache), DevOps/Data Science: 5 min)
+* set auto resume
+* set timeouts:
+* set appropriate warehouse so you can process your queries
+
+Table design:
+* Staging table: transient (no need to time travel)
+* Productive table: permanent
+* Development tables: transient
+
+Data types: use appropriete data types (timestamp, numbers etc.)
+
+Set clusters only if necessary: large table, or query profile has lots of table scans
+
+Monitor:
+* usage of warehouse
+* usage of storage
+
+Retention period:
+* staging tables or processing tables: do not need time travel
+* production/curated tables: use time travel.
+* large tables: expensive - maybe you do not need time travel
 
 
 
