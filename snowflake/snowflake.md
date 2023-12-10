@@ -99,6 +99,7 @@ UNDROP TABLE <table>
 * Permanent: 'CREATE TABLE'. default, normal type wuth time travel and fail-safe
 * Transient: 'CREATE TANSIENT TABLE'. No fail-safe
 * Temporary: 'CREATE TEMPORARY TABLE'. No fail-safe. Exists only in current session i.e. other users or sessions do not see it.
+* Dynamic: 'CREATE DYNAMIC TABLE': Continously materlizes the results of the query you provide.
 
 ## Zero-copy cloning
 

@@ -47,4 +47,9 @@ You can:
 * fine tune
 * set content filters
 
+## OpenAI on Azure example
+
+See video: https://www.youtube.com/watch?app=desktop&v=-sr44ZldZoI
+
+### Create storage account
 
