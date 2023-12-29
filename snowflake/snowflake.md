@@ -32,8 +32,11 @@ There are:
 #### load data to tables
 
 Steps to load data:
+* 'CREATE STORAGE INTEGRATION' object to be able to access your S3 bucket from Snowflake
+* Create AWS Role to access the Snowflake Integration Object
+* 'CREATE FILE FORMAT' in Snowflake
 * 'CREATE STAGE' loads data from internal storage
-* 'COPY' load data from STAGE to a table
+* 'COPY' load data from STAGE to a table. Ingests data to snowflake in batches at time intervals. Snowflake 'COPY' command scheduled using Snowflake tasks or trigger copy commands using python/glue/airflow
 
 COPY cammand can have:
 * on error option
@@ -52,7 +55,13 @@ To do that you need to add 'file format' to the COPY command.
 Each document will be a new row and later you need to use 'dot notation', 'table' or 'flatten' functions.
 
 ### continuous data loading
-TODO
+
+* write / load the data into staging location (as before) on S3 and
+* Snowpipe object (continous data ingestion) is triggered as soon as data is written to S3 and it will write the data to snowflake table
+
+OR
+
+* There is a Kafka-Snowflake connector
 
 ## Performance optimization
 
