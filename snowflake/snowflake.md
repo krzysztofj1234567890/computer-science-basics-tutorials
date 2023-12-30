@@ -77,6 +77,20 @@ Optimization in snowflake:
 
 ## Snowpipe
 
+Snowpipe is Snowflake continous data ingestion service. It loads data within minutes after files are added to a stage and submitted for ingestion. It loads data from staged files in mcro-batches (instead of COPY syayements that are used to load larger batches).
+
+Steps:
+* CREATE STAGE object
+* CREATE PIPE object AS COPY INTO ...
+* Create AWS S3 Event Notification on create events
+* Create AWS SQS queue containing events
+
+Snowpipe keeps the state of processing and it will not load the same file again.
+
+Multiple files can be processed at the same time, but one file cannot be processed in parallel. File size should be 100-250MB. 
+
+To expract data from Snowflake to AWS S3 use 'COPY' command
+
 Automatically load new file if is loaded into some bucket / container. It is serverless.
 
 You need to create 'STAGE', test 'COPY' command and create 'Notification' (to trigger it).
@@ -138,6 +152,72 @@ Objects that record changes made to a table. Follows CDC pattern: insert, update
 CREATE STREAM <name> ON TABLE <table name>
 SELECT * FROM <stream name>
 ```
+
+Types of streams:
+* standard: tracks all DML
+* append only: only inserts
+* insert only: same as append-only but for external tables
+
+CREATE STREAM ... ON TABLE ....
+
+
+The 'stream' table contains the original table plus metadata (like if it was an update etc.)
+
+Streams can contain transactions:
+```
+begin
+
+multiple sql statements
+
+commit
+```
+
+## Change Tracking
+
+Read-only alternative to streams. Enables querying change tracking metadata between two points in time
+
+```
+ALTER TABLE ... SET CHANGE_TRACKING = TRUE
+
+SELECT * FROM ... AT ( TIMESTAMP > $ts1 )
+```
+
+Use it when you do not know when you will need to see or process changes.
+
+## Tasks
+
+Similar to scheduler. It can be executed as a single ot multiple SQL queries.
+
+Tasks canbe dependent, but there can be only one parent.
+
+```
+CREATE TASK ... SCHEDULE ... AS ... query
+
+OR
+
+CREATE TASK ... AFTER ... AS ... query
+```
+
+## UDF = user defined functions
+
+Reusable code written in sql, javascript, java, python
+
+2 types of UDF:
+* scalar: returns one output row
+* tabular: returns 0,1, or many rows
+
+```
+CREATE FUNCTION funct1 (a number, b, number)
+RETURNS number
+language sql
+AS
+$$
+    SELECT a+b
+$$
+
+SELECT funct1(1,2)
+```
+
 ## Best practices
 
 Warehouse:
