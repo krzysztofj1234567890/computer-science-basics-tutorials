@@ -218,6 +218,23 @@ $$
 SELECT funct1(1,2)
 ```
 
+## Snowflake with Python and Spark
+
+### Snowflake with pyton
+
+Local environment:
+
+```
+import snowflake.connector
+```
+
+AWS Glue:
+* Aws Glue assows you to run serverless spark. It will create a VM and after task done, it will stop VM.
+
+ Deploy python job that connects to snowflake
+
+
+
 ## Best practices
 
 Warehouse:
