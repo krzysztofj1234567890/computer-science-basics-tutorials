@@ -551,7 +551,7 @@ Each Kubernetes cluster publishes the specification of the APIs that the cluster
 
 A Kubernetes cluster consists of a control plane plus a set of worker machines, called nodes, that run containerized applications. 
 
- ![ Kubernetes Architecture ](./images/kubernetes-cluster-architecture.svg)
+ ![ Kubernetes Architecture ](./images/kubernetes-cluster-architecture.png)
 
 
 # Examples
