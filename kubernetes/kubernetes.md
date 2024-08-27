@@ -545,8 +545,13 @@ The Kubernetes API lets you query and manipulate the state of API objects in Kub
 
 Most operations can be performed through the kubectl command-line interface, which in turn use the API. However, you can also access the API directly using REST calls.
 
+Each Kubernetes cluster publishes the specification of the APIs that the cluster serves. kubectl tool fetches and caches the API specification for enabling command-line completion and other features.
 
+## Cluster Architecture
 
+A Kubernetes cluster consists of a control plane plus a set of worker machines, called nodes, that run containerized applications. 
+
+ ![ Kubernetes Architecture ](images/kubernetes-cluster-architecture.svg)
 
 
 # Examples
