@@ -184,6 +184,9 @@ kubectl get events
 kubectl top nodes
 kubectl top pods
 
+# an easy way to see how a Kubernetes object changes over time:
+kubectl get endpoints alpaca-prod --watch
+
 ```
 
 ### Cluster Components
@@ -405,9 +408,154 @@ like Amazon’s Elastic Block Store
 
 ## Labels and Annotations
 
+* Labels are key/value pairs that can be attached to Kubernetes objects such
+as Pods and ReplicaSets
+
+* Annotations, on the other hand, provide a storage mechanism that resembles
+labels: key/value pairs designed to hold nonidentifying information that
+tools and libraries can leverage
+
+### Labels
+
+In addition to enabling users to organize their infrastructure, labels play a
+critical role in linking various related Kubernetes objects.
+
+Kubernetes is a purposefully decoupled system. There is no hierarchy and all components
+operate independently. However, in many cases objects need to relate to one
+another, and these relationships are defined by labels and label selectors.
+
+For example, ReplicaSets, which create and maintain multiple replicas of a
+Pod, find the Pods that they are managing via a selector.
+
+#### Label Selectors
+
+Label selectors are used to filter Kubernetes objects based on a set of labels.
+
+```
+# show all pod labels
+kubectl get pods --show-labels
+
+# list Pods that have the ver label set to 2
+kubectl get pods --selector="ver=2"
+```
+
+### Annotations
+
+Annotations provide a place to store additional metadata for Kubernetes
+objects where the sole purpose of the metadata is assisting tools and
+libraries.
+
+Annotations are used to provide extra information about where an object came from, how to use it,
+or policy around that object.
+
+Annotations are used to:
+* Keep track of a “reason” for the latest update to an object.
+* Communicate a specialized scheduling policy to a specialized scheduler.
+
+## Service Discovery
+
+Service-discovery tools help solve the problem of finding which processes are listening at which addresses for which services.
+
+The Domain Name System (DNS) is the traditional system of service discovery on the internet. DNS is designed for relatively stable name
+resolution with wide and efficient caching. It is a great system for the internet but falls short in the dynamic world of Kubernetes.
+
+Real service discovery in Kubernetes starts with a Service object. A Service object is a way to create a named label selector.
+
+The kubernetes service is automatically created for you so that you can find and talk to the Kubernetes API from within the app.
+
+```
+ kubectl run alpaca-prod \
+ --image=gcr.io/kuar-demo/kuard-amd64:blue \
+ --replicas=3 \
+ --port=8080 \
+ --labels="ver=1,app=alpaca,env=prod"
+```
+
+Kubernetes provides a DNS service exposed to Pods running in the cluster. This Kubernetes DNS service was installed as a system component when
+the cluster was first created. The DNS service is, itself, managed by Kubernetes. The Kubernetes DNS service provides DNS names for cluster IPs
+
+When referring to a service in your own namespace you can just use the
+service name (alpaca-prod). You can also refer to a service in another
+namespace with alpaca-prod.default. And, of course, you can use
+the fully qualified service name (alpacaprod.default.svc.cluster.local.).
+
+One nice thing the Service object does is track which of your Pods are ready via a readiness check.
+
+Kubernetes service types:
+
+* 
+
+### NodePort
+In addition to a cluster IP, the system picks a
+port (or the user can specify one), and every node in the cluster then
+forwards traffic to that port to the service.
+With this feature, if you can reach any node in the cluster you can contact a
+service. You use the NodePort without knowing where any of the Pods for
+that service are running.
+
+Here we see that the system assigned port 32711 to this service. Now we
+can hit any of our cluster nodes on that port to access the service. If you are
+sitting on the same network, you can access it directly. If your cluster is in
+the cloud someplace, you can use SSH tunneling with something like this:
+
+```
+ssh <node> -L 8080:localhost:32711
+```
+
+Now if you point your browser to http://localhost:8080 you will be connected to that service.
+
+## HTTP Load Balancing with Ingress
+
+Service object operates at Layer 4 (according to the OSI model ).
+This means that it only forwards TCP and UDP connections and doesn’t look inside of those connections
+
+In the case where these services are type: NodePort, you’ll have to have clients connect to a
+unique port per service. In the case where these services are type:
+LoadBalancer, you’ll be allocating (often expensive or scarce) cloud
+resources for each service. But for HTTP (Layer 7)-based services, we can do better.
+
+Kubernetes calls its HTTP-based load-balancing system Ingress. Ingress is a Kubernetes-native way to implement the “virtual hosting” pattern:
+That program then parses the HTTP connection and, based on the Host header and the URL path that is requested, proxies the HTTP call to some other program.
+
+PAGE 115
 
 
 # Kubernetes Security and Observability by Brendan Creane & Amit Gupta 2021
 
-# Kubernetes Backup & Recovery by Steve Kaelble 2021
+# Kubernetes Concepts
+
+https://kubernetes.io/docs/concepts/
+
+## Advantages
+
+Kubernetes provides you with:
+
+* Service discovery and load balancing Kubernetes can expose a container using the DNS name or using their own IP address. If traffic to a container is high, Kubernetes is able to load balance and distribute the network traffic so that the deployment is stable.
+* Storage orchestration Kubernetes allows you to automatically mount a storage system of your choice, such as local storages, public cloud providers
+* Automated rollouts and rollbacks You can describe the desired state for your deployed containers using Kubernetes, and it can change the actual state to the desired state at a controlled rate.
+* Automatic bin packing You provide Kubernetes with a cluster of nodes that it can use to run containerized tasks. You tell Kubernetes how much CPU and memory (RAM) each container needs. Kubernetes can fit containers onto your nodes to make the best use of your resources.
+* Self-healing Kubernetes restarts containers that fail, replaces containers, kills containers that don't respond to your user-defined health check, and doesn't advertise them to clients until they are ready to serve.
+* Secret and configuration management Kubernetes lets you store and manage sensitive information, such as passwords, OAuth tokens, and SSH keys.
+
+## Kubernetes API
+
+The core of Kubernetes' control plane is the API server.
+
+The Kubernetes API lets you query and manipulate the state of API objects in Kubernetes.
+
+Most operations can be performed through the kubectl command-line interface, which in turn use the API. However, you can also access the API directly using REST calls.
+
+
+
+
+
+# Examples
+
+* helm chart example
+* how to create a service
+* kubernetes architecture
+* what is deployment?
+* what is cluster IP? It is a special IP address the system will load-balance across all of the Pods that are identified by the selector.
+* what is NodePort? 
+* what are kubernetes service types?
 
