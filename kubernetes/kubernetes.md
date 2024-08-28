@@ -535,8 +535,7 @@ In the Kubernetes world, workloads are built as container images and are deploye
 This is typically integrated in the development process, and most development teams use continuous integration
 (CI) and continuous delivery (CD) to ensure speedy and reliable delivery of software.
 
-Adding a security-review step to this process is counterproductive, as the only logical place to add that is when the code is
-being committed.
+Adding a security-review step to this process is counterproductive, as the only logical place to add that is when the code is being committed.
 
 ### Deploying a Workload in Kubernetes: Security at Each Stage
 
@@ -562,7 +561,7 @@ In most enterprises the platform team is responsible for this stage
 
 The final stage is the __runtime__ stage, where you have deployed your application
 and it is operational. In this stage you need to think about:
-*  network security, which involves controls using network policy, 
+* network security, which involves controls using network policy, 
 * threat defense (using techniques to detect and prevent malicious activity in the cluster), 
 * enterprise security controls like compliance, auditing, and encryption. 
 
@@ -650,9 +649,111 @@ The connections from the API server to the kubelet are used for:
 API server to nodes, pods, and services: 
 The connections from the API server to a node, pod, or service default to plain HTTP connections and are therefore neither authenticated nor encrypted. They can be run over a secure HTTPS connection by prefixing https: to the node, pod, or service name in the API URL, but they will not validate the certificate provided by the HTTPS endpoint nor provide client credentials. So while the connection will be encrypted, it will not provide any guarantees of integrity. These connections are not currently safe to run over untrusted or public networks
 
-CONTINUE: https://kubernetes.io/docs/concepts/containers/
+#### Pods
 
-# Examples
+Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.
+It is a group of one or more containers, with shared storage and network resources, and a specification for how to run the containers. 
+A Pod's contents are always co-located and co-scheduled, and run in a shared context.
+
+A Pod can contain init containers that run during Pod startup. You can also inject ephemeral containers for debugging a running Pod
+
+The shared context of a Pod is a set of Linux namespaces, cgroups, and potentially other facets of isolation - the same things that isolate a container. A Pod is similar to a set of containers with shared namespaces and shared filesystem volumes.
+
+Example:
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+
+```
+
+To create the Pod shown above:
+```
+kubectl apply -f simple-pod.yaml
+```
+
+##### Pod templates
+
+Usually you don't need to create Pods directly, even singleton Pods. Instead, create them using workload resources such as Deployment or Job.
+
+You can use workload resources to create and manage multiple Pods for you. A controller for the resource handles replication and rollout and automatic healing in case of Pod failure. xamples of workload resources that manage one or more Pods: Deployment, StatefulSet, DeamonSet
+
+Controllers for workload resources create Pods from a __pod template__ and manage those Pods on your behalf. PodTemplates are specifications for creating Pods, and are included in workload resources such as __Deployments__, __Jobs__, and __DaemonSets__.
+
+The sample below is a manifest for a simple Job with a template that starts one container:
+
+```
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello
+spec:
+  template:
+    # This is the pod template
+    spec:
+      containers:
+      - name: hello
+        image: busybox:1.28
+        command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
+      restartPolicy: OnFailure
+    # The pod template ends here
+```
+
+The StatefulSet controller ensures that the running Pods match the current pod template for each StatefulSet object. If you edit the StatefulSet to change its pod template, the StatefulSet starts to create new Pods based on the updated template. Eventually, all of the old Pods are replaced with new Pods, and the update is complete.
+
+Each workload resource implements its own rules for handling changes to the Pod template.
+
+##### Resource sharing and communication
+
+Pods enable data sharing and communication among their constituent containers.
+
+A Pod can specify a set of __shared storage volumes__. All containers in the Pod can access the shared volumes, allowing those containers to share data. Volumes also allow persistent data in a Pod to survive in case one of the containers within needs to be restarted.
+
+Each Pod is assigned a unique IP address for each address family. Every container in a Pod shares the network namespace, including the IP address and network ports. Inside a Pod (and only then), the containers that belong to the Pod can communicate with one another using __localhost__.
+
+The containers in a Pod can also communicate with each other using standard inter-process communications like SystemV semaphores or POSIX shared memory.
+
+##### Pod security settings
+
+To set security constraints on Pods and containers, you use the securityContext field in the Pod specification. This field gives you granular control over what a Pod or individual containers can do. For example:
+* Drop specific Linux capabilities to avoid the impact of a CVE.
+* Force all processes in the Pod to run as a non-root user or as a specific user or group ID.
+* Set a specific seccomp profile.
+
+##### Pod Lifecycle
+
+Pods are only scheduled once in their lifetime; assigning a Pod to a specific node is called binding, and the process of selecting which node to use is called scheduling. if Kubernetes isn't able start the Pod on the selected node, then that particular Pod never starts.
+
+If one of the containers in the Pod fails, then Kubernetes may try to restart that specific container. Pods can however fail in a way that the cluster cannot recover from. 
+
+Kubernetes uses a higher-level abstraction, called a controller, that handles the work of managing the relatively disposable Pod instances.
+
+Pod phases (status):
+* Pending: The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run.
+* Running: The Pod has been bound to a node, and all of the containers have been created. At least one container is still running.
+* Succeeded: All containers in the Pod have terminated in success, and will not be restarted
+* Failed: All containers in the Pod have terminated, and at least one container has terminated in failure. 
+* Unknown: For some reason the state of the Pod could not be obtained. 
+
+Container states:
+* Waiting
+* Running
+* Terminated
+
+Kubernetes manages container failures within Pods using a restartPolicy defined in the Pod spec.
+
+
+
+CONTINUE: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+
+# Other
 
 * helm chart example
 * how to create a service
