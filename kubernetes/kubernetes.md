@@ -517,10 +517,57 @@ resources for each service. But for HTTP (Layer 7)-based services, we can do bet
 Kubernetes calls its HTTP-based load-balancing system Ingress. Ingress is a Kubernetes-native way to implement the “virtual hosting” pattern:
 That program then parses the HTTP connection and, based on the Host header and the URL path that is requested, proxies the HTTP call to some other program.
 
-PAGE 115
+CONTINUE: PAGE 115
 
 
 # Kubernetes Security and Observability by Brendan Creane & Amit Gupta 2021
+
+Kubernetes is not secure by default. 
+
+## Security and Observability Strategy
+
+The reason Kubernetes is popular is its declarative nature: It abstracts infrastructure details and allows users to specify the workloads they want to
+run and the desired outcomes. 
+
+Kubernetes achieves this abstraction by managing workload creation, shutdown, and restart
+
+In the Kubernetes world, workloads are built as container images and are deployed in a Kubernetes cluster using a configuration file (yaml)
+This is typically integrated in the development process, and most development teams use continuous integration
+(CI) and continuous delivery (CD) to ensure speedy and reliable delivery of software.
+
+Adding a security-review step to this process is counterproductive, as the only logical place to add that is when the code is
+being committed.
+
+### Deploying a Workload in Kubernetes: Security at Each Stage
+
+![ Secure Kubernetes ](./images/secure_kubernetes.png)
+
+The __build__ stage is where you create (build) software for your workload (application) and build the infrastructure components (host or virtual machines) to host applications. In this stage you consider security for:
+* the CI/CD pipeline, 
+* implement security for image repositories, 
+* scan images for vulnerabilities,
+* harden the host operating system,
+* implement best practices to secure the image registry and avoid compromising the images in the image registry (use private registries)
+* best practices for secrets management; secrets are like passwords that allow access to resources in your cluster
+
+In most cases the development team is responsible for it.
+
+The next stage, __deploy__, is where you set up the platform that runs your Kubernetes deployment and deploy workloads. In this stage you need to think about:
+* the security best practices for configuring your Kubernetes cluster and providing external access to applications running inside your Kubernetes cluster,
+* policies to limit access to workloads (pod security policies), 
+* network policies to control applications’ access to the platform components, 
+* role-based access control (RBAC) for access to resources (for example, service creation, namespace creation, and adding/changing labels to pods)
+
+In most enterprises the platform team is responsible for this stage
+
+The final stage is the __runtime__ stage, where you have deployed your application
+and it is operational. In this stage you need to think about:
+*  network security, which involves controls using network policy, 
+* threat defense (using techniques to detect and prevent malicious activity in the cluster), 
+* enterprise security controls like compliance, auditing, and encryption. 
+
+The security team is responsible for this stage of the deployment.
+
 
 # Kubernetes Concepts
 
@@ -551,8 +598,59 @@ Each Kubernetes cluster publishes the specification of the APIs that the cluster
 
 A Kubernetes cluster consists of a control plane plus a set of worker machines, called nodes, that run containerized applications. 
 
- ![ Kubernetes Architecture ](./images/kubernetes-cluster-architecture.png)
+![ Kubernetes Architecture ](./images/kubernetes-cluster-architecture.png)
 
+Control plane components:
+
+* kube-apiserver: exposes the Kubernetes API
+* etcd: Consistent and highly-available key value
+* kube-scheduler: watches for newly created Pods with no assigned node, and selects a node for them to run on.
+* kube-controller-manager: runs controller processes. There are many different types of controllers: Node controller, Job controller etc.
+* cloud-controller-manager: embeds cloud-specific control logic. The cloud controller manager lets you link your cluster into your cloud provider's API
+
+Node components:
+
+* kubelet: An agent that runs on each node in the cluster. It makes sure that containers are running in a Pod.
+* kube-proxy: network proxy that runs on each node in your cluster, implementing part of the Kubernetes Service concept. It maintains network rules on nodes. 
+* Container runtime: empowers Kubernetes to run containers effectively. It is responsible for managing the execution and lifecycle of containers within the Kubernetes environment. Kubernetes supports container runtimes such as containerd,
+
+Addons:
+
+* DNS: Cluster DNS is a DNS server, in addition to the other DNS server(s) in your environment, which serves DNS records for Kubernetes services.
+* Web UI (Dashboard)
+* Container resource monitoring: records generic time-series metrics about containers in a central database, and provides a UI for browsing that data.
+* Cluster-level Logging: responsible for saving container logs to a central log store with a search/browsing interface
+* Network plugins:  software components that implement the container network interface (CNI) specification. They are responsible for allocating IP addresses to pods and enabling them to communicate with each other within the cluster
+
+### Nodes
+
+Kubernetes runs your workload by placing containers into Pods to run on Nodes. 
+
+There are two main ways to have Nodes added to the API server:
+* The kubelet on a node self-registers to the control plane
+* You (or another human user) manually add a Node object
+
+Kubernetes has a "hub-and-spoke" API pattern. All API usage from nodes (or the pods they run) terminates at the API server.
+
+#### Node to Control Plane communication
+
+Nodes should be provisioned with the public root certificate for the cluster such that they can connect securely to the API server along with valid client credentials. A good approach is that the client credentials provided to the kubelet are in the form of a client certificate. 
+
+Pods that wish to connect to the API server can do so securely by leveraging a service account so that Kubernetes will automatically inject the public root certificate and a valid bearer token into the pod when it is instantiated.
+
+#### Control plane to node communication
+
+The first is from the API server to the kubelet process which runs on each node in the cluster. The second is from the API server to any node, pod, or service through the API server's proxy functionality
+
+The connections from the API server to the kubelet are used for:
+* Fetching logs for pods.
+* Attaching (usually through kubectl) to running pods.
+* Providing the kubelet's port-forwarding functionality.
+
+API server to nodes, pods, and services: 
+The connections from the API server to a node, pod, or service default to plain HTTP connections and are therefore neither authenticated nor encrypted. They can be run over a secure HTTPS connection by prefixing https: to the node, pod, or service name in the API URL, but they will not validate the certificate provided by the HTTPS endpoint nor provide client credentials. So while the connection will be encrypted, it will not provide any guarantees of integrity. These connections are not currently safe to run over untrusted or public networks
+
+CONTINUE: https://kubernetes.io/docs/concepts/containers/
 
 # Examples
 
