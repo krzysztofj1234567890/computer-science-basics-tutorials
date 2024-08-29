@@ -649,7 +649,9 @@ The connections from the API server to the kubelet are used for:
 API server to nodes, pods, and services: 
 The connections from the API server to a node, pod, or service default to plain HTTP connections and are therefore neither authenticated nor encrypted. They can be run over a secure HTTPS connection by prefixing https: to the node, pod, or service name in the API URL, but they will not validate the certificate provided by the HTTPS endpoint nor provide client credentials. So while the connection will be encrypted, it will not provide any guarantees of integrity. These connections are not currently safe to run over untrusted or public networks
 
-#### Pods
+## Concepts
+
+### Pods
 
 Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.
 It is a group of one or more containers, with shared storage and network resources, and a specification for how to run the containers. 
@@ -679,7 +681,7 @@ To create the Pod shown above:
 kubectl apply -f simple-pod.yaml
 ```
 
-##### Pod templates
+#### Pod templates
 
 Usually you don't need to create Pods directly, even singleton Pods. Instead, create them using workload resources such as Deployment or Job.
 
@@ -710,7 +712,7 @@ The StatefulSet controller ensures that the running Pods match the current pod t
 
 Each workload resource implements its own rules for handling changes to the Pod template.
 
-##### Resource sharing and communication
+#### Resource sharing and communication
 
 Pods enable data sharing and communication among their constituent containers.
 
@@ -720,14 +722,14 @@ Each Pod is assigned a unique IP address for each address family. Every containe
 
 The containers in a Pod can also communicate with each other using standard inter-process communications like SystemV semaphores or POSIX shared memory.
 
-##### Pod security settings
+#### Pod security settings
 
 To set security constraints on Pods and containers, you use the securityContext field in the Pod specification. This field gives you granular control over what a Pod or individual containers can do. For example:
 * Drop specific Linux capabilities to avoid the impact of a CVE.
 * Force all processes in the Pod to run as a non-root user or as a specific user or group ID.
 * Set a specific seccomp profile.
 
-##### Pod Lifecycle
+#### Pod Lifecycle
 
 Pods are only scheduled once in their lifetime; assigning a Pod to a specific node is called binding, and the process of selecting which node to use is called scheduling. if Kubernetes isn't able start the Pod on the selected node, then that particular Pod never starts.
 
@@ -735,12 +737,19 @@ If one of the containers in the Pod fails, then Kubernetes may try to restart th
 
 Kubernetes uses a higher-level abstraction, called a controller, that handles the work of managing the relatively disposable Pod instances.
 
-Pod phases (status):
+Pod phases: A Pod's status field is a PodStatus object, which has a phase field.
 * Pending: The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run.
 * Running: The Pod has been bound to a node, and all of the containers have been created. At least one container is still running.
 * Succeeded: All containers in the Pod have terminated in success, and will not be restarted
 * Failed: All containers in the Pod have terminated, and at least one container has terminated in failure. 
 * Unknown: For some reason the state of the Pod could not be obtained. 
+
+Pod conditions: A Pod has a PodStatus, which has an array of PodConditions
+* PodScheduled: the Pod has been scheduled to a node.
+* PodReadyToStartContainers
+* ContainersReady: all containers in the Pod are ready
+* Initialized: all init containers have completed successfully.
+* Ready: the Pod is able to serve requests
 
 Container states:
 * Waiting
@@ -749,9 +758,319 @@ Container states:
 
 Kubernetes manages container failures within Pods using a restartPolicy defined in the Pod spec.
 
+Your application can inject extra feedback or signals into PodStatus: Pod readiness. To use this, set readinessGates in the Pod's spec to specify a list of additional conditions that the kubelet evaluates for Pod readiness:
 
+```
+kind: Pod
+...
+spec:
+  readinessGates:
+    - conditionType: "www.example.com/feature-1"
+status:
+  conditions:
+    - type: Ready                              # a built in PodCondition
+      status: "False"
+      lastProbeTime: null
+      lastTransitionTime: 2018-01-01T00:00:00Z
+    - type: "www.example.com/feature-1"        # an extra PodCondition
+      status: "False"
+      lastProbeTime: null
+      lastTransitionTime: 2018-01-01T00:00:00Z
+  containerStatuses:
+    - containerID: docker://abcd...
+      ready: true
+```
 
-CONTINUE: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+#### Pod network readiness
+
+After a Pod gets scheduled on a node, it needs to be admitted by the kubelet and to have any required storage volumes mounted. Once these phases are complete, the kubelet works with a container runtime (using Container runtime interface (CRI)) to set up a runtime sandbox and configure networking for the Pod.
+
+#### Container probes
+
+A probe is a diagnostic performed periodically by the kubelet on a container.
+
+__Check mechanisms__: There are four different ways to check a container using a probe:
+* exec: Executes a specified command inside the container.
+* grpc: Performs a remote procedure call using gRPC.
+* httpGet: Performs an HTTP GET request against the Pod's IP address on a specified port and path.
+* tcpSocket: Performs a TCP check against the Pod's IP address on a specified port.
+
+__Types of probe__:
+* livenessProbe: Indicates whether the container is running. If the liveness probe fails, the kubelet kills the container, and the container is subjected to its restart policy
+* readinessProbe: Indicates whether the container is ready to respond to requests. If the readiness probe fails, the endpoints controller removes the Pod's IP address from the endpoints of all Services that match the Pod.
+* startupProbe: Indicates whether the application within the container is started. All other probes are disabled if a startup probe is provided, until it succeeds. If the startup probe fails, the kubelet kills the container, and the container is subjected to its restart policy. Startup probes are useful for Pods that have containers that take a long time to come into service. Rather than set a long liveness interval, you can configure a separate configuration for probing the container as it starts up, allowing a time longer than the liveness interval would allow.
+
+#### Init Containers
+
+Init containers are exactly like regular containers, except:
+* Init containers always run to completion.
+* Each init container must complete successfully before the next one starts.
+
+#### Sidecar Containers
+
+Sidecar containers are the secondary containers that run along with the main application container within the same Pod. These containers are used to enhance or to extend the functionality of the primary app container by providing additional services, or functionality such as logging, monitoring, security, or data synchronization, without directly altering the primary application code.
+
+### Workload Management
+
+Your applications run as containers inside Pods; however, managing individual Pods would be a lot of effort. For example, if a Pod fails, you probably want to run a new Pod to replace it. Kubernetes can do that for you.
+
+You use the Kubernetes API to create a workload object that represents a higher abstraction level than a Pod, and then the Kubernetes control plane automatically manages Pod objects on your behalf.
+
+#### Deployments
+
+A Deployment provides declarative updates for Pods and ReplicaSets.
+You describe a desired state in a Deployment, and the Deployment Controller changes the actual state to the desired state at a controlled rate.
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3     #  three replicated Pods
+  selector:
+    matchLabels:
+      app: nginx  # defines how the created ReplicaSet finds which Pods to manage
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+```
+Create the Deployment by running the following command:
+
+```
+kubectl apply -f https://k8s.io/examples/controllers/nginx-deployment.yaml
+```
+
+#### ReplicaSet - do not use
+
+A ReplicaSet's purpose is to maintain a stable set of replica Pods running at any given time.
+
+A ReplicaSet is defined with fields, including a selector that specifies how to identify Pods it can acquire, a number of replicas indicating how many Pods it should be maintaining, and a pod template specifying the data of new Pods it should create to meet the number of replicas criteria. 
+
+A ReplicaSet is linked to its Pods via the Pods' metadata.ownerReferences field, which specifies what resource the current object is owned by.
+
+Deployment is a higher-level concept that manages ReplicaSets and provides declarative updates to Pods along with a lot of other useful features. Therefore, we recommend using Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all.
+
+```
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: us-docker.pkg.dev/google-samples/containers/gke/gb-frontend:v5
+
+```
+
+#### StatefulSets
+
+StatefulSet is the workload API object used to manage stateful applications.
+
+Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods.
+
+Like a Deployment, a StatefulSet manages Pods that are based on an identical container spec. Unlike a Deployment, a StatefulSet maintains a sticky identity for each of its Pods. These pods are created from the same spec, but are not interchangeable: each has a persistent identifier that it maintains across any rescheduling.
+
+StatefulSets are valuable for applications that require one or more of the following.
+* Stable, unique network identifiers.
+* Stable, persistent storage.
+* Ordered, graceful deployment and scaling.
+* Ordered, automated rolling updates.
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: nginx # has to match .spec.template.metadata.labels
+  serviceName: "nginx"
+  replicas: 3 # by default is 1
+  minReadySeconds: 10 # by default is 0     
+  template:
+    metadata:
+      labels:
+        app: nginx # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nginx
+        image: registry.k8s.io/nginx-slim:0.24
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:   # provide stable storage using PersistentVolumes provisioned by a PersistentVolume Provisioner.
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "my-storage-class"
+      resources:
+        requests:
+          storage: 1Gi
+```
+
+#### DaemonSet
+
+A DaemonSet ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. Deleting a DaemonSet will clean up the Pods it created.
+
+Some typical uses of a DaemonSet are:
+* running a cluster storage daemon on every node
+* running a logs collection daemon on every node
+* running a node monitoring daemon on every node
+
+```
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      # it may be desirable to set a high priority class to ensure that a DaemonSet Pod
+      # preempts running Pods
+      # priorityClassName: important
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+
+```
+
+#### Jobs
+
+A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate. As pods successfully complete, the Job tracks the successful completions. When a specified number of successful completions is reached, the task (ie, Job) is complete. 
+
+__Parallel execution__ for Jobs:
+* Non-parallel Jobs
+* Parallel Jobs with a fixed completion count
+* Parallel Jobs with a work queue: the Pods must coordinate amongst themselves or an external service to determine what each should work on.
+
+__Controlling parallelism__: can be set to any non-negative value. 
+
+#### CronJob
+
+#### ReplicationController
+
+#### Autoscaling Workloads
+
+In Kubernetes, you can scale a workload depending on the current demand of resources.
+
+Kubernetes supports manual scaling of workloads. Horizontal scaling can be done using the kubectl CLI. For vertical scaling, you need to patch the resource definition of your workload.
+
+In Kubernetes, you can automatically scale a workload horizontally using a HorizontalPodAutoscaler (HPA).
+
+Create the HorizontalPodAutoscaler:
+```
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: php-apache
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: php-apache
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+status:
+  observedGeneration: 1
+  lastScaleTime: <some-time>
+  currentReplicas: 1
+  desiredReplicas: 1
+  currentMetrics:
+  - type: Resource
+    resource:
+      name: cpu
+      current:
+        averageUtilization: 0
+        averageValue: 0
+```
+
+It is also possible to scale workloads based on events, for example using the Kubernetes Event Driven Autoscaler (KEDA).
+
+Another strategy for scaling your workloads is to schedule the scaling operations, for example in order to reduce resource consumption during off-peak hours.
+
+NEXT: https://kubernetes.io/docs/concepts/services-networking/
 
 # Other
 
@@ -762,4 +1081,6 @@ CONTINUE: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
 * what is cluster IP? It is a special IP address the system will load-balance across all of the Pods that are identified by the selector.
 * what is NodePort? 
 * what are kubernetes service types?
+* canary and blue-green deployments on kubernetes
+
 
