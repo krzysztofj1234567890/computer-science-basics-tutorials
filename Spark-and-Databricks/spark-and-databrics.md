@@ -552,6 +552,132 @@ if __name__ == '__main__':
     print(spark.range(5000).where("id > 500").selectExpr("sum(id)").collect())
 ```
 
+# Spark Optimizations
+
+## Optimizing Spark Configurations
+
+Example:
+```
+from pyspark.sql import SparkSession
+
+spark = (SparkSession.builder
+           .master("yarn")
+           .appName("test") 
+           .config("spark.sql.shuffle.partitions", 200)
+           .getOrCreate())
+```
+
+### Tuning Spark Executor
+
+Most of the time, we allocate static resources to the application. But what if some day you are getting massive data in source and the other day you are getting small data? Static allocation will not be a practical choice in this scenario. 
+
+We can dynamically add/remove executors according to our Spark application's workload. Spark has a dynamic allocation technique to enable executor scaling. This approach is best when we have an inconsistent workload daily. 
+
+Set the:
+* spark.dynamicAllocation.enabled = true
+
+### Tuning Spark Memory
+
+We often get an out-of-memory error either at the driver or executor sides. To avoid that, we need a correct memory configuration.
+
+Set the:
+* set the spark.memory.fraction
+
+### Tune Shuffle File Buffer
+
+Disk access is slower when compared to in-memory data access as it involves a serialization process that takes up time and resources. We can reduce disk I/O costs by introducing a shuffle read/write file buffer in the memory.
+
+Set the:
+* spark.shuffle.file.buffer 
+
+### Tune Shuffle Partitions value
+
+The shuffle-partition means the number of partitions generated after each transformation step that causes data shuffling, such as join(), agg(), reduce(), etc. By setting spark.sql.shuffle.partitions property, you can decide the level of parallelism in your Spark application.
+
+Set the:
+* spark.sql.shuffle.partitions
+
+## Optimizing Spark program
+
+### Broadcast Join
+
+If you are joining a big table with a small table. During this join operation, more shuffling will happen. We can avoid shuffling by using a broadcast join. It will copy a small table to every node where the executor is running. 
+
+```
+from pyspark.sql.functions import broadcastemp_df = spark.sql("select id, name, dept_id from employee")
+dept_df = spark.sql("select dept_id, dept_name from department")
+df_joined = emp_df.join(broadcast(dept_df),emp_df.dept_id == dept_df.dept_id, ‘inner’)
+df_joined.show(20)
+```
+
+### Cache data
+
+Every time we call the Action in the Spark program, it triggers DAG and executes it from the beginning. That's why it's recommended not to use unnecessary Actions in Spark programs. Double-check the code and remove or comment Actions you wrote for debugging/testing in your Spark program.
+
+One key point to improve performance when the same dataframe is being referred to in multiple places is to cache that dataframe. Spark has two functions to cache dataframe: cache() and persist(). RDD's cache() function default saves the dataframe to memory while the persist() function is used to store dataframe at the user-defined storage level. 
+
+Spark SQL can cache tables using an in-memory columnar format by calling spark.catalog.cacheTable("tableName") or dataFrame.cache().
+
+### Repartition data
+
+A dataframe is partitioned means there are logical groups of records in it. Each task processes each partition, many tasks run in parallel inside one executor, and parallel execution happens in Spark.
+
+__coalesce()__ is mainly used to decrease partitions and __repartition()__ is used to increase partitions.
+
+If you are processing large data and want to create more simultaneous tasks, then you can use the repartition() function to increase the partitions. If you want to re-shuffle the data based on column value, you can also use the repartition() function. If you want to reduce the number of output files, then you can use the coalesce() function. 
+
+__The optimal number of partitions is usually set as a factor of the total number of cores available in the cluster.__
+
+### Filter data in earlier steps
+
+The key point to improve the performance of joins and other processing is to filter data in earlier steps which you don't need in the result set.
+
+### Use Salting Technique to eliminate data skewness issues
+
+We often see on Spark UI that some tasks take longer, and some finish quickly. This happens when your data is skewed. That means data is not evenly distributed across the partitions. So, tasks working on partitions where the data size is more than the other partitions take more time to complete. This also causes an out-of-memory issue sometimes. Re-shuffling data across partitions can eliminate data skewness. We can achieve shuffling by using the repartition() function. But this function does not guarantee the even distribution of records. So, we must add some random values in a new column in the dataframe, which we often call the salted key, and then we can pass that salted key in the repartition function as an argument. After that repartition() function will re-shuffle data based on the salted key column values.
+
+```
+salt_df_new = df.withColumn(“salted_key”, (rand * n).cast(IntegerType))
+shuffled_df = salt_df_new.repartition(100, ‘salted_key’)
+```
+
+### Provide schema explicitly while reading data into dataframe
+
+The predefined schema makes it easier for Spark to get columns and datatypes without reading the entire file; this improves the performance of your Spark code if you are dealing with a massive volume of data. We can use the inferSchema=True option if we want Spark to identify schemas implicitly, and we can use the schema option to provide a schema to dataframe.
+
+```
+from pyspark.sql.types import StructType, IntegerType, DateTypeschema = StructType([
+         StructField(“col_01”, IntegerType()),
+         StructField(“col_02”, DateType()),
+         StructField(“col_03”, IntegerType()) ])df = spark.read.csv(filename, header=True, schema=schema)
+
+```
+### Use the ReduceByKey function over GroupByKey
+
+Both reduceByKey() and groupByKey() are broad transformations, meaning both will shuffle across the partitions. The critical difference between reduceByKey() and groupByKey() is that reduceByKey() does a map side combine and groupByKey() does not. The reduceByKey() acts like a mini reducer. So, the shuffling of data can be reduced if we use reduceByKey()
+
+### Avoid the use of UDFs (User Defined Functions)
+
+UDFs are heavy when it comes to performance. Spark does not optimize UDFs as it's like a black box for them. Built-in "Spark SQL" functions are optimized and recommended to be used in programs. 
+
+### Check the uniqueness of keys while using the join columns
+
+We should always carefully choose the join columns for joining two dataframes. If duplicate values exist in either of the columns, it takes a long time to join such dataframes because a cartesian product can happen.
+
+## Optimizing storage
+
+### Bucketing and Partitioning
+
+__Partitioning__ splits records into files present under different directories named the same as partition column values, based on the partition column. __Bucketing__ is helpful in further splitting records into different files based on a hashing function. This improves performance when we read data in Spark.
+
+Partitioning is often represented as directories, and bucketing is represented as files. 
+
+### Serialized data formats
+
+
+
+# Spark debugging and analyzing
+
 
 # Examples
 
