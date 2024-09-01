@@ -219,6 +219,171 @@ public static void main(String args[]) {
 }
 ```
 
+###  Breadth-First Tree Traversal
+
+Level Order Traversal technique is defined as a method to traverse a Tree such that all nodes present in the same level are traversed completely before traversing the next level.
+
+```
+public class TreeNode {
+  public int value;
+  public TreeNode left;
+  public TreeNode right;
+ 
+  public TreeNode(int value) {
+    this.value = value;
+    right = null;
+    left = null;
+  }
+}
+
+public class TreeMock {
+  public static TreeNode createBfsMock() {
+    TreeNode rootTreeNode = new TreeNode(1);
+    TreeNode treeNode2 = new TreeNode(2);
+    TreeNode treeNode3 = new TreeNode(3);
+    TreeNode treeNode4 = new TreeNode(4);
+    TreeNode treeNode5 = new TreeNode(5);
+    TreeNode treeNode6 = new TreeNode(6);
+    TreeNode treeNode7 = new TreeNode(7);
+    TreeNode treeNode8 = new TreeNode(8);
+ 
+    rootTreeNode.left = treeNode2;
+    rootTreeNode.right = treeNode3;
+ 
+    treeNode2.left = treeNode4;
+    treeNode2.right = treeNode5;
+    treeNode3.right = treeNode6;
+ 
+    treeNode5.left = treeNode7;
+    treeNode5.right = treeNode8;
+ 
+    return rootTreeNode;
+  }
+}
+
+import java.util.LinkedList;
+import java.util.Queue;
+ 
+public class BreathFirstSearch {
+ 
+  public static void main(String[] args) {
+    bfsForTree(TreeMock.createBfsMock());
+  }
+ 
+  public static void bfsForTree(TreeNode node) {
+    Queue<TreeNode> queue = new LinkedList<>();
+    queue.add(node);
+ 
+    while (!queue.isEmpty()) {
+      var currentNode = queue.poll();
+ 
+      if (currentNode != null) {
+        System.out.print(currentNode.value + " ");
+        queue.add(currentNode.left);
+        queue.add(currentNode.right);
+      }
+    }
+  }
+}
+```
+
+### Depth-First-Search Tree traversal
+
+```
+import java.util.ArrayList;
+import java.util.List;
+ 
+public class Node {
+ 
+  Object value;
+  private List<> adjacentNodes = new ArrayList<>();
+  private boolean visited;
+ 
+  public Node(Object value) {
+    this.value = value;
+  }
+ 
+  public void addAdjacentNode(Node node) {
+    this.adjacentNodes.add(node);
+  }
+ 
+  public List<> getAdjacentNodes() {
+    return adjacentNodes;
+  }
+ 
+ 
+  public Object getValue() {
+    visited = true;
+    return value;
+  }
+ 
+  public boolean isVisited() {
+    return visited;
+  }
+}
+
+public class GraphMock {
+ 
+  public static Node createPreorderGraphMock() {
+    Node rootNode = new Node(1);
+    Node node2 = new Node(2);
+    Node node3 = new Node(3);
+    Node node4 = new Node(4);
+    Node node5 = new Node(5);
+    Node node6 = new Node(6);
+    Node node7 = new Node(7);
+ 
+    rootNode.addAdjacentNode(node2);
+    node2.addAdjacentNode(node3);
+    node3.addAdjacentNode(node4);
+    node4.addAdjacentNode(node5);
+ 
+    rootNode.addAdjacentNode(node6);
+    rootNode.addAdjacentNode(node7);
+ 
+    return rootNode;
+  }
+}
+
+/** Recursive Preorder Traversal without Lambda */
+public class DepthFirstSearchPreorder {
+ 
+ public static void main(String[] args) {
+   Node rootNode = GraphMock.createPreorderGraphMock();
+   dfsRecursive(rootNode);
+ }
+ 
+ public static void dfsRecursiveWithoutLambda(Node node) {
+    System.out.print(node.getValue() + " ");
+ 
+    for (Node eachNode : node.getAdjacentNodes()) {
+      if (!eachNode.isVisited()) {
+        dfsRecursiveWithoutLambda(eachNode);
+      }
+    }
+  }
+}
+
+/* Preorder with Looping */
+public static void dfsNonRecursive(Node node) {
+   Stack<> stack = new Stack<>();
+   Node currentNode = node;
+   stack.push(currentNode);
+ 
+   while (!stack.isEmpty()) {
+     currentNode = stack.pop();
+     if (!currentNode.isVisited()) {
+       for (int i = currentNode.getAdjacentNodes().size() - 1; i >= 0; i--) {
+         stack.push(currentNode.getAdjacentNodes().get(i));
+       }
+ 
+       System.out.print(currentNode.getValue() + " ");
+     }
+   }
+ }
+
+```
+
 ###  if a string s has more vowels than consonants
 
 ### find the smallest and largest numbers in an array of integers
