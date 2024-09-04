@@ -635,6 +635,142 @@ You should wait until you have all the information to handle it properly.
 
 ![ Java Containers Taxonomy ](./images/java_containers.png)
 
+### List
+
+The list is an ordered collection, also known as a sequence.
+
+#### ArrayList
+
+Good at adding and removing elements in the end, as well as having random access to elements.  It’s bad at adding and removing elements at arbitrary positions
+
+#### LinkedList
+
+Good at adding and removing elements at any position. However, it doesn’t support true O(1) random access. So, regarding lists, the default choice is ArrayList until we need fast element addition and removal at any position.
+
+#### Stack
+
+
+
+### Set
+
+Java Set is a collection construct that, by definition, contains unique elements — that is, no duplicates.
+
+#### HashSet
+
+The default choice is the HashSet collection, as it’s very fast for all the operations it supports.
+
+#### LinkedHashSet
+
+If the insertion order of elements matters.
+
+#### TreeSet
+
+The elements need to be sorted and the sorted order needs to be preserved while adding and removing elements
+
+#### EnumSet
+
+If the elements of the set are just enumeration values of a single enum type, then the wisest choice is EnumSet.
+
+
+### Queue
+
+Java Queue is a collection that works on FIFO (First In First Out) principle. The elements that are added first will be removed first from the queue. LinkedList and Priority Queue are the most common types of Queue implementations in Java.
+
+#### LinkedList
+
+### PriorityQueue
+
+### Map
+
+The map is a convenient collection construct that you can use to associate one object (key) with another object (value)
+
+#### HashMap
+
+Use HashMap by default
+
+#### TreeMap
+
+TreeMap for sorting,
+
+#### LinkedHashMap
+
+If insertion order is important
+
+#### IdentityHashMap
+
+#### WeakHashMap
+
+#### EnumMap
+
+### Sorting collections = Collections.sort
+
+java.util.Collections.sort() method is present in java.util.Collections class. It is used to sort the elements present in the specified list of Collection in ascending order. It works similar to java.util.Arrays.sort() method but it is better than as it can sort the elements of Array as well as linked list, queue and many more present in it.
+
+```
+import java.util.*; 
+ 
+public class Collectionsorting 
+{ 
+    public static void main(String[] args) 
+    { 
+        // Create a list of strings 
+        ArrayList<String> al = new ArrayList<String>(); 
+        al.add("Geeks For Geeks"); 
+        al.add("Friends"); 
+        al.add("Dear"); 
+        al.add("Is"); 
+        al.add("Superb"); 
+ 
+        /* Collections.sort method is sorting the 
+        elements of ArrayList in ascending order. */
+        Collections.sort(al); 
+ 
+        // Let us print the sorted list 
+        System.out.println("List after the use of" + 
+                        " Collection.sort() :\n" + al); 
+    } 
+} 
+```
+
+To sort list of objects you must implement the interface java.lang.Comparable
+
+```
+public class Fruit implements Comparable<Object>{
+    private int id;
+    private String name;
+    private String taste;
+
+    Fruit(int id, String name, String taste){
+        this.id=id;
+        this.name=name;
+        this.taste=taste;
+    }
+    @Override 
+    public int compareTo(Object o) {
+        Fruit f = (Fruit) o; 
+        return this.id - f.id ;
+    }
+}
+```
+
+#### Java Collections sort(List list, Comparator c)
+
+In order to define a custom logic for sorting, which is different from the natural ordering of the elements, we can implement the java.util.Comparator interface and pass an instance of it as the second argument of sort()
+
+```
+package com.journaldev.collections;
+
+class SortByName implements Comparator<Fruit> {
+    @Override
+    public int compare(Fruit a, Fruit b) {
+        return a.getName().compareTo(b.getName());
+    }
+}
+
+Collections.sort(fruitList, new SortByName());
+```
+
+
 
 # References
 https://builtin.com/data-science/sliding-window-algorithm
