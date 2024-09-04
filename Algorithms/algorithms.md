@@ -384,40 +384,257 @@ public static void dfsNonRecursive(Node node) {
 
 ```
 
+### Brute force pattern matching
+
+```
+public static int findBrute(char[ ] text, char[ ] pattern) {
+  int n = text.length;
+  int m = pattern.length;
+  for (int i=0; i <= n − m; i++) { // try every starting index within text
+    int k = 0; // k is index into pattern
+    while (k < m && text[i+k] == pattern[k]) // kth character of pattern matches
+      k++;
+    if (k == m) // if we reach the end of the pattern,
+      return i; // substring text[i..i+m-1] is a match
+  }
+  return −1; // search failed
+}
+```
+
+It consists of two nested loops, with the outer loop indexing through all possible starting indices of the pattern in the text.
+
+Thus, the worst-case running time of the brute-force method is O(nm).
+
+### The Boyer-Moore Algorithm pattern matching
+
+The main idea of the Boyer-Moore algorithm is to improve the running time of the brute-force algorithm by adding two potentially time-saving heuristics. Roughly
+stated, these heuristics are as follows:
+* Looking-Glass Heuristic: When testing a possible placement of the pattern against the text, perform the comparisons against the pattern from right-to-left.
+* Character-Jump Heuristic: During the testing of a possible placement of the pattern within the text, a mismatch of character text[i]=c with the corresponding
+character pattern[k] is handled as follows. If c is not contained anywhere in the pattern, then shift the pattern completely past text[i] = c. Otherwise,
+shift the pattern until an occurrence of character c gets aligned with text[i].
+
+### KMP (Knuth Morris Pratt) Pattern Searching
+
+The basic idea behind KMP’s algorithm is: whenever we detect a mismatch (after some matches), we already know some of the characters in the text of the next window. We take advantage of this information to avoid matching the characters that we know will anyway match. 
+
+Step-by-step approach:
+* Initially calculate the hash value of the pattern.
+* Start iterating from the starting of the string:
+  * Calculate the hash value of the current substring having length m.
+  * If the hash value of the current substring and the pattern are same check if the substring is same as the pattern.
+  * If they are same, store the starting index as a valid answer. Otherwise, continue for the next substrings.
+* Return the starting indices as the required answer.
+
+
+### Heap-Sort - TODO
+
+A heap is a complete binary tree, and the binary tree is a tree in which the node can have the utmost two children. A complete binary tree is a binary tree in which all the levels except the last level, i.e., leaf node, should be completely filled.
+
+The concept of heap sort is to eliminate the elements one by one from the heap part of the list, and then insert them into the sorted part of the list.
+
+# Bulletproof java code
+
+## requireNonNull
+
+Checks that the specified object reference is not null and throws a customized NullPointerException if it is.
+
+```
+public void add(Player player) {
+      Objects.requireNonNull(player, "player is required");
+
+      if (players.size() == SIZE) {
+          throw new IllegalArgumentException("The team is full");
+      }
+      this.players.add(player);
+  }
+```
+
+## unmodifiableList
+
+Returns an unmodifiable view of the specified list. This method allows modules to provide users with "read-only" access to internal lists.
+
+Throws java.lang.UnsupportedOperationException
+
+```
+List<Character> list = new ArrayList<Character>(); 
+list.add('X'); 
+List<Character> immutablelist = Collections.unmodifiableList(list); 
+```
+
+## use enumeration instead of String
+
+```
+public enum Position {
+    GOALKEEPER, DEFENDER, MIDFIELDER, FORWARD;
+}
+```
+
+## Builder design pattern
+
+Follows the single responsibility to hold the duty to create a player instance. Furthermore, it avoids a mistake that changes the parameter order.
+
+```
+public class Player {
+
+    static final Year SOCCER_BORN = Year.of(1863);
+
+    //hide
+
+    private Player(String name, Year start, Year end, Email email, Position position, MonetaryAmount salary) {
+        this.name = name;
+        this.start = start;
+        this.end = end;
+        this.email = email;
+        this.position = position;
+        this.salary = salary;
+    }
+
+    @Deprecated
+    Player() {
+    }
+
+    public static PlayerBuilder builder() {
+        return new PlayerBuilder();
+    }
+
+    public static class PlayerBuilder {
+
+        private String name;
+
+        private Year start;
+
+        private Year end;
+
+        private Email email;
+
+        private Position position;
+
+        private MonetaryAmount salary;
+
+        private PlayerBuilder() {
+        }
+
+        public PlayerBuilder withName(String name) {
+            this.name = Objects.requireNonNull(name, "name is required");
+            return this;
+        }
+
+        public PlayerBuilder withStart(Year start) {
+            Objects.requireNonNull(start, "start is required");
+            if (Year.now().isBefore(start)) {
+                throw new IllegalArgumentException("you cannot start in the future");
+            }
+            if (SOCCER_BORN.isAfter(start)) {
+                throw new IllegalArgumentException("Soccer was not born on this time");
+            }
+            this.start = start;
+            return this;
+        }
+
+        public PlayerBuilder withEnd(Year end) {
+            Objects.requireNonNull(end, "end is required");
+
+            if (start != null && start.isAfter(end)) {
+                throw new IllegalArgumentException("the last year of a player must be equal or higher than the start.");
+            }
+
+            if (SOCCER_BORN.isAfter(end)) {
+                throw new IllegalArgumentException("Soccer was not born on this time");
+            }
+            this.end = end;
+            return this;
+        }
+
+        public PlayerBuilder withEmail(Email email) {
+            this.email = Objects.requireNonNull(email, "email is required");
+            return this;
+        }
+
+        public PlayerBuilder withPosition(Position position) {
+            this.position = Objects.requireNonNull(position, "position is required");
+            return this;
+        }
+
+        public PlayerBuilder withSalary(MonetaryAmount salary) {
+            Objects.requireNonNull(salary, "salary is required");
+            if (salary.isNegativeOrZero()) {
+                throw new IllegalArgumentException("A player needs to earn money to play; otherwise, it is illegal.");
+            }
+            this.salary = salary;
+            return this;
+        }
+
+        public Player build() {
+            Objects.requireNonNull(name, "name is required");
+            Objects.requireNonNull(start, "start is required");
+            Objects.requireNonNull(email, "email is required");
+            Objects.requireNonNull(position, "position is required");
+            Objects.requireNonNull(salary, "salary is required");
+
+            return new Player(name, start, end, email, position, salary);
+        }
+
+    }
+}
+```
+
+And
+
+```
+Team bahia = Team.of("Bahia");
+  Player marta = Player.builder().withName("Marta")
+      .withEmail(email)
+      .withSalary(salary)
+      .withStart(start)
+      .withPosition(Position.FORWARD)
+      .build();
+
+  bahia.add(marta);
+```
+
+## Thorough testing
+
+## Error handling
+
+### catch only those exceptions that you can handle
+
+### wrap the exceptions in custom exceptions so that the stack trace is not lost
+
+```
+catch (NoSuchMethodException e) {
+   throw new MyServiceException("Some information: " , e);  //Correct way
+}
+```
+
+### Throw early Catch late
+
+You should wait until you have all the information to handle it properly.
+
+
+## Documentation
+
+
+# Thinking in Java by Bruce Eckel 2006
+
+
+
+# Other Algorithms
+
+## sliding-window
+
 ###  if a string s has more vowels than consonants
 
 ### find the smallest and largest numbers in an array of integers
 
 ### outputs all possible strings formed by using the characters 'c', 'a', 't', 'd', 'o', and 'g' exactly once
 
-### palindrome
+# Thinking in Java by Bruce Eckel 2006
 
+## Containers in Depth
 
+![ Java Containers Taxonomy ](./images/java_containers.png)
 
-
-
-## Design Patterns
-
-
-
-
-
-
-# Other Algorithms
-
-## traversal
-
-### Description
-
-Traversing a binary tree is a fundamental operation in data structures and algorithms. It involves systematically visiting each node in the tree, and there are various approaches to accomplish this, including recursive and iterative methods. 
-
-
-
-## sliding-window
-
-## divide and conquer
-
-## breadth-first search vs. depth-first
 
 # References
 https://builtin.com/data-science/sliding-window-algorithm
