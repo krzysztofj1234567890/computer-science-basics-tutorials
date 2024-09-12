@@ -1313,19 +1313,280 @@ A StorageClass provides a way for administrators to describe the classes of stor
 
 Use a ConfigMap for setting configuration data separately from application code.
 
+A ConfigMap is an API object that lets you store configuration for other objects to use
+
+You can write a Pod spec that refers to a ConfigMap and configures the container(s) in that Pod based on the data in the ConfigMap. The Pod and the ConfigMap must be in the same namespace.
+
+Example ConfigMap that has some keys with single values, and other keys where the value looks like a fragment of a configuration format
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: game-demo
+data:
+  # property-like keys; each key maps to a simple value
+  player_initial_lives: "3"
+  ui_properties_file_name: "user-interface.properties"
+
+  # file-like keys
+  game.properties: |
+    enemy.types=aliens,monsters
+    player.maximum-lives=5    
+  user-interface.properties: |
+    color.good=purple
+    color.bad=yellow
+    allow.textmode=true    
+
+```
+
+There are four different ways that you can use a ConfigMap to configure a container inside a Pod:
+
+* Inside a container command and args
+* Environment variables for a container
+* Add a file in read-only volume, for the application to read
+* Write code to run inside the Pod that uses the Kubernetes API to read a ConfigMap
+
+Example Pod that uses values from game-demo to configure a Pod:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configmap-demo-pod
+spec:
+  containers:
+    - name: demo
+      image: alpine
+      command: ["sleep", "3600"]
+      env:
+        # Define the environment variable
+        - name: PLAYER_INITIAL_LIVES # Notice that the case is different here
+                                     # from the key name in the ConfigMap.
+          valueFrom:
+            configMapKeyRef:
+              name: game-demo           # The ConfigMap this value comes from.
+              key: player_initial_lives # The key to fetch.
+        - name: UI_PROPERTIES_FILE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: game-demo
+              key: ui_properties_file_name
+      volumeMounts:
+      - name: config
+        mountPath: "/config"
+        readOnly: true
+  volumes:
+  # You set volumes at the Pod level, then mount them into containers inside that Pod
+  - name: config
+    configMap:
+      # Provide the name of the ConfigMap you want to mount.
+      name: game-demo
+      # An array of keys from the ConfigMap to create as files
+      items:
+      - key: "game.properties"
+        path: "game.properties"
+      - key: "user-interface.properties"
+        path: "user-interface.properties"
+```
+#### Secrets
+
+A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key. Such information might otherwise be put in a Pod specification or in a container image.
+
+Secrets are similar to ConfigMaps but are specifically intended to hold confidential data
+
+Kubernetes Secrets are, by default, stored unencrypted in the API server's underlying data store (etcd). Anyone with API access can retrieve or modify a Secret, and so can anyone with access to etcd. Additionally, anyone who is authorized to create a Pod in a namespace can use that access to read any Secret in that namespace; this includes indirect access such as the ability to create a Deployment.
+
+In order to safely use Secrets, take at least the following steps:
+* Enable Encryption at Rest for Secrets.
+* Enable or configure RBAC rules with least-privilege access to Secrets.
+* Restrict Secret access to specific containers.
+* Consider using external Secret store providers.
+
+[NEXT TODO](https://kubernetes.io/docs/concepts/configuration/secret/)
 
 
-
-
-NEXT: https://kubernetes.io/docs/concepts/services-networking/
 
 # Other
 
-* helm chart example
+## Helm 
+
+Helm Charts help you define, install, and upgrade even the most complex Kubernetes application.
+
+__Concepts__:
+* The chart is a bundle of information necessary to create an instance of a Kubernetes application. A chart is a collection of files that describe a related set of Kubernetes resources.
+* The config contains configuration information that can be merged into a packaged chart to create a releasable object.
+* A release is a running instance of a chart, combined with a specific config.
+
+__File Structure__: A chart is organized as a collection of files inside of a directory. The directory name is the name of the chart
+
+Example:
+```
+wordpress/
+  Chart.yaml          # A YAML file containing information about the chart
+  LICENSE             # OPTIONAL: A plain text file containing the license for the chart
+  README.md           # OPTIONAL: A human-readable README file
+  values.yaml         # The default configuration values for this chart
+  values.schema.json  # OPTIONAL: A JSON Schema for imposing a structure on the values.yaml file
+  charts/             # A directory containing any charts upon which this chart depends.
+  crds/               # Custom Resource Definitions
+  templates/          # A directory of templates that, when combined with values, will generate valid Kubernetes manifest files.
+  templates/NOTES.txt # OPTIONAL: A plain text file containing short usage notes
+
+```
+Example of ConfigMap mychart/templates/configmap.yaml template:
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+```
+
+We can install it like this:
+```
+helm install full-coral ./mychart
+```
+
+Return the rendered template to you so you can see the output:
+```
+helm install --debug --dry-run goodly-guppy ./mychart. 
+```
+
+### Example
+
+From https://github.com/helm/examples/tree/main/charts/hello-world
+
+Chart.yaml
+```
+apiVersion: v2
+name: hello-world
+description: A Helm chart for Kubernetes
+
+# A chart can be either an 'application' or a 'library' chart.
+#
+# Application charts are a collection of templates that can be packaged into versioned archives
+# to be deployed.
+#
+# Library charts provide useful utilities or functions for the chart developer. They're included as
+# a dependency of application charts to inject those utilities and functions into the rendering
+# pipeline. Library charts do not define any templates and therefore cannot be deployed.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+version: 0.1.0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application. Versions are not expected to
+# follow Semantic Versioning. They should reflect the version the application is using.
+# It is recommended to use it with quotes.
+appVersion: "1.16.0"
+```
+
+values.yaml
+```
+# Default values for hello-world.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+```
+
+templates/service.yaml
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hello-world.fullname" . }}
+  labels:
+    {{- include "hello-world.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "hello-world.selectorLabels" . | nindent 4 }}
+```
+
+templates/deployment.yaml
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hello-world.fullname" . }}
+  labels:
+    {{- include "hello-world.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hello-world.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hello-world.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "hello-world.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+```
+
+## Kubernetes Deployments: Rolling vs Canary vs Blue-Green 
+
+https://dev.to/pavanbelagatti/kubernetes-deployments-rolling-vs-canary-vs-blue-green-4k9p
+
+### Canary Deployment
+
+Technique for rolling out new features or changes to a small subset of users or servers before releasing the update to the entire system. This is done by creating a __new replica set__ with the updated version of the software while keeping the original replica set running. A small percentage of traffic is then routed to the new replica set, while the majority of the traffic continues to be served by the original replica set.
+
+
+
+## TODO:
+
 * what is cluster IP? It is a special IP address the system will load-balance across all of the Pods that are identified by the selector.
 * what is NodePort? 
-* canary and blue-green deployments on kubernetes
-* blue-green on kubernetes
 * access a pod or container to debug it
 
 
