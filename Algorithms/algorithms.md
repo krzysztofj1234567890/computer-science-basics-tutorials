@@ -221,6 +221,21 @@ public static void main(String args[]) {
 
 ###  Breadth-First Tree Traversal
 
+Recursive:
+
+```
+public void traversePreOrder(Node node) {
+    if (node != null) {
+        visit(node.value);
+        traversePreOrder(node.left);
+        traversePreOrder(node.right);
+    }
+}
+```
+
+Iterative:
+
+
 Level Order Traversal technique is defined as a method to traverse a Tree such that all nodes present in the same level are traversed completely before traversing the next level.
 
 ```
@@ -288,6 +303,19 @@ public class BreathFirstSearch {
 ```
 
 ### Depth-First-Search Tree traversal
+
+Recursive:
+```
+public void traversePostOrder(Node node) {
+    if (node != null) {
+        traversePostOrder(node.left);
+        traversePostOrder(node.right);
+        visit(node.value);
+    }
+}
+```
+
+Iteratove:
 
 ```
 import java.util.ArrayList;

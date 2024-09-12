@@ -1070,17 +1070,262 @@ It is also possible to scale workloads based on events, for example using the Ku
 
 Another strategy for scaling your workloads is to schedule the scaling operations, for example in order to reduce resource consumption during off-peak hours.
 
+### Services, load balancing, networking
+
+Every Pod in a cluster gets its own unique __cluster-wide IP__ address. Pods can be treated much like VMs or physical host.
+
+- _Containers_ within a Pod use networking to communicate via loopback (_localhost_)
+- Cluster networking provides communication between different Pods.
+- The _Service API_ lets you expose an _application running in Pods_ to be reachable from _outside your cluster_.
+  - Ingress provides extra functionality specifically for exposing HTTP applications, websites and APIs.
+  - Gateway API is an add-on that provides an expressive, extensible, and role-oriented family of API kinds for modeling service networking.
+- You can also use Services to publish services only for consumption inside your cluster.
+
+#### Service
+
+Service is a method for exposing a network application that is running as one or more Pods in your cluster.
+
+You can run code in Pods. You use a Service to make that set of Pods available on the network so that clients can interact with it.
+
+If you use a Deployment to run your app, that Deployment can create and destroy Pods dynamically. From one moment to the next, you don't know how many of those Pods are working and healthy; Kubernetes Pods are created and destroyed to match the desired state of your cluster. Pods are ephemeral resources.
+
+Each Pod gets its own IP address
+
+The Service API, part of Kubernetes, is an abstraction to help you expose groups of Pods over a network. Each Service object defines a logical set of endpoints (usually these endpoints are Pods) along with a policy about how to make those pods accessible.
+
+The set of Pods targeted by a Service is usually determined by a __selector__ that you define.
+
+Create a Service before its corresponding backend workloads (Deployments or ReplicaSets), and before any workloads that need to access it. When Kubernetes starts a container, it provides environment variables pointing to all the Services which were running when the container was started. Service that a Pod wants to access must be created before the Pod itself, or else the environment variables will not be populated. DNS does not have this restriction.
+
+suppose you have a set of Pods that each listen on TCP port 9376 and are labelled as app.kubernetes.io/name=MyApp. You can define a Service to publish that TCP listener:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app.kubernetes.io/name: proxy
+spec:
+  containers:
+  - name: nginx
+    image: nginx:stable
+    ports:
+      - containerPort: 80
+        name: http-web-svc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app.kubernetes.io/name: proxy
+  ports:
+  - name: name-of-service-port
+    protocol: TCP
+    port: 80
+    targetPort: http-web-svc
+```
+
+Kubernetes assigns this Service an IP address (the __cluster IP__)
+
+The controller for that Service continuously scans for Pods that match its selector
+
+__Port definitions__ in Pods have names, and you can reference these names in the targetPort attribute of a Service. 
+
+You can define a Service without specifying a selector to match Pods. For example:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9376
+```
+Because this Service has no selector, the corresponding EndpointSlice (and legacy Endpoints) objects are not created automatically. You can map the Service to the network address and port where it's running, by adding an EndpointSlice object manually.
+
+This makes sense for the following use cases:
+- You want to have an external database cluster in production, but in your test environment you use your own databases.
+- You want to point your Service to a Service in a different Namespace or on another cluster.
+- You are migrating a workload to Kubernetes. While evaluating the approach, you run only a portion of your backends in Kubernetes.
+
+Example:
+```
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: my-service-1 # by convention, use the name of the Service
+                     # as a prefix for the name of the EndpointSlice
+  labels:
+    # You should set the "kubernetes.io/service-name" label.
+    # Set its value to match the name of the Service
+    kubernetes.io/service-name: my-service
+addressType: IPv4
+ports:
+  - name: http # should match with the name of the service port defined above
+    appProtocol: http
+    protocol: TCP
+    port: 9376
+endpoints:
+  - addresses:
+      - "10.4.5.6"
+  - addresses:
+      - "10.1.2.3"
+```
+
+Service types:
+* __ClusterIP__: Exposes the Service on a cluster-internal IP. Choosing this value makes the Service only reachable from within the cluster. This is the default. You can expose the Service to the public internet using an Ingress or a Gateway.
+* __NodePort__: Exposes the Service on each Node's IP at a static port. Kubernetes control plane allocates a port from a range specified by --service-node-port-range flag (default: 30000-32767)
+* __LoadBalancer__: Exposes the Service externally using an external load balancer. Kubernetes does not directly offer a load balancing component; you must provide one. Used on On cloud providers which support external load balancers. Traffic from the external load balancer is directed at the backend Pods. The cloud provider decides how it is load balanced.
+* __ExternalName__: Maps the Service to the contents of the externalName field. The mapping configures your cluster's DNS server to return a CNAME record with that external hostname value. No proxying of any kind is set up.
+
+#### Ingress
+
+Make your HTTP (or HTTPS) network __service__ available using a protocol-aware configuration mechanism, that understands web concepts like URIs, hostnames, paths, and more. The Ingress concept lets you map traffic to different backends based on rules you define via the Kubernetes API.
+
+An Ingress may be configured to __give Services externally-reachable URLs__, load balance traffic, terminate SSL / TLS, and offer name-based virtual hosting
+
+Exposing services other than HTTP and HTTPS to the internet typically uses a service of type Service.Type=NodePort or Service.Type=LoadBalancer.
+
+You must have an Ingress controller to satisfy an Ingress. Only creating an Ingress resource has no effect.
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-example
+  rules:
+  - http:
+      paths:
+      - path: /testpath
+        pathType: Prefix
+        backend:
+          service:
+            name: test
+            port:
+              number: 80
+```
+
+An Ingress needs apiVersion, kind, metadata and spec fields. The name of an Ingress object must be a valid DNS subdomain name.
+
+Each HTTP rule contains the following information:
+* An optional host. In this example, no host is specified, so the rule applies to all inbound HTTP traffic through the IP address specified
+* A list of paths (for example, /testpath), each of which has an associated backend defined with a service.name and a service.port.name or service.port.number
+* A backend is a combination of Service and port names
+
+Types of Ingress:
+* Ingress backed by a __single Service__
+* Simple __fanout__ - routes traffic from a single IP address to more than one Service, based on the HTTP URI being requested
+* Name __based virtual hosting__ - multiple host names at the same IP address
+
+#### Ingress Controllers
+
+In order for an Ingress to work in your cluster, there must be an ingress controller running.
+
+#### Gateway API
+
+Gateway API is a family of API kinds that provide dynamic infrastructure provisioning and advanced traffic routing.
+
+### Storage
+
+#### Volumes
+
+On-disk files in a container are ephemeral, which presents some problems for non-trivial applications when running in containers. 
+
+* One problem occurs when a __container crashes or is stopped__. Container state is not saved so all of the files that were created or modified during the lifetime of the container are lost. During a crash, kubelet restarts the container with a clean state. 
+* Another problem occurs when multiple containers are running in a Pod and need to __share files__. It can be challenging to setup and access a shared filesystem across all of the containers. 
+
+The Kubernetes volume abstraction solves both of these problems.
+
+A Pod can use any number of volume types simultaneously. Ephemeral volume types have a lifetime of a pod, but persistent volumes exist beyond the lifetime of a pod
+
+To use a volume, specify the volumes to provide for the Pod in .spec.volumes and declare where to mount those volumes into containers in .spec.containers[*].volumeMounts.
+
+Types of volumes:
+
+* azureFile CSI migration
+* azureFile CSI migration
+* configMap - provides a way to inject configuration data into pods. The data stored in a ConfigMap can be referenced in a volume of type configMap and then consumed by containerized applications running in a pod.
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configmap-pod
+spec:
+  containers:
+    - name: test
+      image: busybox:1.28
+      command: ['sh', '-c', 'echo "The app is running!" && tail -f /dev/null']
+      volumeMounts:
+        - name: config-vol
+          mountPath: /etc/config
+  volumes:
+    - name: config-vol
+      configMap:
+        name: log-config
+        items:
+          - key: log_level
+            path: log_level
+```
+* downwardAPI
+* emptyDir - the volume is created when the Pod is assigned to a node. As the name says, the emptyDir volume is initially empty. All containers in the Pod can read and write the same files in the emptyDir volume, though that volume can be mounted at the same or different paths in each container
+* hostPath -  mounts a file or directory from the host node's filesystem into your Pod.
+* local - mounted local storage device such as a disk, partition or directory.
+* nfs - allows an existing NFS (Network File System) share to be mounted into a Pod
+* persistentVolumeClaim - used to mount a PersistentVolume into a Pod
+* secret -  pass sensitive information, such as passwords, to Pods. You can store secrets in the Kubernetes API and mount them as files for use by pods without coupling to Kubernetes directly.
+
+#### Persistent Volumes
+
+The PersistentVolume subsystem provides an API for users and administrators that abstracts details of how storage is provided from how it is consumed. To do this, we introduce two new API resources: PersistentVolume and PersistentVolumeClaim.
+
+A __PersistentVolume__ (PV) is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes. It is a resource in the cluster just like a node is a cluster resource.
+
+A __PersistentVolumeClaim__ (PVC) is a request for storage by a user. It is similar to a Pod. Pods consume node resources and PVCs consume PV resources. Pods can request specific levels of resources (CPU and Memory). Claims can request specific size and access modes
+
+__Lifecycle__ of a volume and claim:
+* Provisioning: statically (cluster administrator creates a number of PVs) or dynamically (cluster may try to dynamically provision a volume specially for the PVC).
+* Binding: A user creates, or in the case of dynamic provisioning, has already created, a PersistentVolumeClaim with a specific amount of storage requested and with certain access modes. A control loop in the control plane watches for new PVCs, finds a matching PV (if possible), and binds them together. If a PV was dynamically provisioned for a new PVC, the loop will always bind that PV to the PVC.
+* Using: 
+* Reclaiming: user is done with their volume, they can delete the PVC objects from the API that allows reclamation of the resource. The reclaim policy for a PersistentVolume tells the cluster what to do with the volume after it has been released of its claim.
+* Retain: allows for manual reclamation of the resource. When the PersistentVolumeClaim is deleted, the PersistentVolume still exists and the volume is considered "released". But it is not yet available for another claim because the previous claimant's data remains on the volume. An administrator can manually reclaim the volume
+* Delete:  removes both the PersistentVolume object from Kubernetes, as well as the associated storage asset in the external infrastructure.
+* Recycle
+
+#### Storage Classes
+
+A StorageClass provides a way for administrators to describe the classes of storage they offer. Different classes might map to quality-of-service levels, or to backup policies
+
+### Configuration
+
+#### ConfigMaps
+
+Use a ConfigMap for setting configuration data separately from application code.
+
+
+
+
+
 NEXT: https://kubernetes.io/docs/concepts/services-networking/
 
 # Other
 
 * helm chart example
-* how to create a service
-* kubernetes architecture
-* what is deployment?
 * what is cluster IP? It is a special IP address the system will load-balance across all of the Pods that are identified by the selector.
 * what is NodePort? 
-* what are kubernetes service types?
 * canary and blue-green deployments on kubernetes
+* blue-green on kubernetes
+* access a pod or container to debug it
 
 
