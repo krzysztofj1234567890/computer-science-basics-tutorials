@@ -1581,6 +1581,145 @@ https://dev.to/pavanbelagatti/kubernetes-deployments-rolling-vs-canary-vs-blue-g
 
 Technique for rolling out new features or changes to a small subset of users or servers before releasing the update to the entire system. This is done by creating a __new replica set__ with the updated version of the software while keeping the original replica set running. A small percentage of traffic is then routed to the new replica set, while the majority of the traffic continues to be served by the original replica set.
 
+#### Example
+
+Create three replicas of our application. The deployment uses a selector to find the appropriate pods to manage based on the label app: myapp.
+
+The template section specifies the configuration for the pods created by the deployment. In this case, we're running a single container in each pod, which is specified with the containers field. The container image used is myapp:v1, which is the first version of our application.
+
+The readinessProbe checks whether the container is ready to receive traffic, and the livenessProbe checks whether the container is still running. If either of these probes fails, the pod will be restarted.
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp-container
+        image: myapp:v1
+        ports:
+        - containerPort: 8080
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 5
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 10
+```
+
+To perform a canary deployment, we would create a second deployment YAML file that specifies the new version of the application, for example, myapp:v2. We would then update the original deployment to set up a canary test by scaling up the replicas of the new version to 1 while keeping the replicas of the old version at 2.
+
+### Rolling Deployment
+
+Kubernetes rolling deployment is a strategy for updating and deploying new versions of software in a controlled and gradual manner. Instead of deploying updates all at once, Kubernetes rolls out changes incrementally, reducing the risk of downtime and allowing for easy rollbacks in case of errors. 
+
+Rolling deployment involves creating a new replica set with the updated version of the software while gradually scaling down the old replica set.
+
+Once the new version is fully deployed, the old replica set is deleted, and the deployment is complete. 
+
+#### Example
+
+This deployment that will create three replicas of our application. The deployment uses a selector to find the appropriate pods to manage based on the label app: myapp.
+
+The strategy section specifies the strategy that Kubernetes should use to update the deployment. In this case, we are using a RollingUpdate strategy. This means that Kubernetes will gradually update the deployment by replacing old replicas with new replicas.
+
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp-container
+        image: myapp:v1
+        ports:
+        - containerPort: 8080
+```
+
+The template section specifies the configuration for the pods created by the deployment. In this case, we're running a single container in each pod, which is specified with the containers field. The container image used is myapp:v1, which is the first version of our application.
+
+To update the deployment, we would create a new deployment YAML file that specifies the new version of the application, for example, myapp:v2. We would then update the original deployment to point to the new YAML file.
+
+Once the update is started, Kubernetes will gradually replace old replicas with new ones until all replicas run the new version. The rolling update process allows for updates to be performed with minimal disruption to users
+
+## Blue-Green Deployment Strategy
+
+The Blue-Green Kubernetes deployment strategy is a technique for releasing new versions of an application to minimise downtime and risk. It involves running two identical environments, one serving as the active production environment (blue) and the other as a new release candidate (green). The new release candidate is thoroughly tested before being switched with the production environment, allowing for a smooth transition without any downtime or errors.
+
+### Example
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: blue
+    spec:
+      containers:
+        - name: my-app
+          image: myregistry/my-app:blue
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+```
+
+In this example, we define a deployment for an application called "my-app" with two replicas. The deployment has a label selector of "app: my-app", which will match the corresponding service that routes traffic to the deployment.
+
+The first template defines the "blue" version of the application. It is defined with the label "version: blue", which allows for easy identification of the version currently in production. The container image for this version is pulled from the Docker registry at "myregistry/my-app:blue".
+When a new version is ready, a new template is added with the label "version: green". This new template will have an updated container image with the new version of the application. Once this new template has been created and is ready to be released, the Kubernetes service can be updated to route traffic to the new "green" deployment.
 
 
 ## TODO:
