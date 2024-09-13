@@ -683,5 +683,61 @@ Partitioning is often represented as directories, and bucketing is represented a
 
 ## Notebook
 
+### One
+
+https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/1033803620506758/3135806884749189/7540521809236567/latest.html
+
+```
+file_path = "/FileStore/tables/emp.csv"
+df_emp_data = spark.read.csv(file_path, header=True, inferSchema=True)
+display(df_emp_data)
+```
+
+Check the data schema
+
+```
+display(df_emp_data.printSchema())
+
+root
+ |-- EMPNO: string (nullable = true)
+ |-- ENAME: string (nullable = true)
+ |-- JOB: string (nullable = true)
+ |-- MGR: string (nullable = true)
+ |-- HIREDATE: string (nullable = true)
+ |-- SAL: string (nullable = true)
+ |-- COMM: string (nullable = true)
+ |-- DEPTNO: string (nullable = true)
+ |-- UPDATED_DATE: string (nullable = true)
+```
+Why HIREDATE is showing string instead date type in the schema?
+
+It is showing because it contains dd-mm-yyy date format which is not acceptable by spark. Spark uses yyyy-mm-dd format. So, let's change the date format.
+
+```
+from pyspark.sql.functions import *
+# change string to date type
+df_emp = df_emp_data.withColumn("HIREDATE", to_date(col("HIREDATE"), "dd-MM-yyyy")).fillna({"HIREDATE":"9999-12-31"})
+display(df_emp)
+```
+
+partition the data using year & month, if required
+
+```
+df_emp = (
+    df_emp
+    .withColumn("YEAR", date_format("HIREDATE", "yyyy"))
+    .withColumn("Month", date_format("HIREDATE", "MM"))
+)
+df_emp.write.format("delta").partitionBy("YEAR", "MONTH").mode("overwrite").saveAsTable("employee_partition_data")
+```
+
 ## DataBrics job on azure
 
+## Spark streaming
+
+# Links
+
+https://www.databricks.com/blog/2016/02/17/introducing-databricks-community-edition-apache-spark-for-all.html
+
+
+https://github.com/dennyglee/databricks/tree/master/notebooks/Users/denny%40databricks.com
