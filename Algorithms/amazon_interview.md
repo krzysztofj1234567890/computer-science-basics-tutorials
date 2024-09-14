@@ -565,7 +565,156 @@ def romanToInt(self, s):
 
 ## Longest Substring Without Repeating Characters
 
+## Remove Element
 
+Given an integer array nums and an integer val, remove all occurrences of val in nums in-place. The order of the elements may be changed. Then return the number of elements in nums which are not equal to val.
+
+Consider the number of elements in nums which are not equal to val be k, to get accepted, you need to do the following things:
+
+Change the array nums such that the first k elements of nums contain the elements which are not equal to val. The remaining elements of nums are not important as well as the size of nums.
+Return k.
+
+```
+class Solution {
+    public int removeElement(int[] nums, int val) {
+        int result = 0 ;
+        int lastNotVal = nums.length-1 ;
+        for ( int i=0; i<nums.length; i++ ) {
+            if ( nums[i] == val ) {
+                nums[i] = 0 ;
+                // find not val 
+                while( lastNotVal >=0 ) {
+                    if ( nums[lastNotVal] != val ) {
+                        nums[i] = nums[lastNotVal] ;
+                        lastNotVal -- ;
+                        break ;
+                    }
+                    lastNotVal -- ;
+                }
+            } else {
+                result ++ ;
+            }
+        }
+        return result ;
+    }
+}
+```
+
+## Remove Duplicates from Sorted Array
+
+Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. The relative order of the elements should be kept the same. Then return the number of unique elements in nums.
+
+```
+class Solution {
+    public int removeDuplicates(int[] nums) {
+        if ( nums.length == 0 ) return 0 ;
+        int indexToInsert = 1 ;
+        for( int i=1; i< nums.length; i++ ) {
+            if( nums[i-1] != nums[i]) {
+                nums[indexToInsert++] = nums[i] ;
+ //               System.out.println( nums[i] ) ;
+            }
+        }
+        return indexToInsert ;
+    }
+}
+```
+
+## Remove Duplicates from Sorted Array II
+
+
+Given an integer array nums sorted in non-decreasing order, remove some duplicates in-place such that each unique element appears at most twice. The relative order of the elements should be kept the same.
+
+Since it is impossible to change the length of the array in some languages, you must instead have the result be placed in the first part of the array nums. More formally, if there are k elements after removing the duplicates, then the first k elements of nums should hold the final result. It does not matter what you leave beyond the first k elements.
+
+Return k after placing the final result in the first k slots of nums.
+
+```
+class Solution {
+    public int removeDuplicates(int[] nums) {
+        if (nums.length <=2 ) return nums.length ;
+        int result = nums.length ;
+
+        int lastIndex = 2 ;
+        for ( int i = 2; i<nums.length; i++ ) {
+            if ( nums[lastIndex-2] == nums[lastIndex-1] && nums[lastIndex-1] == nums[i] ) {
+                result -- ;
+            } else {
+                nums[lastIndex] = nums[i] ;
+                lastIndex ++ ;
+            }
+        }
+        return result ;
+    }
+}
+```
+
+## Rotate Array
+
+Given an integer array nums, rotate the array to the right by k steps, where k is non-negative.
+
+```
+class Solution {
+    public void rotate(int[] nums, int k) {
+        if ( nums.length <= 1 ) return ;
+        if ( k<0 ) return ;
+
+        if ( k > nums.length) k = k % nums.length ;
+
+        int[] result = new int[nums.length] ;
+        for( int i = k; i<nums.length; i++ ) {
+            result[i] = nums[i-k] ;
+        }
+        for( int i = 0; i<k; i++ ) {
+            result[i] = nums[nums.length-k+i] ;
+        }
+        for ( int i=0; i<nums.length; i++ ) {
+            nums[i]= result[i] ;
+        }
+    }
+}
+```
+
+## Best Time to Buy and Sell Stock II
+
+You are given an integer array prices where prices[i] is the price of a given stock on the ith day.
+
+On each day, you may decide to buy and/or sell the stock. You can only hold at most one share of the stock at any time. However, you can buy it then immediately sell it on the same day.
+
+Find and return the maximum profit you can achieve.
+
+```
+class Solution {
+    public int maxProfit(int[] prices) {
+        if (prices.length<2) return 0 ;
+
+        int i = 0 ;
+        int lo = prices[0] ;
+        int hi = prices[0] ;
+        int profit = 0 ;
+        int n = prices.length ;
+
+        while (i<n-1) {
+            // where to buy
+            while ( i<(n-1) && prices[i] >= prices[i+1] ) {
+                i++ ;
+            }
+            lo = prices[i] ;
+
+            // where to sell
+            while ( i<(n-1) && prices[i] <= prices[i+1] ) {
+                i++ ;
+            }
+            hi = prices[i] ;
+
+            profit += hi-lo ;
+        }
+
+        return profit ;
+    }
+}
+
+```
 
 # References
 
