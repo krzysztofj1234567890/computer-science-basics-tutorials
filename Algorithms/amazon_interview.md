@@ -770,38 +770,94 @@ or
 
 ```
 class Solution {
-
     public int hIndex(int[] citations) {
 
         // Sorting an int[] in reverse in Java is annoying
-
         // We first sort normally then reverse the array
-
         Arrays.sort(citations);
 
         for (int i = 0; i < citations.length/2; i++) {
-
             int tmp = citations[i];
-
             citations[i] = citations[citations.length-1-i];
-
             citations[citations.length-1-i] = tmp;
-
         }
-
-
         int h = 0;
-
         while (h < citations.length && citations[h] >= h+1) {
-
             h++;
+        }
+        return h;
+    }
+}
+```
+
+## Container With Most Water
+
+You are given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]).
+
+Find two lines that together with the x-axis form a container, such that the container contains the most water.
+
+Return the maximum amount of water a container can store.
+
+```import java.util.* ;
+
+class Solution {
+    public int maxArea(int[] height) {
+        int result = 0 ;
+        int left = 0 ;
+        int right = height.length-1;
+        int lefth = 0 ;
+        int righth = 0 ;
+        int minh = 0 ;
+        int area = 0 ;
+        while( true) {
+            lefth = height[ left ] ;
+            righth = height[ right ] ;
+
+            // calculate the area
+            minh = Math.min( lefth, righth ) ;
+            area = minh * (right-left) ;
+
+            result = Math.max( result, area ) ;
+
+            // advance
+            if ( lefth <= righth )  left ++ ;
+            else right -- ;
+
+            // exit
+            if ( left >= right ) break ;
 
         }
-
-        return h;
-
+        return result ;
     }
+}
+```
 
+## Longest Substring Without Repeating Characters
+
+Given a string s, find the length of the longest substring without repeating characters.
+
+```
+class Solution {
+    public int lengthOfLongestSubstring(String s) {
+        if ( s.length() < 1 ) return 0 ;
+        int i = 0 ;
+        int j = 1 ;
+        int result = 1 ;
+        while( j<s.length() ) {
+//            System.out.println( "i="+i+" j="+j ) ;
+            String fullSubstring = s.substring( i, j ) ;
+//            System.out.println( "    fullSubstring="+fullSubstring ) ;
+            String next = s.substring( j, j+1 ) ;
+            if ( fullSubstring.indexOf( next ) < 0 ) {
+                j++ ;
+                result = Math.max( result, j-i ) ;
+ //               System.out.println( "    result="+result ) ;
+            } else {
+                i++ ;
+            }
+        }
+        return result ;
+    }
 }
 ```
 
