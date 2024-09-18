@@ -716,6 +716,95 @@ class Solution {
 
 ```
 
+## Jump Game
+
+You are given an integer array nums. You are initially positioned at the array's first index, and each element in the array represents your maximum jump length at that position.
+
+Return true if you can reach the last index, or false otherwise.
+
+```
+class Solution {
+    public boolean canJump(int[] nums) {
+
+        int goal_post = nums.length - 1;
+
+        for (int i = nums.length - 1; i >= 0; i--) {
+            int jump_distance = i + nums[i];
+            if (jump_distance >= goal_post) {
+                goal_post = i;
+            }
+        }
+
+        return (goal_post == 0) ? true : false;
+    }
+}
+```
+
+## H-Index
+
+Given an array of integers citations where citations[i] is the number of citations a researcher received for their ith paper, return the researcher's h-index.
+
+According to the definition of h-index on Wikipedia: The h-index is defined as the maximum value of h such that the given researcher has published at least h papers that have each been cited at least h times.
+
+```
+import java.lang.* ;
+
+class Solution {
+    public int hIndex(int[] citations) {
+        Arrays.sort( citations );
+        if ( citations.length == 0 ) return 0;
+        if ( citations.length == 1 && citations[0] == 0 ) return Math.min( citations[0], 1 );
+        int result = citations[citations.length-1] ;
+        for( int i=citations.length-1; i >=0 ; i-- ) {
+            if ( citations[i] < (citations.length-i) ) {
+                result = citations.length-i-1 ;
+                break ;
+            }
+        }
+        return Math.min( result, citations.length) ;
+    }
+}
+```
+
+or
+
+```
+class Solution {
+
+    public int hIndex(int[] citations) {
+
+        // Sorting an int[] in reverse in Java is annoying
+
+        // We first sort normally then reverse the array
+
+        Arrays.sort(citations);
+
+        for (int i = 0; i < citations.length/2; i++) {
+
+            int tmp = citations[i];
+
+            citations[i] = citations[citations.length-1-i];
+
+            citations[citations.length-1-i] = tmp;
+
+        }
+
+
+        int h = 0;
+
+        while (h < citations.length && citations[h] >= h+1) {
+
+            h++;
+
+        }
+
+        return h;
+
+    }
+
+}
+```
+
 # References
 
 https://igotanoffer.com/blogs/tech/amazon-software-development-engineer-interview
