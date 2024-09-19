@@ -933,6 +933,195 @@ class Solution {
 
 ```
 
+## Valid Anagram
+
+Given two strings s and t, return true if t is an anagram of s, and false otherwise.
+
+```
+class Solution {
+    public boolean isAnagram(String s, String t) {
+        if ( s.length() != t.length() ) return false ;
+
+        // turn t to Map
+        char[] tArray = new char[256] ;
+        for ( int i=0; i<t.length(); i++ ) {
+            char c = t.charAt(i) ;
+            int index = c - '0' ;
+//            System.out.println( "char="+c+" index = "+index) ;
+            tArray[index]++ ;
+        }
+
+        // find s characters
+        for ( int i=0; i<s.length(); i++ ) {
+            char c = s.charAt(i) ;
+            int index = c - '0' ;
+ //           System.out.println( "char="+c+" index = "+index) ;
+            if ( tArray[index] == 0 ) {
+                return false ;
+            } else {
+                tArray[index]-- ;
+            }
+        }
+        return true ;
+    }
+}
+```
+
+## Group Anagrams
+
+Given an array of strings strs, group the anagrams together. You can return the answer in any order.
+
+```
+class Solution {
+    public List<List<String>> groupAnagrams(String[] strs) {
+        List<List<String>> result = new ArrayList<List<String>>() ;
+
+        for( int i=0; i<strs.length; i++ ) {
+            boolean found = false ;
+            Iterator<List<String>> iterator = result.iterator() ;
+            while( iterator.hasNext() ) {
+                List<String> list = iterator.next() ;
+                String anagram = list.get(0) ;
+//                System.out.println( "i="+i+" strs[i]="+strs[i]+" anagram="+anagram) ;
+                if ( isAnagram( anagram, strs[i] ) ) {
+//                    System.out.println( "add" ) ;
+                    list.add( strs[i] ) ;
+                    found = true ;
+                    break ;
+                }
+            }
+            if ( ! found ) {
+                // add first element
+//                System.out.println( "add new" ) ;
+                List<String> list = new ArrayList<String>() ;
+                list.add( strs[i] ) ;
+                result.add( list ) ;
+            }
+        }
+        return result ;
+    }
+
+    public boolean isAnagram(String s, String t) {
+        if ( s.length() != t.length() ) return false ;
+
+        // turn t to Map
+        char[] tArray = new char[256] ;
+        for ( int i=0; i<t.length(); i++ ) {
+            char c = t.charAt(i) ;
+            int index = c - '0' ;
+            tArray[index]++ ;
+        }
+
+        // find s characters
+        for ( int i=0; i<s.length(); i++ ) {
+            char c = s.charAt(i) ;
+            int index = c - '0' ;
+            if ( tArray[index] == 0 ) {
+                return false ;
+            } else {
+                tArray[index]-- ;
+            }
+        }
+        return true ;
+    }
+}
+```
+
+OR
+
+```
+class Solution {
+  public List<List<String>> groupAnagrams(String [] strs ) {
+	if ( strs.length == 0 ) return new ArrayList() ;
+	Map<String, Lists> ans = new HashMap<String, List>() ;
+	for( String s: strs ) {
+		char[] ca = s.toCharArray() ;
+		Arrays.sort( ca ) ;
+		String key = String.valueOf( ca ) ;
+		if ( ! ans.containsKey( key )) ans.put( key, new ArrayList() ) ;
+		ans.get( key ).add( s ) ;
+	}
+	return new ArrayList( ans.values() ) ;
+  }
+}
+```
+
+## Merge Intervals
+
+Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals, and return an array of the non-overlapping intervals that cover all the intervals in the input.
+
+```
+public static List<int[]> mergeOverlap(int[][] arr) {
+      
+        // Sort intervals based on start values
+        Arrays.sort(arr, (a, b) -> Integer.compare(a[0], b[0]));
+
+        List<int[]> res = new ArrayList<>();
+        res.add(arr[0]);
+
+        for (int i = 1; i < arr.length; i++) {
+            int[] last = res.get(res.size() - 1);
+            int[] curr = arr[i];
+
+            // If current overlaps with the last merged, merge them
+            if (curr[0] <= last[1]) {
+                last[1] = Math.max(last[1], curr[1]);
+            } else {
+                // Add current to the result
+                res.add(curr);
+            }
+        }
+
+        return res;
+    }
+```
+
+## Evaluate Reverse Polish Notation
+
+You are given an array of strings tokens that represents an arithmetic expression in a Reverse Polish Notation.
+
+Evaluate the expression. Return an integer that represents the value of the expression.
+
+```
+class Solution {
+    private static final Map<String,String> operations = new HashMap<String,String>() ;
+    static {
+        operations.put("+","+") ;
+        operations.put("*","*") ;
+        operations.put("-","-") ;
+        operations.put("/","/") ;
+    }
+    public int evalRPN(String[] tokens) {
+        Stack<Integer> stack = new Stack<Integer>();
+        Integer result = new Integer(0) ;
+        for( String token : tokens ) {
+            if ( operations.containsKey(token) ) {
+                String operation = token ;
+                Integer val2 = stack.pop() ;
+                Integer val1 = stack.pop() ;
+                if ( operation.equals("+") ) {
+                    result = new Integer( val1.intValue() + val2.intValue() ) ;
+                    stack.push( result ) ;
+                } else if ( operation.equals("*") ) {
+                    result = new Integer( val1.intValue() * val2.intValue() ) ;
+                    stack.push( result ) ;
+                } else if ( operation.equals("-") ) {
+                    result = new Integer( val1.intValue() - val2.intValue() ) ;
+                    stack.push( result ) ;
+                } else if ( operation.equals("/") ) {
+                    result = new Integer( val1.intValue() / val2.intValue() ) ;
+                    stack.push( result ) ;
+                }
+            } else {
+                result = new Integer( Integer.parseInt( token)) ;
+                stack.push( result ) ;
+            }
+        }
+        return result;
+    }
+}
+```
+
 # References
 
 https://igotanoffer.com/blogs/tech/amazon-software-development-engineer-interview
