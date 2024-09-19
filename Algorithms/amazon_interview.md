@@ -861,6 +861,78 @@ class Solution {
 }
 ```
 
+## Valid Sudoku
+
+Determine if a 9 x 9 Sudoku board is valid. Only the filled cells need to be validated according to the following rules:
+
+    Each row must contain the digits 1-9 without repetition.
+    Each column must contain the digits 1-9 without repetition.
+    Each of the nine 3 x 3 sub-boxes of the grid must contain the digits 1-9 without repetition.
+
+```
+class Solution {
+    public boolean isValidSudoku(char[][] board) {
+        Set[] columns = new TreeSet[9];
+        Set[] rows = new TreeSet[9];
+        Set[][] rectangles = new TreeSet[3][3];
+
+        // initialize
+        for( int x=0; x<9; x++ ) {
+            columns[x] = new TreeSet() ;
+            rows[x] = new TreeSet() ;
+        }
+        for( int x=0; x<3; x++ ) {
+            for( int y=0; y<3; y++ ) {
+                rectangles[x][y] = new TreeSet() ;
+            }
+        }
+
+        // solve
+        boolean result = true ;
+        for( int x=0; x<9; x++ ) {
+            for( int y=0; y<9; y++ ) {
+                char c = board[y][x] ;
+                if ( c != '.' ) {
+                    int value = c - '0';
+ //                   System.out.println( "x="+x+" y="+y+" value="+value ) ;
+
+                    // columns
+                    if ( columns[y].contains( value ) ) {
+                        result = false ;
+ //                       System.out.println( "1 x="+x+" y="+y+" value="+value ) ;
+                        break ;
+                    }
+                    columns[y].add( value ) ;
+
+                    // rows
+                    if ( rows[x].contains( value ) ) {
+                        result = false ;
+//                        System.out.println( "2 x="+x+" y="+y+" value="+value ) ;
+                        break ;
+                    }
+                    rows[x].add( value ) ;
+
+                    // rectangles
+                    int recX = (int)Math.floor(x/3) ;
+                    int recY = (int)Math.floor(y/3) ;
+                    if ( rectangles[recX][recY].contains(value) ) {
+ //                       System.out.println( "3 x="+x+" y="+y+" value="+value ) ;
+                        result = false ;
+                        break ;
+                    }
+                    rectangles[recX][recY].add(value) ;
+                }   
+            }
+            if ( ! result ) {
+                break ;
+            }
+        }
+        return result ;
+    }
+}
+
+```
+
 # References
 
 https://igotanoffer.com/blogs/tech/amazon-software-development-engineer-interview
