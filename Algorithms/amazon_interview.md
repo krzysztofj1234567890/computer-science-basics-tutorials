@@ -1122,6 +1122,304 @@ class Solution {
 }
 ```
 
+## Reverse Linked List 
+
+Given the head of a singly linked list and two integers left and right where left <= right, reverse the nodes of the list from position left to position right, and return the reversed list.
+
+```
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode reverseBetween(ListNode head, int left, int right) {
+        if (head == null || left == right) return head;
+        
+        ListNode dummy = new ListNode(0);
+        dummy.next = head;
+        ListNode prev = dummy;
+        
+        for (int i = 0; i < left - 1; ++i) {
+            prev = prev.next;
+        }
+        
+        ListNode current = prev.next;
+        
+        for (int i = 0; i < right - left; ++i) {
+            ListNode nextNode = current.next;
+            current.next = nextNode.next;
+            nextNode.next = prev.next;
+            prev.next = nextNode;
+        }
+        
+        return dummy.next;
+    }
+}
+```
+
+## Maximum number of overlapping Intervals
+
+The idea is to store coordinates in a new vector of pair mapped with characters ‘x’ and ‘y’, to identify coordinates.
+
+Sort the vector.
+
+Traverse the vector, if an x coordinate is encountered it means a new range is added, so update count and if y coordinate is encountered that means a range is subtracted.
+
+Update the value of count for every new coordinate and take maximum.
+
+```
+static class pair
+{
+    int first;
+    char second;
+    
+    pair(int first, char second)
+    {
+        this.first = first;
+        this.second = second;
+    }
+}
+
+// Function that print maximum 
+// overlap among ranges 
+static void overlap(int[][] v) 
+{ 
+    
+    // Variable to store the maximum 
+    // count 
+    int ans = 0; 
+    int count = 0; 
+    ArrayList<pair> data = new ArrayList<>(); 
+    
+    // Storing the x and y 
+    // coordinates in data vector 
+    for(int i = 0; i < v.length; i++)
+    { 
+        
+        // Pushing the x coordinate 
+        data.add(new pair(v[i][0], 'x')); 
+  
+        // pushing the y coordinate 
+        data.add(new pair(v[i][1], 'y')); 
+    } 
+    
+    // Sorting of ranges 
+    Collections.sort(data, (a, b) -> a.first - b.first); 
+  
+    // Traverse the data vector to 
+    // count number of overlaps 
+    for(int i = 0; i < data.size(); i++) 
+    { 
+        
+        // If x occur it means a new range 
+        // is added so we increase count 
+        if (data.get(i).second == 'x') 
+            count++; 
+  
+        // If y occur it means a range 
+        // is ended so we decrease count 
+        if (data.get(i).second == 'y') 
+            count--; 
+  
+        // Updating the value of ans 
+        // after every traversal 
+        ans = Math.max(ans, count); 
+    } 
+  
+    // Printing the maximum value 
+    System.out.println(ans); 
+}
+
+// Driver code
+public static void main(String[] args) 
+{
+    int[][] v = { { 1, 2 }, 
+                  { 2, 4 }, 
+                  { 3, 6 } }; 
+    overlap(v); 
+}
+}
+```
+
+## Merge Intervals
+
+```
+class Solution {
+    public int[][] merge(int[][] intervals) {
+        if ( intervals == null || intervals.length ==1 ) return intervals ;
+
+        List<int[]> result = new ArrayList<int[]>() ;
+        // sort
+        Arrays.sort( intervals, (a1,a2) -> a2[0] > a1[0] ? -1 : a2[0] == a1[0]? a1[1]-a2[1] : 1 ) ;
+        
+        int[] current = null ;
+        // iterate
+        for( int i=0; i<intervals.length; i++ ) {
+            int[] interval = intervals[i];
+            // set current interval
+            if ( current == null ) {
+                current = interval ;
+            } else {
+                System.out.println( "i="+i+" current: ["+current[0]+","+current[1]+"]"+" interval: ["+interval[0]+","+interval[1]+"]");
+                if ( current[1] >= interval[0] ) {
+                    // if new interval overlaps with next then merge
+                    if ( interval[1] > current[1] ) {
+                        current[1] = interval[1] ;
+                    }
+                    System.out.println( "  yes  i="+i+" ["+current[0]+","+current[1]+"]");
+                    if ( i == (intervals.length-1) ) {
+                        result.add( current ) ;
+                    }
+                } else {
+                    System.out.println( "  no  i="+i+" ["+current[0]+","+current[1]+"]");
+                    // else set new current interval
+                    result.add( current ) ;
+                    if ( i == (intervals.length-1) ) {
+                        result.add( interval ) ;
+                    } else {
+                        current = interval ;
+                    }
+                }
+            }
+            System.out.println( " i="+i+" ["+current[0]+","+current[1]+"]");
+        }
+        int[][] result2 = new int[result.size()][2] ;
+        for ( int i=0; i<result.size(); i++) {
+            result2[i] = result.get(i) ;
+        }
+        return result2;
+    }
+}
+```
+
+OR
+
+```
+class Solution {
+    public int[][] merge(int[][] intervals) {
+        
+        Arrays.sort(intervals,(a,b)->a[0]-b[0]);
+
+        int [][]merged=new int[intervals.length][2];
+        int i=0;
+
+        merged[i]=intervals[0];
+
+        for(int j=1;j<intervals.length;j++){
+            if(merged[i][1]>=intervals[j][0]){
+                merged[i][1]=Math.max(merged[i][1],intervals[j][1]);
+            }
+            else{
+                i++;
+                merged[i]=intervals[j];
+            }
+        }
+        return Arrays.copyOf(merged,i+1);
+    }
+}
+```
+
+##  Invert Binary Tree
+
+```
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        if ( root == null ) return null ;
+
+        TreeNode newRight = root.right ;
+        root.right = root.left ;
+        root.left = newRight ;
+
+       invertTree( root.right ) ;
+       invertTree( root.left ) ;
+
+       return root ;
+    }
+}
+
+```
+
+## Flatten Binary Tree to Linked List
+
+```
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    Queue<TreeNode> queue = new LinkedList<>();
+    public void addToQueue(TreeNode root){
+        if(root == null){
+            return;
+        }
+        queue.add(root);         
+        addToQueue(root.left);
+        addToQueue(root.right);
+    }
+    public void flatten(TreeNode root) {
+        addToQueue(root);
+        while(!queue.isEmpty()){   
+            TreeNode temp = queue.poll();
+            temp.right = queue.peek();
+            temp.left = null;
+        }
+    }
+}
+```
+
+OR
+
+```
+class Solution {
+    public void flatten(TreeNode root) {
+        TreeNode head = null, curr = root;
+        while (head != root) {
+            if (curr.right == head) curr.right = null;
+            if (curr.left == head) curr.left = null;
+            if (curr.right != null) curr = curr.right;
+            else if (curr.left != null) curr = curr.left;
+            else {
+                curr.right = head;
+                head = curr;
+                curr = root;
+            }
+        }
+    }
+}
+```
+
 # References
 
 https://igotanoffer.com/blogs/tech/amazon-software-development-engineer-interview
