@@ -1420,6 +1420,82 @@ class Solution {
 }
 ```
 
+## Sum Root to Leaf Numbers
+
+You are given the root of a binary tree containing digits from 0 to 9 only. Each root-to-leaf path in the tree represents a number.
+
+For example, the root-to-leaf path 1 -> 2 -> 3 represents the number 123.
+
+Return the total sum of all root-to-leaf numbers.
+
+```
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    private List<Integer> allNumbers = new ArrayList<Integer>() ;
+    public int sumNumbers(TreeNode root) {
+        if ( root == null ) return 0 ;
+        if ( root.left == null && root.right == null ) return root.val ;
+
+        int result = 0 ;
+        if ( root.left != null ) {
+            sumNumbers( root.left, root.val ) ;
+        }
+        if ( root.right != null ) {
+            sumNumbers( root.right, root.val ) ;
+        }
+        
+        // add all
+        Iterator<Integer> it = allNumbers.iterator() ;
+        while( it.hasNext() ) {
+            int val = it.next() ;
+            result += val ;
+        }
+
+        return result ;
+    }
+    public void sumNumbers(TreeNode root, int number ) {
+        if ( root.left == null && root.right == null ) {
+            allNumbers.add( number * 10 + root.val ) ;
+            return ;
+        }
+
+        if ( root.left != null ) {
+            sumNumbers( root.left, number * 10 + root.val ) ;
+        }
+        if ( root.right != null ) {
+            sumNumbers( root.right, number * 10 + root.val ) ;
+        } ;
+        
+    }
+}
+```
+
+## Find K Pairs with Smallest Sums
+
+You are given two integer arrays nums1 and nums2 sorted in non-decreasing order and an integer k.
+
+Define a pair (u, v) which consists of one element from the first array and one element from the second array.
+
+Return the k pairs (u1, v1), (u2, v2), ..., (uk, vk) with the smallest sums.
+
+```
+
+```
+
 # References
 
 https://igotanoffer.com/blogs/tech/amazon-software-development-engineer-interview
