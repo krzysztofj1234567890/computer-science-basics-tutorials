@@ -356,11 +356,29 @@ queue or pub-sub, asynchronous message delivery, PULL-based, FIFO, batch/session
 
 ## Logic Apps
 
+Run automated workflows with little to no code. By using the visual designer and selecting from prebuilt operations, you can quickly build a workflow that integrates and manages your apps, data, services, and systems. It uses conditions and switches to determine the next action.
+
+A workflow always starts with a single __trigger__, which specifies the condition to meet before running any subsequent actions in the workflow. Each time the trigger fires, Azure Logic Apps creates and runs a workflow instance. Trigger follows either a polling pattern or a push pattern. 
+
+Following a trigger, an __action__ is any subsequent step that runs some operation in the workflow. Any action can use the outputs from the previous operations, which include the trigger and any other actions.
+
+Use a __connector__ to work with data, events, and resources in other apps, services, systems, and platforms - without writing code. A connector provides one or more prebuilt operations, which you use as steps in your workflow. In a connector, each operation is either a trigger condition that starts a workflow or a subsequent action that performs a specific task, along with properties that you can configure. Connectors are either __built__ (run directly and natively inside Azure Logic Apps) in or __managed__ (deployed, hosted, and managed in Azure by Microsoft). 
+
+Built-in connectors:
+- Schedule: Run workflows using custom and advanced schedules.
+- Http: Call an HTTP or HTTPS endpoint by using either the HTTP trigger or action
+- Request: When a HTTP request is received: Wait for a request from another workflow, app, or service.
+- Batch: Batch messages: Trigger a workflow that processes messages in batches. 
+- Ftp: Connect to an FTP or FTPS
+- Azure BloB Storage: Connect to your Azure Blob Storage
+
 ## Pros and Cons
 
 ### Use cases
 
 ### Examples
+
+For example, you might start the workflow with a SQL Server trigger that checks for new customer data in an SQL database. Following the trigger, your workflow can have a SQL Server action that gets the customer data. Following this SQL Server action, your workflow can use a different action that processes the data, for example, a Data Operations action that creates a CSV table.
 
 
 
