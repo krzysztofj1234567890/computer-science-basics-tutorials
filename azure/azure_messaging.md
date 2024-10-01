@@ -1,5 +1,15 @@
 # Event-driven architecture on azure
 
+https://www.youtube.com/watch?v=FVOhLqE9fzw
+
+## Kinds of messages
+
+__Job__ or __Commands__: someone gives a job to do to somebody and you expect them to do it (purchase order, delivery order). Happens exactly once. Measure progress. There is a contract.
+
+__Events__: has happened already. Facts and events streams (observations) or reports in state changes. Usually take an aggregation of events (sensor measurements) over time and act on it.
+
+Events travel through many services / software components. The middleware (standarization) should have some way to move the same event.
+
 ## Event Grid
 
 Scalable, fully managed Pub Sub message distribution service that offers flexible message consumption patterns using the MQTT and HTTP protocols.
@@ -11,6 +21,19 @@ DISCRETE FACTS, APPLICATIONS REACT TO EVENTS (automate business process and work
 serverless, service-to-service communication, dynamically scalable, at least once delivery, schema, keeps trying to deliver for 24 hours, PUSH or PULL-based.
 
 Publish-subscribe messaging model - Communicate efficiently using one-to-many, many-to-one, and one-to-one messaging patterns.
+
+- __ingestion and push-style distribution of descrete events__
+- __insulates publisher of event from failures of consumers__
+- __manages delivery of events__
+- reactive programming
+- sms push notification
+- IoT devices
+- user clicks
+- routing events
+- azure automation
+- application integration
+- millions per second
+- descrete events to serverless workloads
 
 ### Featues
 
@@ -332,9 +355,67 @@ public class EventGridTimeTriggeredCustomPublisher {
 
 ## Event Hub
 
-streaming data, low latency, millions/s, at least once delivery, DATA STREAMING
+Streaming data, low latency, millions/s, at least once delivery, DATA STREAMING.
 
-## Pros and Cons
+Fully managed, real-time data ingestion service that’s simple, trusted, and scalable. Stream millions of events per second from any source.
+
+Integrate seamlessly with other Azure services to unlock valuable insights. Allow existing Apache Kafka clients and applications to talk to Event Hubs without any code changes.
+
+By using streaming data, businesses can gain valuable insights, drive real-time analytics, and respond to events as they happen.
+
+Natively supports Advanced Message Queuing Protocol (AMQP), Apache Kafka, and HTTPS protocols.
+
+Azure Schema Registry in Event Hubs provides a centralized repository for managing schemas of event streaming applications. Schema Registry ensures data compatibility and consistency across event producers and consumers. It enables schema evolution, validation, and governance and promotes efficient data exchange and interoperability.
+
+Event Hubs uses a partitioned consumer model. It enables multiple applications to process the stream concurrently and lets you control the speed of processing. 
+
+Capture your data in near real time in Azure Blob Storage or Azure Data Lake Storage for long-term retention or micro-batch processing.
+
+- __ingestion and storage of large quantities of data__
+- __client chosen offsets__
+- __data retention__
+- streaming data
+- fraud detecion
+- click streams
+- device telemetry
+
+### Concepts
+
+__Producer__ applications: These applications can ingest data to an event hub by using Event Hubs SDKs or any Kafka producer client.
+
+__Namespace__: The management container for one or more event hubs or Kafka topics. The management tasks such as allocating streaming capacity, configuring network security, and enabling geo-disaster recovery are handled at the namespace level.
+
+__Event Hubs__ = __Kafka topic__: In Event Hubs, you can organize events into an event hub or a Kafka topic. It's an append-only distributed log, which can comprise one or more partitions.
+
+__Partitions__: They're used to scale an event hub. If you need more streaming throughput, you can add more partitions.
+
+__Consumer applications:__ These applications can consume data by seeking through the event log and maintaining consumer offset. Consumers can be Kafka consumer clients or Event Hubs SDK clients.
+
+__Consumer group__: This logical group of consumer instances reads data from an event hub or Kafka topic. It enables multiple consumers to read the same streaming data in an event hub independently at their own pace and with their own offsets. A view (state, position, or offset) of an entire event hub. You pass in the same consumer group as a parameter when constructing EventHubConsumerClients, then those clients will be associated with the same consumer group.
+
+__Kafka Concept __      __Event Hubs Concept__
+Cluster 	            Namespace
+Topic 	                An event hub
+Partition 	            Partition
+Consumer Group 	        Consumer Group
+Offset 	                Offset
+
+### Integrations
+
+#### Azure Stream Analytics
+
+Event Hubs integrates with Azure Stream Analytics to enable __real-time stream__ processing. With the built-in no-code editor, you can develop a Stream Analytics job by using drag-and-drop functionality, without writing any code. Alternatively, developers can use the SQL-based Stream Analytics query language. 
+
+#### Azure Data Explorer
+
+Azure Data Explorer is a fully managed platform for big data analytics that delivers high performance and allows for the analysis of large volumes of data in near real time. By integrating Event Hubs with Azure Data Explorer, you can perform near real-time analytics and exploration of streaming data.
+
+#### Azure Functions
+
+Event Hubs also integrates with Azure Functions for serverless architectures.
+
+
+### Pros and Cons
 
 ### Use cases
 
@@ -345,6 +426,17 @@ streaming data, low latency, millions/s, at least once delivery, DATA STREAMING
 ## Service Bus
 
 queue or pub-sub, asynchronous message delivery, PULL-based, FIFO, batch/sessions, dead-letter, transaction, routing, at least once delivery, re-try, SEND COMMANDS (do something)
+
+- __exactly one processing__
+- __exclusive ownership of message (queue)__
+- __assignment of work with load-aware balancing__
+- __load leveling traffic shapes (see size of queue)__
+- __topics can route data, queue at the endof topic__
+- jobs processing
+- decouple applications
+- state propagation
+- order processing
+- queue, topic (pub-sub)
 
 ## Pros and Cons
 
@@ -389,3 +481,11 @@ For example, you might start the workflow with a SQL Server trigger that checks 
 ### Use cases
 
 ### Examples
+
+## Cloud Events
+
+A specification for describing event data in a common way
+
+https://cloudevents.io/
+
+https://github.com/cloudevents/spec
