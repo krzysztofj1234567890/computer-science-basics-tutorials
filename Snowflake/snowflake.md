@@ -3,8 +3,8 @@
 ## architecture
 
 * storage
-* compute (virtual warehouse)
-* cloud services
+* compute (virtual warehouse): cache and micro-partitions
+* cloud services: authentication, authorization, infrastructure manager, metadata manager, optimizer
 
 ## scalability
 
@@ -119,10 +119,16 @@ UNDROP TABLE <table>
 
 ## Table types
 
-* Permanent: 'CREATE TABLE'. default, normal type wuth time travel and fail-safe
-* Transient: 'CREATE TANSIENT TABLE'. No fail-safe
-* Temporary: 'CREATE TEMPORARY TABLE'. No fail-safe. Exists only in current session i.e. other users or sessions do not see it.
-* Dynamic: 'CREATE DYNAMIC TABLE': Continously materlizes the results of the query you provide.
+* __Permanent__: 'CREATE TABLE'. default, normal type wuth time travel and fail-safe
+* __Transient__: 'CREATE TANSIENT TABLE'. No fail-safe. It is used where "data persistence" is required but doesn't need "data retention" for a longer period.
+* __Temporary__: 'CREATE TEMPORARY TABLE'. No fail-safe. Exists only in __current session__ i.e. other users or sessions do not see it. Mostly used for transitory data like ETL/ELT
+* __Dynamic__: 'CREATE DYNAMIC TABLE': Continously materlizes the results of the query you provide.
+
+## View types
+
+* Standard View
+* Secure View: accessed only by authorized users
+* Materialized View: These views store the result from the main source using filter conditions. Materialized view is auto-refreshed
 
 ## Zero-copy cloning
 
@@ -261,6 +267,28 @@ Retention period:
 * production/curated tables: use time travel.
 * large tables: expensive - maybe you do not need time travel
 
+## Pricing
 
+- fee for data storage
+- fee for compute: function of warehouse size, number of clusters and time spent to execute queries
+
+## Snowflake objects
+
+- Account
+- User
+- Role
+- Virtual Warehouse
+- Resource Monitor
+- Integration
+- Database
+- Schema
+- Table
+- View
+- Stored Procedure
+- User Defined Functions (UDF)
+- Stage
+- File Format
+- Pipe
+- Sequence
 
 
