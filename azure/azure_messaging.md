@@ -6,7 +6,7 @@ https://www.youtube.com/watch?v=FVOhLqE9fzw
 
 __Job__ or __Commands__: someone gives a job to do to somebody and you expect them to do it (purchase order, delivery order). Happens exactly once. Measure progress. There is a contract.
 
-__Events__: has happened already. Facts and events streams (observations) or reports in state changes. Usually take an aggregation of events (sensor measurements) over time and act on it.
+__Events__: has happened already. Facts (image uploaded) and events streams (observations) or reports in state changes. Usually take an aggregation of events (sensor measurements) over time and act on it.
 
 Events travel through many services / software components. The middleware (standarization) should have some way to move the same event.
 
@@ -168,6 +168,21 @@ With pull delivery, subscriber applications connect to Event Grid to consume eve
 When to use it:
 - avoid constant polling to determine that a system state change has occurred.
 
+#### push vs pull
+
+Pull:
+- scenarios requiring low latency, high throughput, and real-time updates.
+- Consumers must handle backpressure, where they cannot keep up with incoming events, which may cause congestion, loss, or duplication of events
+- Consumers must implement idempotency to process the same event multiple times without side effects; this may increase complexity and cost of the logic.
+
+Pull:
+- consumers query the storage for new events
+- Consumers control the pace and frequency of fetching events and process them at their own convenience. 
+- This model is suitable for scenarios where high availability, resilience, and eventual consistency are needed. 
+- producers may experience latency, overhead, and failure points when writing events to the storage. 
+- Additionally, consumers may generate unnecessary traffic, waste resources, and miss updates when polling the storage. 
+- Consumers must handle concurrency when multiple instances of the same consumer access the same events, which can cause conflicts, inconsistencies, or duplicates.
+
 #### Event Handler
 
 An event handler is an application or Azure service that receives events sent by namespace topics' push delivery mechanism. Event handlers, or sometimes called destinations
@@ -177,8 +192,6 @@ An event handler is an application or Azure service that receives events sent by
 You don't have to host your webhook on Azure, which means that you can use a webhook that's hosted elsewhere to handle events in your application
 
 To protect your webhook from unexpected event delivery, your webhook needs to indicate if it agrees with the event delivery. To that end, your endpoint must handle the webhook validation.
-
-
 
 
 ### Pros and Cons
@@ -192,9 +205,9 @@ Azure Functions -- http --> Event Grid -- http --> Logic App
 Use Event Grid to build serverless solutions with Azure Functions Apps, Logic Apps, and API Management. 
 
 #### Receive events from Azure services
-							--> Function App
+							            --> Function App
 Storage Account -- blob created -- http --> Event Grid  --> WebHook to API deployed on kubernetes
-							--> Event Hub
+							            --> Event Hub
 
 #### Receive events from partner (SaaS providers)
 
@@ -482,6 +495,20 @@ For example, you might start the workflow with a SQL Server trigger that checks 
 
 ### Examples
 
+## Protocols
+
+### MQTT
+
+MQTT is a communication protocol with features specifically targeted at IoT solutions:
+
+- Uses TCP connections, for reliability (assured delivery and packet error checking), fragmentation and ordering.
+- Aims to minimize data overhead of each MQTT packet.
+- Bi-directional message flow - data from and commands to devices can use the same TCP connection.
+- uses SSL/TLS for security
+- transmitting information between low-power sensors. 
+- It is based on the publish/subscribe model (pub-sub).
+- The MQTT protocol can keep a connection open for as long as possible, sending only a single data packet. Unlike HTTP communication, which requires you to open and close a connection (including TCP) for every data packet you want to send
+
 ## Cloud Events
 
 A specification for describing event data in a common way
@@ -489,3 +516,10 @@ A specification for describing event data in a common way
 https://cloudevents.io/
 
 https://github.com/cloudevents/spec
+
+## Issues with event-driven
+
+- Complexity
+- Debugging: difficult to trace events
+- Error handling: root cause analysis
+- Security: each new service might be security attack
