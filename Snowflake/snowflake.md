@@ -6,6 +6,14 @@
 * compute (virtual warehouse): cache and micro-partitions
 * cloud services: authentication, authorization, infrastructure manager, metadata manager, optimizer
 
+## Tools
+
+* snowsight: Web UI
+* snowSQL: command line interface
+* SnowCLI: Comprehensive Command-Line Interface. extends the functionality of SnowSQL by: managing account configurations, setting up integrations, and automating complex tasks.
+* SnowPipe: Continuous Data Ingestion
+* snowpark:  Integration of Programming Languages
+
 ## scalability
 
 * vertical - depends on query dependency
@@ -77,7 +85,7 @@ Optimization in snowflake:
 
 ## Snowpipe
 
-Snowpipe is Snowflake continous data ingestion service. It loads data within minutes after files are added to a stage and submitted for ingestion. It loads data from staged files in mcro-batches (instead of COPY syayements that are used to load larger batches).
+Snowpipe is Snowflake continous data ingestion service. It loads data within minutes after files are added to a stage and submitted for ingestion. It loads data from staged files in micro-batches (instead of COPY statements that are used to load larger batches).
 
 Steps:
 * CREATE STAGE object
@@ -291,4 +299,65 @@ Retention period:
 - Pipe
 - Sequence
 
+## Working with snowflake
 
+### Load data to snowflake
+
+#### Use snowsight UI web interface
+- login to account
+- create database
+- create schema
+- create table
+- optional: create file format
+- create stage
+- import file to stage
+
+#### Use snowSQL client
+
+https://sivachandanc.medium.com/ingesting-local-files-to-snowflake-table-using-snowsql-396301578fde
+
+- Connect to snowflake
+```
+snowsql -a <account_name> -u <username>
+```
+
+- Create a Table
+```
+use WAREHOUSE ??? ;
+use DATABASE ?? ;
+use SCHEMA pulic ;
+CREATE TABLE ... ;
+```
+
+- load data to to default User stage
+```
+put 'file:////home/sivachandan/Downloads/MOCK_DATA.csv' @~/staged;
+
+list @~;
+```
+
+- load data from stage to table
+```
+copy into <table>> from @~/staged/MOCK_DATA.csv.gz ;
+```
+
+#### load bulk data from azure
+
+- load data into azure storage account
+
+- CREATE STORAGE INTEGRATION
+
+- Create Stage
+```
+CREATE STAGE azstage
+URL = azure://<account>.blob.core.windows.net/<container>/<path>
+CREDENTIALS=(AZURE_SAS_TOKEN=…)
+```
+- Copy data to table
+```
+COPY INTO <table>
+FROM @azstage/newbatch
+```
+
+
+#### Snowpipe
