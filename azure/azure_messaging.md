@@ -193,6 +193,11 @@ You don't have to host your webhook on Azure, which means that you can use a web
 
 To protect your webhook from unexpected event delivery, your webhook needs to indicate if it agrees with the event delivery. To that end, your endpoint must handle the webhook validation.
 
+##### EventHub event handler
+
+Several Azure services are automatically configured to handle events and Azure Event Hubs is one of them.
+
+Use Event Hubs when your solution gets events from Event Grid faster than it can process the events. Once the events are in an event hub, your application can process events from the event hub at its own schedule.
 
 ### Pros and Cons
 
@@ -488,6 +493,67 @@ For example, you might start the workflow with a SQL Server trigger that checks 
 
 
 ## API Management
+
+Azure API Management is a hybrid, multicloud management platform for APIs across all environments. It supports the complete API lifecycle.
+
+Azure API Management helps customers meet these challenges:
+
+* __Abstract backend architecture__ diversity and complexity from API consumers
+* __Securely expose services__ hosted on and outside of Azure as APIs
+* __Protect__, accelerate, and __observe__ APIs
+* Enable __API discovery__ and consumption by internal and external users
+
+Azure API Management is made up of an __API gateway__, a __management plane__, and a __developer portal__.
+
+### API gateway
+
+All requests from client applications first reach the API gateway, which then forwards them to respective backend services. The API gateway acts as a facade to the backend services, allowing API providers to abstract API implementations and evolve backend architecture without impacting API consumers. The gateway enables consistent configuration of routing, security, throttling, caching, and observability.
+
+* Acts as a facade to backend services by accepting API calls and __routing__ them to appropriate backends
+* __Verifies__ API keys and other credentials such as JWT tokens and certificates presented with requests
+* Enforces usage quotas and __rate limits__
+* Optionally __transforms__ requests and responses as specified in policy statements
+* If configured, __caches responses__ to improve response latency and minimize the load on backend services
+* Emits __logs, metrics, and traces__ for monitoring, reporting, and troubleshooting
+
+### Management plane
+
+Customers interact with the management plane through: Azure portal, Azure PowerShell, Azure CLI, a Visual Studio Code extension, a REST API, or client SDKs.
+
+Use the management plane to:
+
+* __Provision and configure__ API Management service settings
+* Define or import __API schemas__ from a wide range of sources, including OpenAPI, WSDL, and OData definitions, Azure compute services, and WebSocket, GraphQL, and gRPC backends
+* Set up policies like __quotas__ or __transformations__ on the APIs
+* Get insights from __analytics__
+* __Manage users__
+
+#### Add an API manually
+
+* Navigate to your API Management service in the Azure portal and select APIs from the menu.
+* From the left menu, select + Add API.
+* Select HTTP from the list.
+* Enter the backend Web service URL 
+
+#### Subscriptions in Azure API Management
+
+Subscriptions are the most common way for API consumers to access APIs published through an API Management instance
+
+Developers who need to consume the published APIs must include a valid subscription key in HTTP requests.
+
+### Developer portal
+
+Fully customizable website with the documentation of your APIs.
+
+Using the developer portal, developers can:
+
+* Read __API documentation__
+* __Call an API__ via the interactive console
+* Create an account and __subscribe to get API keys__
+* Access __analytics__ on their own usage
+* __Download API__ definitions
+* __Manage API keys__
+
 
 ## Pros and Cons
 
