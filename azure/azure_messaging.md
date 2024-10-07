@@ -41,7 +41,7 @@ __Push__: push delivery mechanism sends data to destinations that include your o
 
 Your own __application events__ - Use Event Grid to route, filter, and reliably deliver custom events from your app.
 
-__Partner events __– Subscribe to your partner SaaS provider events and process them on Azure.
+__Partner events__– Subscribe to your partner SaaS provider events and process them on Azure.
 
 __Advanced filtering__ – Filter on event type or other event attributes to make sure your event handlers or consumer apps receive only relevant events.
 
@@ -49,7 +49,7 @@ __Source of data__:
 * MQTT clients’ data
 * HTTP: Azure services, Your custom applications, External partner (SaaS) systems
 
-__High throughput __- Build high-volume integrated solutions with Event Grid.
+__High throughput__- Build high-volume integrated solutions with Event Grid.
 
 ### Concepts
 
@@ -210,9 +210,12 @@ Azure Functions -- http --> Event Grid -- http --> Logic App
 Use Event Grid to build serverless solutions with Azure Functions Apps, Logic Apps, and API Management. 
 
 #### Receive events from Azure services
-							            --> Function App
+
+Storage Account -- blob created -- http --> Function App
+
 Storage Account -- blob created -- http --> Event Grid  --> WebHook to API deployed on kubernetes
-							            --> Event Hub
+
+Storage Account -- blob created -- http --> Event Hub
 
 #### Receive events from partner (SaaS providers)
 
@@ -411,12 +414,13 @@ __Consumer applications:__ These applications can consume data by seeking throug
 
 __Consumer group__: This logical group of consumer instances reads data from an event hub or Kafka topic. It enables multiple consumers to read the same streaming data in an event hub independently at their own pace and with their own offsets. A view (state, position, or offset) of an entire event hub. You pass in the same consumer group as a parameter when constructing EventHubConsumerClients, then those clients will be associated with the same consumer group.
 
-__Kafka Concept __      __Event Hubs Concept__
-Cluster 	            Namespace
-Topic 	                An event hub
-Partition 	            Partition
-Consumer Group 	        Consumer Group
-Offset 	                Offset
+| __Kafka Concept__   |  __Event Hubs Concept__
+| --------------------|----------------------------|
+| Cluster 	          |  Namespace                 |
+| Topic 	          |  An event hub
+| Partition 	      |  Partition
+| Consumer Group 	  |  Consumer Group
+| Offset 	          |  Offset
 
 ### Integrations
 
@@ -445,6 +449,14 @@ Event Hubs also integrates with Azure Functions for serverless architectures.
 
 queue or pub-sub, asynchronous message delivery, PULL-based, FIFO, batch/sessions, dead-letter, transaction, routing, at least once delivery, re-try, SEND COMMANDS (do something)
 
+Azure Service Bus is a fully managed enterprise message broker with __message queues__ and __publish-subscribe topics__. 
+Service Bus is used to decouple applications and services from each other, providing the following benefits:
+
+* __Load-balancing__ work across competing workers
+* Safely routing and transferring data and control across service and application boundaries
+* __Coordinating transactional work__ that requires a high-degree of reliability
+
+
 - __exactly one processing__
 - __exclusive ownership of message (queue)__
 - __assignment of work with load-aware balancing__
@@ -456,13 +468,112 @@ queue or pub-sub, asynchronous message delivery, PULL-based, FIFO, batch/session
 - order processing
 - queue, topic (pub-sub)
 
-## Pros and Cons
+### Pros and Cons
 
 ### Use cases
 
+* __Messaging__. Transfer business data, such as sales or purchase orders, journals, or inventory movements.
+* __Decouple applications__. Improve reliability and scalability of applications and services. Producer and consumer don't have to be online or readily available at the same time. 
+* __Load balancing__. Allow for multiple competing consumers to read from a queue at the same time
+* __Transactions__. Allows you to do several operations, all in the scope of an atomic transaction. For example, the following operations can be done in the scope of a transaction.
+  * Obtain a message from one queue.
+  * Post results of processing to one or more different queues.
+  * Move the input message from the original queue.
+
+
 ### Examples
 
+#### Send messages to queue
 
+https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-python-how-to-use-queues?tabs=passwordless
+
+```
+## imports
+import asyncio
+from azure.servicebus.aio import ServiceBusClient
+from azure.servicebus import ServiceBusMessage
+from azure.identity.aio import DefaultAzureCredential
+
+## constants
+FULLY_QUALIFIED_NAMESPACE = "FULLY_QUALIFIED_NAMESPACE"
+QUEUE_NAME = "QUEUE_NAME"
+
+credential = DefaultAzureCredential()
+
+## method to send simgle message
+async def send_single_message(sender):
+    # Create a Service Bus message and send it to the queue
+    message = ServiceBusMessage("Single Message")
+    await sender.send_messages(message)
+    print("Sent a single message")
+
+## Create a Service Bus client and then a queue sender object to send messages.
+async def run():
+    # create a Service Bus client using the credential
+    async with ServiceBusClient(
+        fully_qualified_namespace=FULLY_QUALIFIED_NAMESPACE,
+        credential=credential,
+        logging_enable=True) as servicebus_client:
+        # get a Queue Sender object to send messages to the queue
+        sender = servicebus_client.get_queue_sender(queue_name=QUEUE_NAME)
+        async with sender:
+            # send one message
+            await send_single_message(sender)
+            # send a list of messages
+            await send_a_list_of_messages(sender)
+            # send a batch of messages
+            await send_batch_message(sender)
+
+        # Close credential when no longer needed.
+        await credential.close()
+
+```
+
+Run:
+```
+asyncio.run(run())
+print("Done sending messages")
+print("-----------------------")
+```
+
+#### Receive messages from queue
+
+```
+import asyncio
+
+from azure.servicebus.aio import ServiceBusClient
+from azure.identity.aio import DefaultAzureCredential
+
+FULLY_QUALIFIED_NAMESPACE = "FULLY_QUALIFIED_NAMESPACE"
+QUEUE_NAME = "QUEUE_NAME"
+
+credential = DefaultAzureCredential()
+
+async def run():
+    # create a Service Bus client using the connection string
+    async with ServiceBusClient(
+        fully_qualified_namespace=FULLY_QUALIFIED_NAMESPACE,
+        credential=credential,
+        logging_enable=True) as servicebus_client:
+
+        async with servicebus_client:
+            # get the Queue Receiver object for the queue
+            receiver = servicebus_client.get_queue_receiver(queue_name=QUEUE_NAME)
+            async with receiver:
+                received_msgs = await receiver.receive_messages(max_wait_time=5, max_message_count=20)
+                for msg in received_msgs:
+                    print("Received: " + str(msg))
+                    # complete the message so that the message is removed from the queue
+                    await receiver.complete_message(msg)
+
+        # Close credential when no longer needed.
+        await credential.close()
+```
+
+run:
+```
+asyncio.run(run())
+```
 
 ## Logic Apps
 
