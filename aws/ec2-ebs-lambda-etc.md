@@ -1,5 +1,7 @@
 # AWS Lambda
 
+https://docs.aws.amazon.com/lambda/
+
 Lambda runs your code on a high-availability compute infrastructure and performs all of the administration of the compute resources, including server and operating system maintenance, capacity provisioning and automatic scaling, and logging.
 
 The Lambda service runs your function only when needed and scales automatically. You only pay for the compute time.
