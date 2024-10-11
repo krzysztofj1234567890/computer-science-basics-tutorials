@@ -484,3 +484,4 @@ Make our program safe to use in multithreaded environment:
 - Use of __locks__ from java.util.concurrent.locks package.
 - Using __thread safe collection__ classes, check this post for usage of ConcurrentHashMap for thread safety.
 - Using __volatile__ keyword with variables to make every thread read the data from memory, not read from thread cache.
+
