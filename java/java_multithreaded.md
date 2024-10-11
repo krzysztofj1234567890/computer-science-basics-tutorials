@@ -333,6 +333,43 @@ threadLocalValue.set(1);
 Integer result = threadLocalValue.get();
 ```
 
+OR
+
+```
+public class ThreadLocalExp   
+{   
+     public static class MyRunnable implements Runnable    
+   {   
+       private ThreadLocal<Integer> threadLocal =   
+              new ThreadLocal<Integer>();   
+      @Override   
+       public void run() {   
+           threadLocal.set( (int) (Math.random() * 50D) );   
+           try    
+           {   
+               Thread.sleep(1000);   
+           } catch (InterruptedException e) {   
+           }   
+           System.out.println(threadLocal.get());   
+       }   
+   }   
+   public static void main(String[] args)    
+   {   
+       MyRunnable runnableInstance = new MyRunnable();    
+       Thread t1 = new Thread(runnableInstance);   
+       Thread t2 = new Thread(runnableInstance);   
+      // this will call run() method    
+       t1.start();   
+       t2.start();   
+   }   
+} 
+
+// output:
+10
+33
+10 33
+```
+
 ### Terminating tasks
 
 Thread.stop(), but it just kills the thread and may leave your application in an inconsistent state. This can be done easier with just calling System.exit().
@@ -485,3 +522,42 @@ Make our program safe to use in multithreaded environment:
 - Using __thread safe collection__ classes, check this post for usage of ConcurrentHashMap for thread safety.
 - Using __volatile__ keyword with variables to make every thread read the data from memory, not read from thread cache.
 
+# Interview questions
+
+## What are the wait() and sleep() methods? 
+
+__wait__(): As the name suggests, it is a non-static method that causes the current thread to wait and go to sleep until some other threads call the notify () or notifyAll() method for the object’s monitor (lock)
+
+__sleep__(): As the name suggests, it is a static method that pauses or stops the execution of the current thread for some specified period. It doesn’t release the lock while waiting and is mostly used to introduce pause on execution
+
+## What’s the purpose of the join() method?
+
+__join__() method is generally used to pause the execution of a current thread unless and until the specified thread on which join is called is dead or completed. To stop a thread from running until another thread gets ended, this method can be used.
+
+## Explain the meaning of the deadlock and when it can occur?
+
+Deadlock, as the name suggests, is a situation where multiple threads are blocked forever. It generally occurs when multiple threads hold locks on different resources and are waiting for other resources to complete their task.
+
+## Explain volatile variables in Java?
+
+This keyword cannot be used with classes and methods, instead can be used with variables. It is simply used to achieve thread-safety. If you mark any variable as volatile, then all the threads can __read its value directly from the main memory__ rather than CPU cache.
+
+## What is thread starvation?
+
+Thread starvation is basically a situation or condition where a thread won’t be able to have regular access to shared resources and therefore is unable to proceed or make progress. This is because other threads have high priority and occupy the resources for too long. This usually happens with low-priority threads that do not get CPU for its execution to carry on.
+
+## What is Livelock?
+
+the state of threads changes between one another without making any progress. Threads are not blocked but their execution is stopped due to the unavailability of resources.
+
+## What is BlockingQueue?
+
+BlockingQueue basically represents a queue that is thread-safe. Producer thread inserts resource/element into the queue using put() method unless it gets full and consumer thread takes resources from the queue using take() method until it gets empty. But if a thread tries to dequeue from an empty queue, then a particular thread will be blocked until some other thread inserts an item into the queue, or if a thread tries to insert an item into a queue that is already full, then a particular thread will be blocked until some threads take away an item from the queue.
+
+## What is a shutdown hook?
+
+A shutdown hook is simply a thread that is invoked implicitly before JVM shuts down. It is one of the most important features of JVM because it provides the capacity to do resource cleanup or save application state JVM shuts down.
+
+## What is race-condition?
+
+When various threads execute simultaneously accessing a shared resource at the same time. The proper use of synchronization can avoid the Race condition.

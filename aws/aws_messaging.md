@@ -1,4 +1,9 @@
-# Event-driven architecture on aws
+# Table of Contents
+- [Event-driven architecture in AWS](#EventDrivenAws)
+  - [SQS](#SQS)
+  - [SNS](#SNS)
+
+# Event-driven architecture on aws <a id="EventDrivenAws"></a>
 
 __design__: event storming -> ( command (play video), query, event (video uploaded) ) -> services -> add communication patterns (queue, pub-sub (kafka, event-bridge), streaming) -> workflows (step functions)
 
@@ -14,7 +19,7 @@ __standards__: timestamp, corelationId, domain name,
 
 __discoverability__: schema registry, 
 
-# SQS
+## SQS  <a id="SQS"></a>
 
 Amazon Simple Queue Service (Amazon SQS) offers a secure, durable, and available hosted queue that lets you integrate and decouple distributed software systems and components.
 
@@ -74,4 +79,6 @@ In flight messages:
   - Prompt deletion – Ensure that messages are deleted as soon as they are successfully processed
   - Monitor with CloudWatch – Use Amazon CloudWatch to monitor the number of in-flight messages
   - Distribute load – Consider increasing the number of queues if you are processing a high volume of messages
-  - 
+
+# SNS <a id="SNS"></a>
+
