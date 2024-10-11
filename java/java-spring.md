@@ -1,9 +1,17 @@
 # Table of Contents
-1. [Java spring](#JavaSpring)
-2. [Architecture](#Architecture)
+- [Java spring](#JavaSpring)
+  - [Spring Architecture](#Architecture)
+  - [Example](#Example)
+  - [IoC Containers](#IoCcontainers)
+  - [Bean](#Bean)
+  - [Event Handling](#EventHandling)
+  - [JDBC Framework](#JDBC)
+  - [MVC Framework](#MVC)
+- [Spring Boot](#Boot)
+  - [Spring Boot Architecture](#BootArchitecture)
 
 
-# Java spring <a name="JavaSpring"></a>
+# Java spring <a id="JavaSpring"></a>
 
 https://www.tutorialspoint.com/spring/index.htm
 
@@ -24,7 +32,7 @@ When writing a complex Java application, application classes should be as __inde
 
 One of the key components of Spring is the __Aspect Oriented Programming__ (AOP) framework. The functions that span multiple points of an application are called cross-cutting concerns and these cross-cutting concerns are conceptually separate from the application's business logic. There are various common good examples of aspects including logging, declarative transactions, security, caching, etc.
 
-## Architecture <a name="Architecture"></a>
+## Architecture <a id="Architecture"></a>
 
 Core container:
 - The __Core module__ provides the fundamental parts of the framework, including the IoC and __Dependency Injection__ features.
@@ -49,7 +57,7 @@ Other modules:
 - The __Aspects module__ provides integration with AspectJ, which is again a powerful and mature AOP framework.
 - The __Test module__ supports the testing of Spring components with JUnit or TestNG frameworks.
 
-## Example
+## Example <a id="Example"></a>
 
 Hello World: HelloWorld.java:
 ```
@@ -82,14 +90,15 @@ public class MainApp {
 }
 ```
 
-## IoC Containers
+## IoC Containers <a id="IoCcontainers"></a>
+
 __The container will create the objects, wire them together, configure them, and manage their complete life cycle__ from creation till destruction.
 
 The Spring container uses DI to manage the components that make up an application. __These objects are called Spring Beans__
 
 The container gets its instructions on what objects to instantiate, configure, and assemble by reading the configuration metadata provided. The configuration metadata can be represented either by XML, Java annotations, or Java code.
 
-## Bean
+## Bean <a id="Bean"></a>
 
 The objects that form the backbone of your application and that are managed by the Spring IoC container are called beans. A bean is an object that is instantiated, assembled, and otherwise managed by a Spring IoC container. These beans are created with the configuration metadata that you supply to the container. 
 
@@ -104,7 +113,7 @@ When defining a <bean> you have the option of declaring a scope for that bean:
 - __request__: This scopes a bean definition to an HTTP request. Only valid in the context of a web-aware Spring ApplicationContext.
 - __session__: This scopes a bean definition to an HTTP session. Only valid in the context of a web-aware Spring ApplicationContext.
 
-## Event Handling in Spring
+## Event Handling in Spring <a id="EventHandling"></a>
 
 The ApplicationContext publishes certain types of events when loading the beans. For example, a ContextStartedEvent is published when the context is started and ContextStoppedEvent is published when the context is stopped.
 
@@ -187,7 +196,7 @@ public class MainApp {
 </beans>
  ```
 
- ## Spring - JDBC Framework Overview
+ ## Spring - JDBC Framework Overview <a id="JDBC"></a>
 
  The JDBC Template class executes SQL queries, updates statements, stores procedure calls, performs iteration over ResultSets, and extracts returned parameter values. It also catches JDBC exceptions and translates them to the generic, more informative, exception hierarchy defined in the org.springframework.dao package.
 
@@ -382,5 +391,122 @@ Beans.xml:
 </beans>
 ```
 
-## Spring - MVC Framework
+## Spring - MVC Framework <a id="MVC"></a>
 
+The Spring Web MVC framework provides Model-View-Controller (MVC) architecture and ready components that can be used to develop flexible and loosely coupled web applications. The MVC pattern results in separating the different aspects of the application (input logic, business logic, and UI logic), while providing a loose coupling between these elements.
+
+The __Model__ encapsulates the application data and in general they will consist of POJO.
+
+The __View__ is responsible for rendering the model data and in general it generates HTML output that the client's browser can interpret.
+
+The __Controller__ is responsible for processing user requests and building an appropriate model and passes it to the view for rendering.
+
+
+### DispatcherServlet
+
+The Spring Web model-view-controller (MVC) framework is designed around a DispatcherServlet that handles all the HTTP requests and responses.
+
+- After receiving an HTTP request, DispatcherServlet consults the HandlerMapping to call the appropriate Controller.
+- The Controller takes the request and calls the appropriate service methods based on used GET or POST method. The service method will set model data based on defined business logic and returns view name to the DispatcherServlet.
+- The DispatcherServlet will take help from ViewResolver to pickup the defined view for the request.
+- Once view is finalized, The DispatcherServlet passes the model data to the view which is finally rendered on the browser.
+
+### Configuration
+
+You need to map requests that you want the DispatcherServlet to handle, by using a URL mapping in the web.xml file:
+```
+<web-app id = "WebApp_ID" version = "2.4"
+   xmlns = "http://java.sun.com/xml/ns/j2ee" 
+   xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation = "http://java.sun.com/xml/ns/j2ee 
+   http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+    
+   <display-name>Spring MVC Application</display-name>
+   
+   <servlet>
+      <servlet-name>HelloWeb</servlet-name>
+      <servlet-class>
+         org.springframework.web.servlet.DispatcherServlet
+      </servlet-class>
+      <load-on-startup>1</load-on-startup>
+   </servlet>
+
+   <servlet-mapping>
+      <servlet-name>HelloWeb</servlet-name>
+      <url-pattern>*.jsp</url-pattern>
+   </servlet-mapping>
+
+</web-app>
+```
+
+<servlet-mapping> tag indicates what URLs will be handled by which DispatcherServlet. Here all the HTTP requests ending with .jsp will be handled by the HelloWeb DispatcherServlet.
+
+HelloWeb-servlet.xml:
+```
+<beans xmlns = "http://www.springframework.org/schema/beans"
+   xmlns:context = "http://www.springframework.org/schema/context"
+   xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation = "http://www.springframework.org/schema/beans     
+   http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+   http://www.springframework.org/schema/context 
+   http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+   <context:component-scan base-package = "com.tutorialspoint" />
+
+   <bean class = "org.springframework.web.servlet.view.InternalResourceViewResolver">
+      <property name = "prefix" value = "/WEB-INF/jsp/" />
+      <property name = "suffix" value = ".jsp" />
+   </bean>
+
+</beans>
+```
+
+The [servlet-name]-servlet.xml file will be used to create the beans defined, overriding the definitions of any beans defined with the same name in the global scope.
+
+### Controller
+
+The DispatcherServlet delegates the request to the controllers to execute the functionality specific to it. The @Controller annotation indicates that a particular class serves the role of a controller. The @RequestMapping annotation is used to map a URL to either an entire class or a particular handler method.
+
+```
+@Controller
+@RequestMapping("/hello")
+public class HelloController { 
+   @RequestMapping(method = RequestMethod.GET)
+   public String printHello(ModelMap model) {
+      model.addAttribute("message", "Hello Spring MVC Framework!");
+      return "hello";
+   }
+}
+```
+
+### JSP Views
+
+Spring MVC supports many types of views for different presentation technologies. These include - JSPs, HTML, PDF etc.
+
+simple hello view in /WEB-INF/hello/hello.jsp:
+```
+<html>
+   <head>
+      <title>Hello Spring MVC</title>
+   </head>
+   
+   <body>
+      <h2>${message}</h2>
+   </body>
+</html>
+```
+
+# Spring Boot <a id="Boot"></a>
+
+Spring is widely used for creating scalable applications, but disadvantage of spring projects is that __configuration is really time-consuming__ and can be a bit overwhelming for the new developers.
+
+Spring Boot is built on the top of the spring and contains all the features of spring. It enables the developers to directly focus on the logic instead of struggling with the configuration and set up. __Spring Boot is a microservice-based framework__ and making a production-ready application in it takes very less time. Prerequisite for Spring Boot is the basic knowledge Spring framework. 
+
+Features:
+- It allows to avoid heavy configuration of XML. In spring boot __everything is auto-configured.__
+- It provides __easy maintenance and creation of REST end points__: Creating a REST API is very easy in Spring Boot. Just the annotation @RestController and @RequestMapping(/endPoint) over the controller class does the work.
+- It includes __embedded Tomcat-server__: Unlike Spring MVC project where we have to manually add and install the tomcat server, Spring Boot comes with an embedded Tomcat server, so that the applications can be hosted on it. 
+- Deployment is very easy, war and jar file can be easily deployed in the tomcat server:war or jar files can be directly deployed on the Tomcat Server
+- Microservice Based Architecture: __Microservice__, as the name suggests is the name given to a module/service which focuses on a single type of feature, exposing an API
+
+## Spring Boot Architecture <a id="BootArchitecture"></a>
