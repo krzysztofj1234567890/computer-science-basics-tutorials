@@ -9,7 +9,9 @@
   - [MVC Framework](#MVC)
 - [Spring Boot](#Boot)
   - [Spring Boot Architecture](#BootArchitecture)
-
+  - [Spring Boot Project](#BootProject)
+  - [Spring Boot Example](#BootExample)
+  
 
 # Java spring <a id="JavaSpring"></a>
 
@@ -510,3 +512,164 @@ Features:
 - Microservice Based Architecture: __Microservice__, as the name suggests is the name given to a module/service which focuses on a single type of feature, exposing an API
 
 ## Spring Boot Architecture <a id="BootArchitecture"></a>
+
+Layers in Spring Boot: There are four main layers in Spring Boot:
+- __Presentation__ Layer: As the name suggests, it consists of views(i.e. frontend part). __Authentication & Json Translation__
+- __Data Access__ Layer: CRUD (create, retrieve, update, delete) operations on the database comes under this category.
+  - __Persistence Layer__ – Storage Logic
+  - __Database Layer__ – Actual Database
+- __Service__ Layer: This consist of service classes and uses services provided by data access layers. __Business Logic, Validation & Authorization__
+- __Integration__ Layer: It consists of web different web services(any service available over the internet and uses XML messaging system).
+
+
+Since Spring boot uses all the features/modules of spring-like Spring data, Spring MVC etc. so __the architecture is almost the same as spring MVC__, __except__ for the fact that __there is no need of DAO and DAOImpl classes__ in Spring boot.
+
+Creating a __data access layer__ needs just a __repository class__ instead which is implementing CRUD operation containing class.
+
+Flow:
+- A client makes the https request(PUT/GET)
+- Then it goes to controller and the controller mapped with that route as that of request handles it, and calls the service logic if required.
+- Business logic is performed in the service layer which might be performing the logic on the data from the database which is mapped through JPA with model/entity class
+- Finally, a JSP page is returned in the response if no error occurred.
+
+## Create a Spring Boot Project <a id="BootProject"></a>
+
+Create a Spring Boot Project in Spring Initializr: __https://start.spring.io/__
+
+### Spring Initializr
+
+Spring Initializr is a Web-based tool that provides simple web UI to generate the Spring Boot project structure or we can say it builds the skeleton of the Spring-based application.
+
+It helps you to customize and configure the project requirement and automatically manage the Spring Boot Dependencies using the Maven repository or Gradle.
+
+Configuration:
+- Project: Using this one can create Maven or Gradle project i.e; Maven or Gradle can be used as a build tool.
+- Language: Spring Initializr provide Java, Kotlin and Groovy as a programming language for the project. 
+- Project Dependencies: Dependencies are artifacts that we can add to the project. 
+
+### Application Properties
+
+Write the application-related property src/main/resources/__application.properties__
+
+This file contains the different configuration which is required to run the application in a different environment, and each environment will have a different property defined by it. Inside the application properties file, we define every type of property like changing the port, database connectivity, connection to the eureka server, and many more. 
+
+Example of application.properties:
+```
+# Log file
+logging.file=logs/my-log-file.log
+
+# Server port
+server.port=9080
+
+# Servlet context path
+server.servlet.context-path=/helloworld
+
+# Custom property
+person.name=Java Code Geeks!
+person.age=25
+person.title=Mr.
+
+## Web error page
+server.error.whitelabel.enabled=false
+ 
+## Web HTTPS settings
+server.tomcat.remoteip.remote-ip-header=x-forwarded-for
+server.tomcat.remoteip.protocol-header=x-forwarded-proto
+ 
+### Web Gzip
+server.compression.enabled=true
+server.compression.mime-types=application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+ 
+## Web static resources versioning
+spring.web.resources.chain.strategy.content.enabled=true
+spring.web.resources.chain.strategy.content.paths=/js/**,/css/**
+ 
+### Web caching
+spring.web.resources.cache.cachecontrol.max-age=30d
+
+## DataSource properties
+spring.datasource.url=jdbc:mysql://localhost:3306/revogain
+spring.datasource.username=${REVOGAIN_DB_USER}
+spring.datasource.password=${REVOGAIN_DB_PASSWORD}
+ 
+## HikariCP configuration
+spring.datasource.hikari.minimumIdle=0
+spring.datasource.hikari.maximum-pool-size=40
+spring.datasource.hikari.maxLifetime=900000
+spring.datasource.hikari.transaction-isolation=TRANSACTION_READ_COMMITTED
+spring.datasource.hikari.auto-commit=false
+spring.datasource.hikari.data-source-properties.useServerPrepStmts=false
+spring.datasource.hikari.data-source-properties.cachePrepStmts=true
+spring.datasource.hikari.data-source-properties.prepStmtCacheSize=500
+spring.datasource.hikari.data-source-properties.prepStmtCacheSqlLimit=1024
+
+spring.datasource.hikari.minimumIdle=0
+spring.datasource.hikari.maximum-pool-size=40
+spring.datasource.hikari.maxLifetime=600000
+```
+
+Create separate property files named application-{profile}.properties for each profile you want to define. For example:
+- application.properties for common configuration
+- application-dev.properties for development
+
+Use the main application.properties file to specify the common settings.
+
+## Create Boot Example <a id="BootExample"></a>
+
+https://www.geeksforgeeks.org/spring-boot-hello-world-example/
+
+### Step 1: Go to Spring Initializr
+```
+Project: Maven
+Language: Java
+Spring Boot: 2.2.8
+Packaging: JAR
+Java: 8
+Dependencies: Spring Web
+STS IDE
+```
+
+### Extract the zip file. Now open IDE
+
+### Example files:
+
+SpringBootHelloWorldApplication.java
+```
+@SpringBootApplication
+// Main class 
+// Implementing CommandLineRunner interface 
+public class SpringBootHelloWorldApplication 
+	implements CommandLineRunner { 
+	// Method 1 
+	// run() method for springBootApplication to execute 
+	@Override
+	public void run(String args[]) throws Exception 
+	{ 
+		// Print statement when method is called 
+		System.out.println("HEllo world"); 
+	} 
+	// Method 2 
+	// Main driver method 
+	public static void main(String[] args) 
+	{ 
+		// Calling run() method to execute 
+		// SpringBootApplication by 
+		// invoking run() inside main() method 
+		SpringApplication.run( 
+			SpringBootHelloWorldApplication.class, args); 
+	} 
+}
+```
+
+HelloWorldController.java
+```
+@RestController
+public class HelloWorldController { 
+    @RequestMapping("/") public String helloworld() 
+    { 
+        return "Hello World"; 
+    } 
+}
+```
+
+This controller helps to handle all the incoming requests from the client-side
