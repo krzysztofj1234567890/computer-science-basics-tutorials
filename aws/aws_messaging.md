@@ -80,5 +80,232 @@ In flight messages:
   - Monitor with CloudWatch – Use Amazon CloudWatch to monitor the number of in-flight messages
   - Distribute load – Consider increasing the number of queues if you are processing a high volume of messages
 
-# SNS <a id="SNS"></a>
+## SNS <a id="SNS"></a>
+
+https://docs.aws.amazon.com/sns/latest/dg/welcome.html
+
+Amazon Simple Notification Service (Amazon SNS) is a managed service that provides message delivery from publishers to subscribers (also known as producers and consumers). Publishers communicate asynchronously with subscribers by sending messages to a topic, which is a logical access point and communication channel. Clients can subscribe to the SNS topic and receive published messages using a supported endpoint type, such as Amazon Data Firehose, Amazon SQS, AWS Lambda, HTTP, email, etc.
+
+Use cases:
+- __Application-to-application__ messaging (Amazon Data Firehose delivery streams, Lambda functions, Amazon SQS queues, HTTP/S endpoint)
+- __Application-to-person__ notifications (mobile applications, mobile phone numbers, and email addresses)
+
+__Standard and FIFO topics__: FIFO topics ensure strict message ordering, message grouping, and deduplication, allowing FIFO and standard queues to subscribe for message processing. Standard topics are used when message ordering and possible duplication are not critical, supporting all delivery protocols for broader use cases.
+
+__Message durability__: Amazon SNS uses a number of strategies that work together to provide message durability:
+- Published messages are stored across multiple, geographically separated servers and data centers.
+- If a subscribed endpoint isn't available, Amazon SNS runs a delivery retry policy.
+- To preserve any messages that aren't delivered before the delivery retry policy ends, you can create a dead-letter queue.
+
+__Message archiving, replay, and analytics__: subscribing Firehose delivery streams to SNS topics, and later send notifications to Amazon Simple Storage Service (Amazon S3) buckets, Amazon Redshift tables, and more.
+
+__Message attributes__ let you provide any arbitrary metadata about the message.
+
+__Message filtering__: By default, each subscriber receives every message published to the topic. To receive a subset of the messages, a subscriber must assign a filter policy to the topic subscription. A subscriber can also define the filter policy scope to enable __payload-based__ or __attribute-based__ filtering.
+
+__Message security__: Server-side encryption protects the contents of messages that are stored in Amazon SNS topics, using __encryption keys provided by AWS KMS__
+
+__Typical SNS scenario__ = __Fanout scenario__ is when a message published to an SNS topic is replicated and pushed to multiple endpoints, such as Firehose delivery streams, Amazon SQS queues, HTTP(S) endpoints, and Lambda functions. This allows for parallel asynchronous processing
+```
+Publisher -> SNS topic -> SQS_1 -> EC2_1
+                       -> SES_2 -> EC2_2
+```
+
+### SNS event sources
+
+- __Amazon Athena__: Receive notifications when control limits are exceeded like: If the aggregate amount of data scanned exceeds the threshold, you can push a notification to an Amazon SNS topic
+- __AWS Data Pipeline__: Receive notifications about the status of pipeline components and send SNS Alarms
+- __Amazon Redshift__: Receive notifications of Amazon Redshift events like: The Amazon Redshift cluster did not succeed while acquiring capacity from our capacity pool.
+- __Amazon EventBridge__: Receive notifications of EventBridge events. 
+- __AWS Step Functions__: Receive notification of Step Functions events
+- __AWS Billing and Cost Management__: Receive budget notifications, price change notifications, and anomaly alerts.
+- __Amazon EC2 Auto Scaling__ : Receive notifications when Auto Scaling launches or terminates Amazon EC2 instances in your Auto Scaling group
+- __AWS Lambda__: Receive function output data by setting an SNS topic as a Lambda dead-letter queue or a Lambda destination.
+
+### SNS event destinations
+- __Amazon Data Firehose__: Deliver events to delivery streams for archiving and analysis purposes. Through delivery streams, you can deliver events to AWS destinations like Amazon Simple Storage Service (Amazon S3), Amazon Redshift, and Amazon OpenSearch Service
+- __AWS Lambda__: Deliver events to functions for triggering the execution of custom business logic.
+- __Amazon SQS:__ Deliver events to queues for application integration purposes.
+- __HTTPS__: Deliver events to external webhooks
+- SMS
+- EMAIL
+etc.
+
+### Concepts
+
+- __SNS topic__ is a logical access point that acts as a communication channel. A topic lets you group multiple endpoints (such as AWS Lambda, Amazon SQS, HTTP/S, or an email address).
+- __subscriptions__: To receive messages published to a topic, you must subscribe an endpoint to the topic. When you subscribe an endpoint to a topic, the endpoint begins to receive messages published to the associated topic.
+  - create subscription
+  - select Topic ARN
+  - select protocol
+  - enter endpoint
+
+### FIFO topics
+
+You can use Amazon SNS FIFO (first in, first out) topics with Amazon SQS FIFO queues to provide strict __message ordering__ and message __deduplication__.
+
+Amazon SNS FIFO topics define ordering in the context of a __message group__
+
+The FIFO capabilities of each of these services work together to act as a fully managed service to integrate distributed applications that require __data consistency in near-real time.__
+
+An Amazon SNS FIFO topic always delivers messages to subscribed Amazon SQS queues in the exact order in which the messages are published to the topic, and only once. 
+With an Amazon SQS FIFO queue subscribed, the consumer of the queue receives the messages in the exact order in which the messages are delivered to the queue, and no duplicates.
+
+You can have multiple applications (or multiple threads within the same application) publishing messages to an SNS FIFO topic in parallel. 
+When you do this, you effectively delegate message sequencing to the Amazon SNS service.
+
+The __sequence number__ is a large, non-consecutive number that Amazon SNS assigns to each message. 
+The length of the sequence number is 128-bits, and continues to __increase for each Message Group__. 
+The __sequence number is passed to the subscribed Amazon SQS queues as part of the message body__. 
+However, if you enable raw message delivery, the message that's delivered to the Amazon SQS queue doesn't include the sequence number or any other Amazon SNS message metadata.
+
+#### Message grouping
+
+Messages that belong to the same group are processed one by one, in a strict order relative to the group.
+
+When you publish messages to an Amazon SNS FIFO topic, you set the message group ID. 
+The __group ID is a mandatory token__ that specifies that a message belongs to a specific message group. 
+The __SNS FIFO topic passes the group ID to the subscribed Amazon SQS FIFO queues__. 
+There is no limit to the number of group IDs in SNS FIFO topics or SQS FIFO queues. __Message group ID is not passed to Amazon SQS standard queues__.
+
+There's no affinity between a message group and a subscription. Therefore, messages that are published to any message group are delivered to all subscribed queues, subject to any filter policies 
+
+Amazon SNS FIFO topics deliver messages from __different message groups in parallel__, while message order is strictly maintained within each message group. 
+Each individual message group can deliver a maximum of 300 messages per second. 
+
+#### Filtering
+
+When you subscribe an Amazon SQS FIFO or standard queue to an SNS FIFO topic, you can use message filtering to specify that the subscriber receives a subset of messages, rather than all of them. 
+__Each subscriber can set its own filter policy__ as subscription attributes. 
+Based on the filter policy scope, __filter policy is matched against incoming message-attributes or message-body__.
+
+The filter policy {"business":["wholesale"]} matches every message which contains a key named business and with wholesale in the set of values
+
+#### Message deduplication
+
+__Amazon SNS FIFO topics and Amazon SQS FIFO queues support message deduplication__, which provides exactly-once message delivery and processing as long as the following __conditions__ are met:
+- The subscribed Amazon SQS FIFO queue exists and has permissions that allow the Amazon SNS service principal to deliver messages to the queue.
+- The Amazon SQS FIFO queue consumer processes the message and __deletes it from the queue before the visibility timeout expires__.
+- The Amazon SNS subscription topic has __no message filtering.__
+- There are __no network disruptions__ that prevent acknowledgment of the message delivery.
+
+When you publish a message to an Amazon SNS FIFO topic, the message must include a __deduplication ID__. 
+This ID is included in the message that the Amazon SNS FIFO topic delivers to the subscribed Amazon SQS FIFO queues.
+
+If a message with a particular deduplication ID is successfully published to an Amazon SNS FIFO topic, any message published with the same deduplication ID, 
+within the five-minute deduplication interval, is accepted but not delivered
+
+If the __message body__ is guaranteed to be unique for each published message, you can enable __content-based deduplication__ for an Amazon SNS FIFO topic and the subscribed Amazon SQS FIFO queues. 
+Amazon SNS uses the message body to generate a unique hash value to use as the deduplication ID for each message, so you don't need to set a deduplication ID when you send each message.
+
+#### Message security
+
+You can choose to have Amazon SNS and Amazon SQS __encrypt__ messages sent to FIFO topics and queues, using AWS Key Management Service (AWS KMS)
+
+Amazon SNS and Amazon SQS __encrypt only the body of the message__. They don't encrypt the message attributes, resource metadata, or resource metrics.
+
+In addition, SNS FIFO topics and SQS FIFO queues support message privacy with interface VPC endpoints powered by AWS PrivateLink. 
+Using __interface endpoints__, you can send messages from Amazon Virtual Private Cloud (Amazon VPC) subnets to FIFO topics and queues without traversing the public internet.
+
+#### Message durability
+
+Amazon SNS FIFO topics and Amazon SQS queues are __durable__. 
+Both resource types store messages redundantly across __multiple Availability Zones__, and __provide dead-letter queues__ to handle exceptional cases.
+
+In Amazon SNS, message delivery fails when the Amazon SNS topic can't access a subscribed Amazon SQS queue due to a client-side or server-side error:
+- Client-side errors occur when the Amazon SNS FIFO topic has stale __subscription metadata__
+  - Deletes the queue or changes queue policy
+  - Changes the queue policy in a way that prevents the Amazon SNS service principal from delivering messages to it.
+  - __Amazon SNS doesn't retry delivering messages that failed due to client-side errors__.
+- Server-side errors can occur in these situations:
+  - The Amazon SQS service is unavailable
+  - Amazon SQS fails to process a valid request from the Amazon SNS service
+  - When server-side errors occur, Amazon SNS FIFO topics retry the failed deliveries up to 100,015 times over 23 days. 
+
+Dead letter queue:
+- For any type of error, Amazon SNS can sideline messages to Amazon SQS dead-letter queues so data isn't lost.
+- The dead-letter queue associated with an Amazon SNS subscription must be an Amazon SQS queue of the same type as the subscribing queue
+
+#### Message replay
+
+Message archiving provides the ability to archive a single copy of all messages published to your topic. 
+You can __store published messages within your topic by enabling the message archive__ policy on the topic, which enables message archiving for all subscriptions linked to that topic. 
+Messages can be archived for a minimum of one day to a maximum of 365 days.
+
+Amazon SNS replay lets topic subscribers retrieve archived messages from the topic data store and redeliver (or replay) them to a subscribed endpoint. 
+Messages can be replayed as soon as the subscription is created. 
+A replayed message has the same content, MessageId, and Timestamp as the original copy, and also contains the attribute Replayed, to help you identify that it's a replayed message. 
+
+### SNS message publishing
+
+To publish a SNS message:
+- message details:
+  - Subject - optional
+  - Message group ID - required for FIFO topic
+  - Message deduplication ID - for FIFO topic. Optional else Content-based message deduplication 
+  - Time to Live (TTL) - optional for mobile push
+- message body:
+  - Choose Identical payload for all delivery protocols, and then enter a message.
+  - Custom payload for each delivery protocol, and then enter a JSON object to define the message to send for each delivery protocol.
+- Message attributes: add any attributes that you want Amazon SNS to match with the subscription attribute FilterPolicy
+  - For Type, choose an attribute type, such as String.Array.
+  - Name, such as customer_interests.
+  - Value, such as ["soccer", "rugby", "hockey"].
+
+Message size: current maximum of 256 KB
+
+__Batching__:An alternative to publishing messages to either Standard or FIFO topics in individual Publish API requests, is using the Amazon SNS PublishBatch API to publish up to 10 messages in a single API request. 
+Sending messages in batches can help you reduce the cost. API request needs to be assigned a unique batch ID
+
+For SQS subscriptions, a maximum of 10 message attributes can be sent when Raw Message Delivery is enabled. To send more than 10 message attributes, Raw Message Delivery must be disabled.
+
+### Message data protection 
+
+Scans data in motion for personally identifiable information (PII) and protected health information (PHI) using data identifiers.
+
+Message data protection supports the following actions to help protect sensitive customer information:
+- Audit – Audit up to 99% of the data that's published to an Amazon SNS topic. You can then choose to send the findings to Amazon CloudWatch, Amazon S3, or Amazon Data Firehose.
+- De-identify – Mask or redact sensitive data without interrupting message publishing or delivering.
+- Deny – Block the transmission of data between applications and AWS resources if sensitive data is present within the payload.
+
+### Message delivery
+
+#### RAW message delivery
+
+- When you enable raw message delivery for Amazon Data Firehose or Amazon SQS endpoints, any Amazon __SNS metadata is stripped from the published message__ and the message is sent as is.
+- When you enable raw message delivery for HTTP/S endpoints, the HTTP header x-amz-sns-rawdelivery with its value set to true is added to the message, indicating that the message has been published without JSON formatting.
+
+#### Cross account delivery
+
+To let the queue owner subscribe to the topic owner's topic, the topic owner must give the queue owner's account permission to call the Subscribe action on the topic
+
+#### Cross region delivery
+
+Amazon SNS supports the cross-region delivery of notifications to Amazon SQS queues and to AWS Lambda functions
+
+#### Message Delivery status
+
+Amazon SNS provides support to log the delivery status of notification messages sent to topic
+
+After you configure the message delivery status attributes, log entries are sent to CloudWatch Logs for messages sent to topic subscribers. 
+Logging message delivery status helps provide better operational insight, such as the following:
+- Knowing whether a message was delivered to the Amazon SNS endpoint.
+- Identifying the response sent from the Amazon SNS endpoint to Amazon SNS.
+
+#### Message Delivery retries
+
+Amazon SNS defines a delivery policy for each delivery protocol. 
+The delivery policy defines how Amazon SNS retries the delivery of messages when server-side errors occur (when the system that hosts the subscribed endpoint becomes unavailable). 
+When the delivery policy is exhausted, Amazon SNS stops retrying the delivery and discards the message—unless a dead-letter queue is attached to the subscription
+
+Phases:
+- Immediate re-try (3 times)
+- pre-backoff phase (2 times, 1 s apart)
+- backoff phase: 10 times, with exponential backoff, from 1 second to 20 seconds
+- Post-backoff phase: 100,000 times, 20 seconds apart
+
+
+
+
+
 
