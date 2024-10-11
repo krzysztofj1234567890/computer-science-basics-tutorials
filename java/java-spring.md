@@ -11,7 +11,7 @@
   - [Spring Boot Architecture](#BootArchitecture)
   - [Spring Boot Project](#BootProject)
   - [Spring Boot Example](#BootExample)
-  
+  - [Spring Boot With H2 Database Example](#BootDatabaseExample)
 
 # Java spring <a id="JavaSpring"></a>
 
@@ -618,6 +618,10 @@ Use the main application.properties file to specify the common settings.
 
 https://www.geeksforgeeks.org/spring-boot-hello-world-example/
 
+https://www.baeldung.com/spring-boot
+
+https://spring.io/guides
+
 ### Step 1: Go to Spring Initializr
 ```
 Project: Maven
@@ -633,43 +637,156 @@ STS IDE
 
 ### Example files:
 
-SpringBootHelloWorldApplication.java
+SpringBoot HelloWorldApplication.java - The Spring Initializr creates a simple application class for you.
 ```
+package com.javacodegeeks.examples;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 @SpringBootApplication
-// Main class 
-// Implementing CommandLineRunner interface 
-public class SpringBootHelloWorldApplication 
-	implements CommandLineRunner { 
-	// Method 1 
-	// run() method for springBootApplication to execute 
-	@Override
-	public void run(String args[]) throws Exception 
-	{ 
-		// Print statement when method is called 
-		System.out.println("HEllo world"); 
-	} 
-	// Method 2 
-	// Main driver method 
-	public static void main(String[] args) 
-	{ 
-		// Calling run() method to execute 
-		// SpringBootApplication by 
-		// invoking run() inside main() method 
-		SpringApplication.run( 
-			SpringBootHelloWorldApplication.class, args); 
-	} 
+public class HelloWorldApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(HelloWorldApplication.class, args);
+	}
 }
 ```
 
-HelloWorldController.java
+HelloController.java - The class is flagged as a @RestController, meaning it is ready for use by Spring MVC to handle web requests. @GetMapping maps / to the index() method.
 ```
-@RestController
-public class HelloWorldController { 
-    @RequestMapping("/") public String helloworld() 
-    { 
-        return "Hello World"; 
-    } 
+package com.javacodegeeks.examples;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController("/")
+public class HelloController {
+	
+	@Value("${person.name}")
+	private String name;
+	
+	@Autowired
+	private Person person;
+	
+	@GetMapping("/hello")
+	public String hello() {
+		return "Hello " + name;
+	}
+
+	@PostConstruct
+	private void printPerson() {
+		System.out.println("name: " + person.name);
+		System.out.println("age: " + person.age);
+		System.out.println("title: " + person.title);
+	}
 }
 ```
 
-This controller helps to handle all the incoming requests from the client-side
+Person.java
+```
+package com.javacodegeeks.examples;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConfigurationProperties(prefix="person")
+public class Person {
+	
+	String name;
+	int age;
+	String title;
+	
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public int getAge() {
+		return age;
+	}
+	public void setAge(int age) {
+		this.age = age;
+	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
+	}
+}
+```
+
+application.properties
+```
+# Log file
+logging.file=logs/my-log-file.log
+
+# Server port
+server.port=9080
+
+# Servlet context path
+server.servlet.context-path=/helloworld
+
+# Custom property
+person.name=Java Code Geeks!
+person.age=25
+person.title=Mr.
+```
+
+To run:
+```
+./mvnw spring-boot:run
+```
+
+## Spring Boot With H2 Database Example <a id="BootDatabaseExample"></a>
+
+https://www.baeldung.com/spring-boot-h2-database
+
+### Dependencies:
+```
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+### Database Configuration
+
+application.yaml:
+```
+spring:
+  datasource:
+    url: jdbc:h2:mem:mydb
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+    url: jdbc:h2:file:/data/demo
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+```
+
+### Database Operations
+
+Basic SQL scripts to initialize the database:
+
+src/main/resources/data.sql 
+```
+INSERT INTO countries (id, name) VALUES (1, 'USA');
+INSERT INTO countries (id, name) VALUES (2, 'France');
+INSERT INTO countries (id, name) VALUES (3, 'Brazil');
+INSERT INTO countries (id, name) VALUES (4, 'Italy');
+INSERT INTO countries (id, name) VALUES (5, 'Canada');
+```
+
