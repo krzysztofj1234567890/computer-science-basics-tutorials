@@ -238,6 +238,8 @@ Because of the nature of threads, you can’t catch an exception that has escape
 
 Thread.UncaughtExceptionHandler.uncaughtException( ) is automatically called when that thread is about to die from an uncaught exception.
 
+However it does not work for Executables.
+
 ```
 class ExceptionThread2 implements Runnable { 
  public void run() { 
