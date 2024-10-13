@@ -1,4 +1,9 @@
-# Kubernetes: Up and Running by Brendan Burns, Joe Beda, Kelsey Hightower, and Lachlan Evenson 2022
+# Table of Contents
+- [Kubernetes: Up and Running](#KubernetesUpAndRunning)
+- [Kubernetes Security And Observability](#KubernetesSecurityAndObservability)
+- [Kubernetes Concepts](#KubernetesConcepts)
+
+# Kubernetes: Up and Running by Brendan Burns, Joe Beda, Kelsey Hightower, and Lachlan Evenson 2022 <a id="KubernetesUpAndRunning"></a>
 
 ## Creating and Running Containers
 
@@ -72,12 +77,12 @@ docker run --rm -p 3000:3000 simple-nod
 Optimizing Image Sizes:
 
 * files that are removed by subsequent layers in the system are actually still present in the images.
-* preceding layers means that they need to be rebuilt, repushed, and repulled to deploy your image to development. In general, you want to order
-your layers from least likely to change to most likely to change in order to optimize the image size for pushing and pulling.
-* do not do the actual program compilation as part of the construction of the application container image. The
+* preceding layers means that they need to be rebuilt, repushed, and repulled to deploy your image to development. 
+In general, __you want to order your layers from least likely to change to most likely to change in order to optimize the image size__ for pushing and pulling.
+* __do not do the actual program compilation as part of the construction of the application container image__. The
 trouble with doing this is that it leaves all of the unnecessary development tools, which are usually quite large
 
-Image Security: don’t build containers with passwords baked in
+Image Security: __don’t build containers with passwords baked in__
 
 ### Storing Images in a Remote Registry
 
@@ -107,9 +112,7 @@ When you install the docker tooling the containerd runtime is also installed and
 Running Containers with Docker:
 
 ```
-docker run -d --name kuard \
- --publish 8080:8080 \
- gcr.io/kuar-demo/kuard-amd64:blue
+docker run -d --name kuard --publish 8080:8080 gcr.io/kuar-demo/kuard-amd64:blue
  ```
 
 Docker provides the ability to limit the amount of resources used by
@@ -120,11 +123,7 @@ the resources used by each Pod.
 Limiting memory resources: use the --memory and --memory-swap flags
 
 ```
-docker run -d --name kuard \
- --publish 8080:8080 \
- --memory 200m \
- --memory-swap 1G \
- gcr.io/kuar-demo/kuard-amd64:blue
+docker run -d --name kuard --publish 8080:8080 --memory 200m --memory-swap 1G gcr.io/kuar-demo/kuard-amd64:blue
  ```
 
 Limiting CPU resources: Restrict CPU utilization using the --cpu-shares flag
@@ -142,11 +141,11 @@ Limiting CPU resources: Restrict CPU utilization using the --cpu-shares flag
 
 ### Kubernetes components
 
-* controller-manager: is responsible for running various controllers that regulate behavior in the cluster; for example, ensuring that all of the
+* __controller-manager__: is responsible for running various controllers that regulate behavior in the cluster; for example, ensuring that all of the
 replicas of a service are available and healthy.
-* scheduler: is responsible for placing different Pods onto different nodes in the cluster.
-* etcd server: is the storage for the cluster where all of the API objects are stored
-* nodes: nodes are separated into control-plane nodes that contain containers like the API server, scheduler, etc., which manage the cluster,
+* __scheduler__: is responsible for placing different Pods onto different nodes in the cluster.
+* __etcd server__: is the storage for the cluster where all of the API objects are stored
+* __nodes__: nodes are separated into control-plane nodes that contain containers like the API server, scheduler, etc., which manage the cluster,
 and worker nodes where your containers will run
 
 ### The Kubernetes Client
@@ -231,8 +230,7 @@ answer is “no,” a Pod is the correct grouping for the containers.
 Create a Pod:
 
 ```
-kubectl run kuard --generator=run-pod/v1 \
- --image=gcr.io/kuar-demo/kuard-amd64:blue
+kubectl run kuard --generator=run-pod/v1 --image=gcr.io/kuar-demo/kuard-amd64:blue
 
 # check
 kubectl get pods
@@ -479,11 +477,11 @@ service name (alpaca-prod). You can also refer to a service in another
 namespace with alpaca-prod.default. And, of course, you can use
 the fully qualified service name (alpacaprod.default.svc.cluster.local.).
 
-One nice thing the Service object does is track which of your Pods are ready via a readiness check.
+One nice thing the __Service object does is track which of your Pods are ready via a readiness check.__
 
 Kubernetes service types:
 
-* 
+* ????????????????????????????
 
 ### NodePort
 In addition to a cluster IP, the system picks a
@@ -520,7 +518,7 @@ That program then parses the HTTP connection and, based on the Host header and t
 CONTINUE: PAGE 115
 
 
-# Kubernetes Security and Observability by Brendan Creane & Amit Gupta 2021
+# Kubernetes Security and Observability by Brendan Creane & Amit Gupta 2021 <a id="KubernetesSecurityAndObservability"></a>
 
 Kubernetes is not secure by default. 
 
@@ -568,7 +566,7 @@ and it is operational. In this stage you need to think about:
 The security team is responsible for this stage of the deployment.
 
 
-# Kubernetes Concepts
+# Kubernetes Concepts <a id="KubernetesConcepts"></a>
 
 https://kubernetes.io/docs/concepts/
 
