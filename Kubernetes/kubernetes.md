@@ -1033,7 +1033,7 @@ __Controlling parallelism__: can be set to any non-negative value.
 
 #### ReplicationController
 
-#### Autoscaling Workloads
+#### Autoscaling Workloads = HorizontalPodAutoscaler
 
 In Kubernetes, you can scale a workload depending on the current demand of resources.
 
@@ -1041,6 +1041,59 @@ Kubernetes supports manual scaling of workloads.
 Horizontal scaling can be done using the kubectl CLI. For vertical scaling, you need to patch the resource definition of your workload.
 
 In Kubernetes, you can automatically scale a workload horizontally using a HorizontalPodAutoscaler (HPA).
+
+Example setup:
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+spec:
+  selector:
+    matchLabels:
+      run: php-apache
+  template:
+    metadata:
+      labels:
+        run: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        image: registry.k8s.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache
+  labels:
+    run: php-apache
+spec:
+  ports:
+  - port: 80
+  selector:
+    run: php-apache
+
+```
+and run it:
+```
+kubectl apply -f https://k8s.io/examples/application/php-apache.yaml
+```
+
+Roughly speaking, the HPA controller will increase and decrease the number of replicas (by updating the Deployment) to maintain an average CPU utilization across all Pods of 50%. The Deployment then updates the ReplicaSet - this is part of how all Deployments work in Kubernetes - and then the ReplicaSet either adds or removes Pods based on the change to its .spec.
+
+To create the HorizontalPodAutoscaler:
+```
+kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
+```
+
+OR:
 
 Create the HorizontalPodAutoscaler:
 ```
@@ -1274,6 +1327,7 @@ Types of volumes:
 
 * azureFile CSI migration
 * azureFile CSI migration
+* ... many,many
 * configMap - provides a way to inject configuration data into pods. The data stored in a ConfigMap can be referenced in a volume of type configMap and then consumed by containerized applications running in a pod.
 ```
 apiVersion: v1
