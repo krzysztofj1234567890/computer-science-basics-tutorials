@@ -215,6 +215,29 @@ public class GFG {
 
 From the above code, we are not mutating any variable. Instead, we are transforming the data from one function to another. This is another difference between Imperative and Declarative. Not only this but also in the above code of declarative style, every function is a pure function and pure functions don’t have side effects
 
+## Built-in java functional interfaces
+
+Java SE 8 included four main kinds of functional interfaces which can be applied in multiple situations as mentioned below:
+- __Consumer__: The consumer interface of the functional interface is the one that accepts only one argument or a gentrified argument. The consumer interface has __no return value__. 
+```
+Consumer<Integer> consumer = (value) -> System.out.println(value);
+```
+- __Predicate__: function that accepts an argument and, in return, generates a __boolean__ value
+```
+Predicate predicate = (value) -> value != null;
+
+Predicate<String> p = (s) -> s.startsWith("G");
+```
+OR
+```
+Predicate<Integer> greaterThanTen = (i) -> i > 10;
+Predicate<Integer> lowerThanTwenty = (i) -> i < 20; 
+boolean result = greaterThanTen.and(lowerThanTwenty).test(15); 
+```
+- __Function__: receives only a single argument and returns a value after the required processing
+- __Supplier__:  does not take any input or argument and yet returns a single output.
+
+
 # Java Streams
 
 https://www.baeldung.com/java-8-streams
