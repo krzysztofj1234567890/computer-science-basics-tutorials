@@ -574,12 +574,12 @@ https://kubernetes.io/docs/concepts/
 
 Kubernetes provides you with:
 
-* Service discovery and load balancing Kubernetes can expose a container using the DNS name or using their own IP address. If traffic to a container is high, Kubernetes is able to load balance and distribute the network traffic so that the deployment is stable.
-* Storage orchestration Kubernetes allows you to automatically mount a storage system of your choice, such as local storages, public cloud providers
-* Automated rollouts and rollbacks You can describe the desired state for your deployed containers using Kubernetes, and it can change the actual state to the desired state at a controlled rate.
-* Automatic bin packing You provide Kubernetes with a cluster of nodes that it can use to run containerized tasks. You tell Kubernetes how much CPU and memory (RAM) each container needs. Kubernetes can fit containers onto your nodes to make the best use of your resources.
-* Self-healing Kubernetes restarts containers that fail, replaces containers, kills containers that don't respond to your user-defined health check, and doesn't advertise them to clients until they are ready to serve.
-* Secret and configuration management Kubernetes lets you store and manage sensitive information, such as passwords, OAuth tokens, and SSH keys.
+* __Service discovery__ and __load balancing__ Kubernetes can expose a container using the DNS name or using their own IP address. If traffic to a container is high, Kubernetes is able to load balance and distribute the network traffic so that the deployment is stable.
+* __Storage orchestration__ Kubernetes allows you to automatically mount a storage system of your choice, such as local storages, public cloud providers
+* Automated ___rollouts and rollbacks___ You can describe the desired state for your deployed containers using Kubernetes, and it can change the actual state to the desired state at a controlled rate.
+* Automatic bin packing You provide Kubernetes with a cluster of nodes that it can use to run containerized tasks. You tell Kubernetes how much CPU and memory (RAM) each container needs. Kubernetes __can fit containers onto your nodes__ to make the best use of your resources.
+* __Self-healing__ Kubernetes restarts containers that fail, replaces containers, kills containers that don't respond to your user-defined health check, and doesn't advertise them to clients until they are ready to serve.
+* __Secret and configuration management__ Kubernetes lets you store and manage sensitive information, such as passwords, OAuth tokens, and SSH keys.
 
 ## Kubernetes API
 
@@ -599,17 +599,17 @@ A Kubernetes cluster consists of a control plane plus a set of worker machines, 
 
 Control plane components:
 
-* kube-apiserver: exposes the Kubernetes API
-* etcd: Consistent and highly-available key value
-* kube-scheduler: watches for newly created Pods with no assigned node, and selects a node for them to run on.
-* kube-controller-manager: runs controller processes. There are many different types of controllers: Node controller, Job controller etc.
-* cloud-controller-manager: embeds cloud-specific control logic. The cloud controller manager lets you link your cluster into your cloud provider's API
+* __kube-apiserver__: exposes the Kubernetes API
+* __etcd__: Consistent and highly-available key value
+* __kube-scheduler__: watches for newly created Pods with no assigned node, and selects a node for them to run on.
+* __kube-controller-manager__: runs controller processes. There are many different types of controllers: Node controller, Job controller etc.
+* __cloud-controller-manager__: embeds cloud-specific control logic. The cloud controller manager lets you link your cluster into your cloud provider's API
 
 Node components:
 
-* kubelet: An agent that runs on each node in the cluster. It makes sure that containers are running in a Pod.
-* kube-proxy: network proxy that runs on each node in your cluster, implementing part of the Kubernetes Service concept. It maintains network rules on nodes. 
-* Container runtime: empowers Kubernetes to run containers effectively. It is responsible for managing the execution and lifecycle of containers within the Kubernetes environment. Kubernetes supports container runtimes such as containerd,
+* __kubelet__: An agent that runs on each node in the cluster. It makes sure that containers are running in a Pod.
+* __kube-proxy__: network proxy that runs on each node in your cluster, implementing part of the Kubernetes Service concept. It maintains network rules on nodes. 
+* __Container runtime__: empowers Kubernetes to run containers effectively. It is responsible for managing the execution and lifecycle of containers within the Kubernetes environment. Kubernetes supports container runtimes such as containerd,
 
 Addons:
 
@@ -652,8 +652,8 @@ The connections from the API server to a node, pod, or service default to plain 
 ### Pods
 
 Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.
-It is a group of one or more containers, with shared storage and network resources, and a specification for how to run the containers. 
-A Pod's contents are always co-located and co-scheduled, and run in a shared context.
+It is a group of one or more containers, with __shared storage and network resources__, and a specification for how to run the containers. 
+A Pod's contents are __always co-located and co-scheduled__, and run in a shared context.
 
 A Pod can contain init containers that run during Pod startup. You can also inject ephemeral containers for debugging a running Pod
 
@@ -683,9 +683,12 @@ kubectl apply -f simple-pod.yaml
 
 Usually you don't need to create Pods directly, even singleton Pods. Instead, create them using workload resources such as Deployment or Job.
 
-You can use workload resources to create and manage multiple Pods for you. A controller for the resource handles replication and rollout and automatic healing in case of Pod failure. xamples of workload resources that manage one or more Pods: Deployment, StatefulSet, DeamonSet
+You can use workload resources to create and manage multiple Pods for you. 
+A __controller__ for the resource handles replication and __rollout and automatic healing__ in case of Pod failure. 
+Examples of workload __resources that manage one or more Pods: Deployment, StatefulSet, DeamonSet__
 
-Controllers for workload resources create Pods from a __pod template__ and manage those Pods on your behalf. PodTemplates are specifications for creating Pods, and are included in workload resources such as __Deployments__, __Jobs__, and __DaemonSets__.
+Controllers for workload resources create Pods from a __pod template__ and manage those Pods on your behalf. 
+PodTemplates are specifications for creating Pods, and are included in workload resources such as __Deployments__, __Jobs__, and __DaemonSets__.
 
 The sample below is a manifest for a simple Job with a template that starts one container:
 
@@ -706,7 +709,7 @@ spec:
     # The pod template ends here
 ```
 
-The StatefulSet controller ensures that the running Pods match the current pod template for each StatefulSet object. If you edit the StatefulSet to change its pod template, the StatefulSet starts to create new Pods based on the updated template. Eventually, all of the old Pods are replaced with new Pods, and the update is complete.
+The __StatefulSet__ controller ensures that the running Pods match the current pod template for each StatefulSet object. If you edit the StatefulSet to change its pod template, the StatefulSet starts to create new Pods based on the updated template. Eventually, all of the old Pods are replaced with new Pods, and the update is complete.
 
 Each workload resource implements its own rules for handling changes to the Pod template.
 
@@ -729,34 +732,36 @@ To set security constraints on Pods and containers, you use the securityContext 
 
 #### Pod Lifecycle
 
-Pods are only scheduled once in their lifetime; assigning a Pod to a specific node is called binding, and the process of selecting which node to use is called scheduling. if Kubernetes isn't able start the Pod on the selected node, then that particular Pod never starts.
+Pods are only scheduled once in their lifetime; assigning a Pod to a specific node is called __binding__, and the process of selecting which node to use is called __scheduling__. 
+If Kubernetes isn't able start the Pod on the selected node, then that particular Pod never starts.
 
 If one of the containers in the Pod fails, then Kubernetes may try to restart that specific container. Pods can however fail in a way that the cluster cannot recover from. 
 
-Kubernetes uses a higher-level abstraction, called a controller, that handles the work of managing the relatively disposable Pod instances.
+Kubernetes uses a higher-level abstraction, called a __controller__, that handles the work of managing the relatively disposable Pod instances.
 
-Pod phases: A Pod's status field is a PodStatus object, which has a phase field.
+__Pod phases:__ A Pod's status field is a PodStatus object, which has a phase field.
 * Pending: The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run.
 * Running: The Pod has been bound to a node, and all of the containers have been created. At least one container is still running.
 * Succeeded: All containers in the Pod have terminated in success, and will not be restarted
 * Failed: All containers in the Pod have terminated, and at least one container has terminated in failure. 
 * Unknown: For some reason the state of the Pod could not be obtained. 
 
-Pod conditions: A Pod has a PodStatus, which has an array of PodConditions
+__Pod conditions__: A Pod has a PodStatus, which has an array of PodConditions
 * PodScheduled: the Pod has been scheduled to a node.
 * PodReadyToStartContainers
 * ContainersReady: all containers in the Pod are ready
 * Initialized: all init containers have completed successfully.
 * Ready: the Pod is able to serve requests
 
-Container states:
+__Container states__:
 * Waiting
 * Running
 * Terminated
 
-Kubernetes manages container failures within Pods using a restartPolicy defined in the Pod spec.
+Kubernetes manages container failures within Pods using a __restartPolicy__ defined in the Pod spec.
 
-Your application can inject extra feedback or signals into PodStatus: Pod readiness. To use this, set readinessGates in the Pod's spec to specify a list of additional conditions that the kubelet evaluates for Pod readiness:
+Your application can inject extra feedback or signals into PodStatus: Pod readiness. 
+To use this, set readinessGates in the Pod's spec to specify a list of additional conditions that the kubelet evaluates for Pod readiness:
 
 ```
 kind: Pod
@@ -856,7 +861,8 @@ A ReplicaSet is defined with fields, including a selector that specifies how to 
 
 A ReplicaSet is linked to its Pods via the Pods' metadata.ownerReferences field, which specifies what resource the current object is owned by.
 
-Deployment is a higher-level concept that manages ReplicaSets and provides declarative updates to Pods along with a lot of other useful features. Therefore, we recommend using Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all.
+__Deployment is a higher-level concept that manages ReplicaSets and provides declarative updates to Pods along with a lot of other useful features.__ 
+Therefore, we recommend using Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all.
 
 ```
 apiVersion: apps/v1
@@ -887,9 +893,10 @@ spec:
 
 StatefulSet is the workload API object used to manage stateful applications.
 
-Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods.
+Manages the deployment and scaling of a set of Pods, and __provides guarantees about the ordering and uniqueness of these Pods.__
 
-Like a Deployment, a StatefulSet manages Pods that are based on an identical container spec. Unlike a Deployment, a StatefulSet maintains a sticky identity for each of its Pods. These pods are created from the same spec, but are not interchangeable: each has a persistent identifier that it maintains across any rescheduling.
+Like a Deployment, a StatefulSet manages Pods that are based on an identical container spec. 
+Unlike a Deployment, a StatefulSet maintains a sticky identity for each of its Pods. These pods are created from the same spec, but are not interchangeable: each has a persistent identifier that it maintains across any rescheduling.
 
 StatefulSets are valuable for applications that require one or more of the following.
 * Stable, unique network identifiers.
@@ -951,7 +958,9 @@ spec:
 
 #### DaemonSet
 
-A DaemonSet ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. Deleting a DaemonSet will clean up the Pods it created.
+A DaemonSet __ensures that all (or some) Nodes run a copy of a Pod__. 
+As nodes are added to the cluster, Pods are added to them. 
+As nodes are removed from the cluster, those Pods are garbage collected. Deleting a DaemonSet will clean up the Pods it created.
 
 Some typical uses of a DaemonSet are:
 * running a cluster storage daemon on every node
@@ -1009,7 +1018,9 @@ spec:
 
 #### Jobs
 
-A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate. As pods successfully complete, the Job tracks the successful completions. When a specified number of successful completions is reached, the task (ie, Job) is complete. 
+A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate. 
+As pods successfully complete, the Job tracks the successful completions. 
+When a specified number of successful completions is reached, the task (ie, Job) is complete. 
 
 __Parallel execution__ for Jobs:
 * Non-parallel Jobs
@@ -1026,7 +1037,8 @@ __Controlling parallelism__: can be set to any non-negative value.
 
 In Kubernetes, you can scale a workload depending on the current demand of resources.
 
-Kubernetes supports manual scaling of workloads. Horizontal scaling can be done using the kubectl CLI. For vertical scaling, you need to patch the resource definition of your workload.
+Kubernetes supports manual scaling of workloads. 
+Horizontal scaling can be done using the kubectl CLI. For vertical scaling, you need to patch the resource definition of your workload.
 
 In Kubernetes, you can automatically scale a workload horizontally using a HorizontalPodAutoscaler (HPA).
 
@@ -1064,7 +1076,7 @@ status:
         averageValue: 0
 ```
 
-It is also possible to scale workloads based on events, for example using the Kubernetes Event Driven Autoscaler (KEDA).
+It is also possible to __scale workloads based on events__, for example using the Kubernetes Event Driven Autoscaler (__KEDA__).
 
 Another strategy for scaling your workloads is to schedule the scaling operations, for example in order to reduce resource consumption during off-peak hours.
 
@@ -1083,17 +1095,20 @@ Every Pod in a cluster gets its own unique __cluster-wide IP__ address. Pods can
 
 Service is a method for exposing a network application that is running as one or more Pods in your cluster.
 
-You can run code in Pods. You use a Service to make that set of Pods available on the network so that clients can interact with it.
+You can run code in Pods. You __use a Service to make that set of Pods available on the network so that clients can interact with it__.
 
 If you use a Deployment to run your app, that Deployment can create and destroy Pods dynamically. From one moment to the next, you don't know how many of those Pods are working and healthy; Kubernetes Pods are created and destroyed to match the desired state of your cluster. Pods are ephemeral resources.
 
 Each Pod gets its own IP address
 
-The Service API, part of Kubernetes, is an abstraction to help you expose groups of Pods over a network. Each Service object defines a logical set of endpoints (usually these endpoints are Pods) along with a policy about how to make those pods accessible.
+The Service API, part of Kubernetes, is an __abstraction to help you expose groups of Pods over a network__. 
+Each Service object defines a logical set of endpoints (usually these endpoints are Pods) along with a policy about how to make those pods accessible.
 
 The set of Pods targeted by a Service is usually determined by a __selector__ that you define.
 
-Create a Service before its corresponding backend workloads (Deployments or ReplicaSets), and before any workloads that need to access it. When Kubernetes starts a container, it provides environment variables pointing to all the Services which were running when the container was started. Service that a Pod wants to access must be created before the Pod itself, or else the environment variables will not be populated. DNS does not have this restriction.
+Create a Service before its corresponding backend workloads (Deployments or ReplicaSets), and before any workloads that need to access it. 
+When Kubernetes starts a container, it provides environment variables pointing to all the Services which were running when the container was started. 
+__Service that a Pod wants to access must be created before the Pod__ itself, or else the environment variables will not be populated. DNS does not have this restriction.
 
 suppose you have a set of Pods that each listen on TCP port 9376 and are labelled as app.kubernetes.io/name=MyApp. You can define a Service to publish that TCP listener:
 
@@ -1147,7 +1162,8 @@ spec:
       port: 80
       targetPort: 9376
 ```
-Because this Service has no selector, the corresponding EndpointSlice (and legacy Endpoints) objects are not created automatically. You can map the Service to the network address and port where it's running, by adding an EndpointSlice object manually.
+Because this Service has no selector, the corresponding EndpointSlice (and legacy Endpoints) objects are not created automatically. 
+You can map the Service to the network address and port where it's running, by adding an EndpointSlice object manually.
 
 This makes sense for the following use cases:
 - You want to have an external database cluster in production, but in your test environment you use your own databases.
@@ -1179,7 +1195,8 @@ endpoints:
 ```
 
 Service types:
-* __ClusterIP__: Exposes the Service on a cluster-internal IP. Choosing this value makes the Service only reachable from within the cluster. This is the default. You can expose the Service to the public internet using an Ingress or a Gateway.
+* __ClusterIP__: Exposes the Service on a cluster-internal IP. Choosing this value makes the Service only reachable from within the cluster. 
+This is the __default__. You can expose the Service to the public internet using an Ingress or a Gateway.
 * __NodePort__: Exposes the Service on each Node's IP at a static port. Kubernetes control plane allocates a port from a range specified by --service-node-port-range flag (default: 30000-32767)
 * __LoadBalancer__: Exposes the Service externally using an external load balancer. Kubernetes does not directly offer a load balancing component; you must provide one. Used on On cloud providers which support external load balancers. Traffic from the external load balancer is directed at the backend Pods. The cloud provider decides how it is load balanced.
 * __ExternalName__: Maps the Service to the contents of the externalName field. The mapping configures your cluster's DNS server to return a CNAME record with that external hostname value. No proxying of any kind is set up.
@@ -1241,14 +1258,17 @@ Gateway API is a family of API kinds that provide dynamic infrastructure provisi
 
 On-disk files in a container are ephemeral, which presents some problems for non-trivial applications when running in containers. 
 
-* One problem occurs when a __container crashes or is stopped__. Container state is not saved so all of the files that were created or modified during the lifetime of the container are lost. During a crash, kubelet restarts the container with a clean state. 
-* Another problem occurs when multiple containers are running in a Pod and need to __share files__. It can be challenging to setup and access a shared filesystem across all of the containers. 
+* One problem occurs when a __container crashes or is stopped__. 
+Container state is not saved so all of the files that were created or modified during the lifetime of the container are lost. 
+During a crash, kubelet restarts the container with a clean state. 
+* Another problem occurs when multiple containers are running in a Pod and need to __share files__. 
+It can be challenging to setup and access a shared filesystem across all of the containers. 
 
 The Kubernetes volume abstraction solves both of these problems.
 
-A Pod can use any number of volume types simultaneously. Ephemeral volume types have a lifetime of a pod, but persistent volumes exist beyond the lifetime of a pod
+A Pod can use any number of volume types simultaneously. __Ephemeral__ volume types have a lifetime of a pod, but __persistent__ volumes exist beyond the lifetime of a pod
 
-To use a volume, specify the volumes to provide for the Pod in .spec.volumes and declare where to mount those volumes into containers in .spec.containers[*].volumeMounts.
+To use a volume, specify the volumes to provide for the Pod in .spec.volumes and __declare where to mount those volumes__ into containers in .spec.containers[*].volumeMounts.
 
 Types of volumes:
 
