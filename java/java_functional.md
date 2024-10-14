@@ -38,6 +38,58 @@ rules:
 - There should be one or more constructors for initialization as needed.
 - There should only be accessor methods, possibly with no side effects.
 
+Example:
+```
+final class Student {
+
+    // Member attributes of final class
+    private final String name;
+    private final int regNo;
+    private final Map<String, String> metadata;
+
+    // Constructor of immutable class
+    // Parameterized constructor
+    public Student(String name, int regNo, Map<String, String> metadata) {
+
+        // This keyword refers to current instance itself
+        this.name = name;
+        this.regNo = regNo;
+
+        // Creating Map object with reference to HashMap
+        // Declaring object of string type
+        Map<String, String> tempMap = new HashMap<>();
+
+        // Iterating using for-each loop
+        for (Map.Entry<String, String> entry : metadata.entrySet()) {
+            tempMap.put(entry.getKey(), entry.getValue());
+        }
+
+        this.metadata = tempMap;
+    }
+
+    // Method 1 
+    public String getName() { return name; }
+
+    // Method 2 
+    public int getRegNo() { return regNo; }
+  
+    // Note that there should not be any setters 
+
+    // Method 3: User -defined type to get meta data
+    public Map<String, String> getMetadata() {
+
+        // Creating Map with HashMap reference
+        Map<String, String> tempMap = new HashMap<>();
+
+        for (Map.Entry<String, String> entry :
+             this.metadata.entrySet()) {
+            tempMap.put(entry.getKey(), entry.getValue());
+        }
+        return tempMap;
+    }
+}
+```
+
 ## Referential Transparency
 
 We call an expression referentially transparent if replacing it with its corresponding value has no impact on the program’s behavior.
@@ -235,8 +287,29 @@ Predicate<Integer> lowerThanTwenty = (i) -> i < 20;
 boolean result = greaterThanTen.and(lowerThanTwenty).test(15); 
 ```
 - __Function__: receives only a single argument and returns a value after the required processing
+```
+Function<String, String> fun = s1 -> s1 + 2;
+```
 - __Supplier__:  does not take any input or argument and yet returns a single output.
 
+## Optional
+
+__Minimize the issues with null __
+
+Java Optional is a way of replacing a nullable T reference with a non-null value. 
+An Optional may either contain a non-null T reference (in which case we say the value is “present”), or it may contain nothing (in which case we say the value is “absent”).
+
+Example:
+```
+Optional<Integer> optional = Optional.of(5);
+optional.isPresent();          // returns true
+optional.get();              // returns 5
+ 
+Optional<Integer> optional1 = Optional.empty();
+optional1.isPresent();          // returns false
+```
+
+Its purpose is to help design more-comprehensible APIs so that by just reading the signature of a method, we can tell whether we can expect an optional value.
 
 # Java Streams
 

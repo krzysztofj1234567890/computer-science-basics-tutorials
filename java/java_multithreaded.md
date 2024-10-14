@@ -107,7 +107,11 @@ to switch to another task for a while.
 
 #### Callable
 
-A __Runnable__ is a separate task that performs work, but it doesn’t return a value. If you want the task to produce a value when it’s done, you can implement the __Callable__ interface rather than the Runnable interface
+A __Runnable__ is a separate task that performs work, but it doesn’t return a value. 
+If you want the task to produce a value when it’s done, you can implement the __Callable__ interface rather than the Runnable interface
+
+Unlike the Runnable, the Callable instance cannot be passed as an input while creating a thread. 
+Instead, __we must wrap it with a future__ (Eg. FutureTask) and pass it to the Thread class.
 
 Callable is a generic with a type parameter representing the return value from the method call( ) (instead of run( )), and must be invoked using an ExecutorService submit( ) method.
 
@@ -167,25 +171,36 @@ completed. When the task is completed and has a result, you can call get( ) to f
 until the result is ready. You can also call get( ) with a timeout.
 
 ```
+FutureTask<ResultType> futureTask = new FutureTask<>( new TaskWithResult(i) );
+Thread t=new Thread(futureTask);
+t.start();
+// …
+ResultType result = futureTask.get(); // will wait for the async completion
+```
+
+OR with Executor:
+
+```
 public class CallableDemo { 
- public static void main(String[] args) { 
- ExecutorService exec = Executors.newCachedThreadPool(); 
- ArrayList<Future<String>> results = new ArrayList<Future<String>>(); 
- for(int i = 0; i < 10; i++) 
-    results.add(exec.submit(new TaskWithResult(i))); 
- for(Future<String> fs : results) 
-    try { 
-        // get() blocks until completion: 
-        System.out.println(fs.get()); 
-    } catch(InterruptedException e) { 
-        System.out.println(e); 
-        return; 
-    } catch(ExecutionException e) { 
-        System.out.println(e); 
-    } finally { 
-        exec.shutdown(); 
+    public static void main(String[] args) { 
+        ExecutorService exec = Executors.newCachedThreadPool(); 
+        ArrayList<Future<String>> results = new ArrayList<Future<String>>(); 
+        for(int i = 0; i < 10; i++) 
+            results.add(exec.submit(new TaskWithResult(i))); 
+        for(Future<String> fs : results) {
+            try { 
+                // get() blocks until completion: 
+                System.out.println(fs.get()); 
+            } catch(InterruptedException e) { 
+                System.out.println(e); 
+                return; 
+            } catch(ExecutionException e) { 
+                System.out.println(e); 
+            } finally { 
+                exec.shutdown(); 
+            } 
+        }
     } 
- } 
 }
 ```
 
