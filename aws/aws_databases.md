@@ -1,4 +1,11 @@
-# RDS
+# Table of Contents
+- [RDS](#RDS)
+- [RDS for PostgreSQL](#PostgreSQL)
+- [Aurora](#Aurora)
+- [DynamoDB](#DynamoDB)
+- [Redshift](#Redshift)
+- [Interview Questions](#InterviewQuestions)
+# RDS <a id="RDS"></a>
 
 Amazon Relational Database Service (Amazon RDS) is a web service that makes it easier to set up, operate, and scale a relational database in the AWS Cloud. It provides cost-efficient, resizable capacity.
 
@@ -34,13 +41,13 @@ You can run your DB instance in several Availability Zones, an option called a M
 - High availability – Do you need failover support? On Amazon RDS, a Multi-AZ deployment creates a primary DB instance and a secondary standby DB instance in another Availability Zone for failover support. 
 - Provide access to your DB instance in your VPC by creating a security group
 
-### RDS Proxy
+## RDS Proxy
 
 You can set up the connection between your Lambda function and your DB instance through RDS Proxy to improve your database performance and resiliency. Often, Lambda functions make frequent, short database connections that benefit from connection pooling that RDS Proxy offers.
 
-## RDS for PostgreSQL
+# RDS for PostgreSQL <a id="PostgreSQL"></a>
 
-### Creating and connecting to a PostgreSQL DB instance
+## Creating and connecting to a PostgreSQL DB instance
 
 https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_GettingStarted.CreatingConnecting.PostgreSQL.html
 
@@ -95,8 +102,7 @@ To view performance metrics:
 
 Analyzing database performance:
 
-
-## Aurora
+# Aurora <a id="Aurora"></a>
 
 Amazon Aurora (Aurora) is a fully managed relational database engine that's compatible with MySQL and PostgreSQL.
 
@@ -106,7 +112,7 @@ With some workloads, Aurora can deliver up to five times the throughput of MySQL
 
 Aurora includes a high-performance storage subsystem. The underlying storage grows automatically as needed.
 
-### Aurora DB clusters
+## Aurora DB clusters
 
 An Amazon Aurora DB cluster consists of one or more DB instances and a cluster volume that manages the data for those DB instances. 
 An Aurora cluster volume is a virtual database storage volume that spans multiple Availability Zones, with each Availability Zone having a copy of the DB cluster data. 
@@ -115,7 +121,7 @@ Two types of DB instances make up an Aurora DB cluster:
 - Primary (writer) DB instance – Supports read and write operations, and performs all of the data modifications to the cluster volume. Each Aurora DB cluster has one primary DB instance.
 - Aurora Replica (reader DB instance) – Connects to the same storage volume as the primary DB instance but supports only read operations. Each Aurora DB cluster can have up to 15 Aurora Replicas
 
-### Aurora Features
+## Aurora Features
 
 - blue-green deployments: By using Amazon RDS Blue/Green Deployments, you can make changes to the database in the staging environment without affecting the production environment. 
 - export data to S3: You can export Aurora DB cluster data to an Amazon S3 bucket. After the data is exported, you can analyze the exported data directly through tools like Amazon Athena or Amazon Redshift Spectrum
@@ -124,13 +130,13 @@ Two types of DB instances make up an Aurora DB cluster:
 - RDS proxy: Amazon RDS Proxy is a fully managed, highly available database proxy that makes applications more scalable by pooling and sharing established database connections.
 - Serverless: Aurora Serverless v2 is an on-demand, auto-scaling feature designed to be a cost-effective approach to running intermittent or unpredictable workloads on Amazon Aurora. It automatically scales capacity up or down as needed by your applications.
 
-### Aurora global databases
+## Aurora global databases
 
 An Aurora global database consists of one primary AWS Region where your data is written, and up to five read-only secondary AWS Regions. 
 You issue write operations directly to the primary DB cluster in the primary AWS Region. 
 Aurora replicates data to the secondary AWS Regions using dedicated infrastructure, with latency typically under a second.
 
-### RDS Proxy
+## RDS Proxy
 
 - By using Amazon RDS Proxy, you can allow your applications to __pool and share database connections__ to improve their ability to __scale__. 
 - RDS Proxy makes applications more __resilient__ to database failures by __automatically connecting to a standby DB instance while preserving application connections__. 
@@ -139,13 +145,13 @@ Aurora replicates data to the secondary AWS Regions using dedicated infrastructu
 RDS Proxy __queues__ or __throttles__ application connections that can't be served immediately from the connection pool. 
 Although latencies might increase, your application can continue to scale without abruptly failing or overwhelming the database
 
-### Aurora zero-ETL integrations with Amazon Redshift
+## Aurora zero-ETL integrations with Amazon Redshift
 
 Enables near real-time analytics and machine learning (ML) using Amazon Redshift on petabytes of transactional data from Aurora
 
 The source DB cluster must be in the same Region as the target Amazon Redshift data warehouse.
 
-### Aurora Serverless v2
+## Aurora Serverless v2
 
 On-demand, autoscaling configuration for Amazon Aurora
 
@@ -250,7 +256,7 @@ Amazon Aurora limitations include:
 - While Amazon RDS enables you to try it out for a year on the AWS Free Tier, there’s no such offer for Aurora.
 - It’s t__ough to predict Amazon Aurora Serverless costs in advance__.
 
-# DynamoDB
+# DynamoDB <a id="DynamoDB"></a>
 
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html
 
@@ -271,7 +277,7 @@ To support a wide variety of use cases, DynamoDB supports both key-value and doc
 - __Multi-active replication__: __Global tables__ provide multi-active replication of your data across your __chosen AWS Regions with 99.999% availability.__ 
 Global tables deliver a fully managed solution for deploying a multi-Region, multi-active database, without building and maintaining your own replication solution. 
 - __Change data capture__: DynamoDB supports streaming of item-level change data capture (CDC) records in near-real time. 
-It offers two streaming models for CDC: DynamoDB Streams and Kinesis Data Streams for DynamoDB
+It offers two streaming models for CDC: __DynamoDB Streams__ and Kinesis Data Streams for DynamoDB
 - __Secondary indexes__: DynamoDB offers the option to create both global and local secondary indexes, which let you query the table data using an alternate key.
 - __S3 integration__: Integrating DynamoDB with Amazon S3 enables you to easily export data to an Amazon S3 bucket for analytics and machine learning
 - __Zero-ETL integration__: DynamoDB supports zero-ETL integration with Amazon Redshift and Amazon OpenSearch Service. 
@@ -279,12 +285,133 @@ These integrations enable you to run complex analytics and use advanced search c
 - __DAX (Caching)__: is a fully managed, highly available caching service built for DynamoDB. DAX delivers up to 10 times performance improvement – from milliseconds to microseconds – even at millions of requests per second. DAX does all the heavy lifting required to add in-memory acceleration to your DynamoDB tables, without requiring you to manage cache invalidation, data population, or cluster management.
 - Resilience: By default, DynamoDB automatically replicates your data across three Availability Zones to provide high durability and a 99.99% availability SLA.
 
-Continue: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/getting-started-step-1.html
+## NoSQL workbench for DynamoDB
+
+NoSQL Workbench is a visual development tool that provides data modeling, data visualization, and query development features to help you design, create, query, and manage DynamoDB tables.
+
+NoSQL Workbench now includes DynamoDB local as an optional part of the installation process, which makes it easier to model your data in DynamoDB local
+
+Features:
+- Data modeling: build new data models from, or design models based on, existing data models that satisfy your application's data access patterns. You can also import and export the designed data model at the end of the process
+- Data visualization: map queries and visualize the access patterns (facets) of the application without having to write code.
+- Operation building: rich graphical user interface for you to develop and test queries.
+
+## Setup and Example
+
+### Setup
+
+- setup webservice on AWS
+- Download DynamoDB local
+- Run DynamoDB local as Docker image  - docker-compose.yaml:
+```
+version: '3.8'
+services:
+ dynamodb-local:
+   command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+   image: "amazon/dynamodb-local:latest"
+   container_name: dynamodb-local
+   ports:
+     - "8000:8000"
+   volumes:
+     - "./docker/dynamodb:/home/dynamodblocal/data"
+   working_dir: /home/dynamodblocal
+```
+
+### Usage Example
+
+Create table:
+```
+aws dynamodb create-table \
+    --table-name Music \
+    --attribute-definitions \
+        AttributeName=Artist,AttributeType=S \
+        AttributeName=SongTitle,AttributeType=S \
+    --key-schema \
+        AttributeName=Artist,KeyType=HASH \
+        AttributeName=SongTitle,KeyType=RANGE \
+    --provisioned-throughput \
+        ReadCapacityUnits=5,WriteCapacityUnits=5 \
+    --table-class STANDARD
+```
+
+Write data:
+```
+aws dynamodb put-item \
+    --table-name Music  \
+    --item \
+        '{"Artist": {"S": "No One You Know"}, "SongTitle": {"S": "Call Me Today"}, "AlbumTitle": {"S": "Somewhat Famous"}, "Awards": {"N": "1"}}'
+```
+
+Read data:
+```
+aws dynamodb get-item --consistent-read \
+    --table-name Music \
+    --key '{ "Artist": {"S": "Acme Band"}, "SongTitle": {"S": "Happy Day"}}'
+```
+
+Query:
+```
+aws dynamodb query \
+    --table-name Music \
+    --key-condition-expression "Artist = :name" \
+    --expression-attribute-values  '{":name":{"S":"Acme Band"}}'
+```
+
+## Concepts
+
+Read capacity unit (__RCU__) – One strongly consistent read per second, or two eventually consistent reads per second, for items up to 4 KB in size.
+
+Write capacity unit (__WCU__) – One write per second, for items up to 1 KB in size.
+
+__Page size limit for query and scan__ – There is a limit of 1 MB per page, per query or scan. If your query parameters or scan operation on a table result in more than 1 MB of data, DynamoDB returns the initial matching items. It also returns a LastEvaluatedKey property that you can use in a new request to read the next page.
+
+Local secondary indexes (__LSIs__) – You can define a maximum of five local secondary indexes.
+
+Global secondary indexes (__GSIs__) – There is a default quota of 20 global secondary indexes per table
+
+A __table__ is a collection of items, and each __item__ is a collection of __attributes__. Table is __schemaless__, which means that neither the attributes nor their data types need to be defined beforehand. Each item can have its own distinct attributes.  DynamoDB supports __nested attributes__ up to 32 levels deep.
+
+DynamoDB uses __primary keys to uniquely identify each item__ in a table and __secondary indexes__ to provide more querying flexibility.
+
+When you create a table, in addition to the table name, you must specify the __primary key__ of the table. The __primary key uniquely identifies each item in the table__, so that no two items can have the same key.
+
+DynamoDB supports two different kinds of primary keys:
+- __Partition key__ – A simple primary key, composed of one attribute known as the partition key. DynamoDB uses the partition key's value as input to an internal hash function.
+- Partition key and sort key – Referred to as a __composite primary key__, this type of key is composed of two attributes. The first attribute is the partition key, and the second attribute is the sort key.  All items with the same partition key value are stored together, in sorted order by sort key value. In a table that has a partition key and a sort key, it's possible for multiple items to have the same partition key value. However, those items must have different sort key values.
+
+DynamoDB supports two kinds of indexes:
+- __Global secondary index__ – An index with a partition key and sort key that can be different from those on the table.
+- __Local secondary index__ – An index that has the same partition key as the table, but a different sort key.
+
+__table classes__:
+-  DynamoDB Standard table class is the default. 
+-  DynamoDB Standard-Infrequent Access (DynamoDB Standard-IA) table class is optimized for tables where storage is the dominant cost. For example, tables that store infrequently accessed data, such as application logs, old social media posts, e-commerce order history, 
+
+Amazon DynamoDB stores data in partitions. A __partition__ is an allocation of storage for a table, backed by solid state drives (SSDs) and automatically replicated across multiple Availability Zones within an AWS Region. Partition management is handled entirely by DynamoDB—you never have to manage partitions yourself. DynamoDB uses the value of the partition key as input to an internal hash function. The output value from the hash function determines the partition in which the item will be stored. tends to keep items which have the same value of partition key close together and in sorted order by the sort key attribute's value.
+
+### Dynamo Streams
+
+Captures data modification events in DynamoDB tables.
+
+Each event is represented by a stream record. If you enable a stream on a table, DynamoDB Streams writes a stream record whenever one of the following events occurs:
+- A new item is __added__ to the table: The stream captures an image of the entire item, including all of its attributes.
+- An item is __updated__: The stream captures the "before" and "after" image of any attributes that were modified in the item.
+- An item is __deleted__
+
+You can use DynamoDB Streams together with __AWS Lambda to create a trigger—code__ that runs automatically whenever an event of interest appears in a stream.
+
+### read consistency
+
+When your application writes data to a DynamoDB table and receives an HTTP 200 response (OK), that means the write completed successfully and has been durably persisted. DynamoDB provides __read-committed isolation__ and ensures that read operations always return committed values for an item. The read will never present a view to the item from a write which did not ultimately succeed. Read-committed isolation does not prevent modifications of the item immediately after the read operation.
+
+__Eventually consistent is the default read consistent model__ for all read operations. When issuing eventually consistent reads to a DynamoDB table or an index, the responses may not reflect the results of a recently completed write operation. If you repeat your read request after a short time, the response should eventually return the more recent item.
+
+Read operations such as GetItem, Query, and Scan provide an optional __ConsistentRead parameter__. If you set ConsistentRead to true, DynamoDB returns a response with the most up-to-date data, reflecting the updates from all prior write operations that were successful. Strongly consistent reads are only supported on tables and local secondary indexes.
 
 
-# Redshift
+# Redshift <a id="Redshift"></a>
 
-# AWS Database interview questions
+# AWS Database interview questions <a id="InterviewQuestions"></a>
 
 ### If I launch a standby RDS instance, will it be in the same Availability Zone as my primary?
 No
