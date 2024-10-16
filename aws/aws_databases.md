@@ -694,6 +694,37 @@ __Pattern: getTimelineByUserID:__
 
 Every time a user writes a post, their follower list is read and their userID and postID are slowly entered into the timeline key of all its followers. Then, when your application starts, you can read the timeline key with the Query operation and fill the timeline screen with a combination of userID and postID using the BatchGetItem operation for any new items. You cannot read the timeline with an API call, but this is a more cost effective solution if the posts could be edited frequently.
 
+## DynamoDB vs DocumentDB
+
+DynamoDB: serverless, fully managed NoSQL, supports key-value and document data models, single-digit millisecond latency, 20 million requests per second, well-suited for applications requiring consistent, 
+low-latency data access at any scale.
+
+DynamoDB Accelerator (DAX) to improve read performance
+
+good option when building applications that process millions of concurrent requests per second and require quick response times
+
+DynamoDB's main unit of cost is read/write capacity units. It supports on-demand pricing for these units, as well as provisioned and reserved pricing.
+
+DynamoDB supports global tables spanning across the regions
+
+Row / Attribute level access control: DynamoDB supports while DocumentDB does not.
+
+VS
+
+DocumentDB: fully managed NoSQL, JSON data models, fully scalable, low-latency for MongoDB workloads, automatically replicates six copies of your data across three availability zones,
+can serve millions of requests per second.
+
+does not support a key-value data model
+
+uses up to 15 read replicas
+
+provides its end-users with flexible schema management
+
+DocumentDB users pay per node or EC2 instance.
+
+DocumentDB also supports global clusters to scale the reads across regions. (no active-active writes like Dynamo ! )
+
+
 
 # Redshift <a id="Redshift"></a>
 
