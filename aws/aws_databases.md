@@ -389,6 +389,52 @@ __table classes__:
 
 Amazon DynamoDB stores data in partitions. A __partition__ is an allocation of storage for a table, backed by solid state drives (SSDs) and automatically replicated across multiple Availability Zones within an AWS Region. Partition management is handled entirely by DynamoDB—you never have to manage partitions yourself. DynamoDB uses the value of the partition key as input to an internal hash function. The output value from the hash function determines the partition in which the item will be stored. tends to keep items which have the same value of partition key close together and in sorted order by the sort key attribute's value.
 
+### expression attribute values
+
+Expression attribute values in Amazon DynamoDB act as variables. They're substitutes for the actual values that you want to compare—values that you might not know until runtime. An expression attribute value must begin with a colon (:) and be followed by one or more alphanumeric characters.
+
+An expression attribute name is an alias (or placeholder) that you use in an Amazon DynamoDB expression as an alternative to an actual attribute name. 
+
+```
+aws dynamodb get-item \
+    --table-name ProductCatalog \
+    --key '{"Id":{"N":"123"}}' \
+    --projection-expression "#sw" \
+    --expression-attribute-names '{"#sw":"Safety.Warning"}'
+```
+
+### query vs scan
+
+#### query
+You must provide the name of the partition key attribute and a single value for that attribute. Query returns all items with that partition key value. Optionally, you can provide a sort key attribute and use a comparison operator to refine the search results.
+
+```
+aws dynamodb query \
+    --table-name Thread \
+    --key-condition-expression "ForumName = :name and Subject = :sub" \
+    --expression-attribute-values  file://values.json
+```
+
+#### scan
+
+A Scan operation in Amazon DynamoDB __reads every item in a table or a secondary index__. By default, a Scan operation returns all of the data attributes for every item in the table or index. You can use the ProjectionExpression parameter so that Scan only returns some of the attributes, rather than all of them.
+
+Scan always returns a result set. If no matching items are found, the result set is empty.
+
+A single Scan request can retrieve a maximum of 1 MB of data. 
+
+Scan, as the name suggests, will browse table items from start to finish. The sort-key allows to determine the scanning order direction.
+
+It is possible to apply filtersto both a Query and a Scan operation and control which items are returned. Filters do not contribute to optimizing the operation. They are applied after the operation execution and before results are returned.
+
+Running a Scan is expensive and inefficient, thus should be avoided in almost all use cases. Unless one really needs to browse the entire set of items, for instance.
+
+Querying by the primary-key is the most efficient manner of retrieving data from a DynamoDB table.
+
+### PartiQL
+
+PartiQL provides SQL-compatible query access across multiple data stores containing structured data, semistructured data, and nested data. It is widely used within Amazon and is now available as part of many AWS services, including DynamoDB.
+
 ### Dynamo Streams
 
 Captures data modification events in DynamoDB tables.
@@ -400,6 +446,38 @@ Each event is represented by a stream record. If you enable a stream on a table,
 
 You can use DynamoDB Streams together with __AWS Lambda to create a trigger—code__ that runs automatically whenever an event of interest appears in a stream.
 
+```
+'use strict';
+var AWS = require("aws-sdk");
+var sns = new AWS.SNS();
+
+exports.handler = (event, context, callback) => {
+
+    event.Records.forEach((record) => {
+        console.log('Stream record: ', JSON.stringify(record, null, 2));
+
+        if (record.eventName == 'INSERT') {
+            var who = JSON.stringify(record.dynamodb.NewImage.Username.S);
+            var when = JSON.stringify(record.dynamodb.NewImage.Timestamp.S);
+            var what = JSON.stringify(record.dynamodb.NewImage.Message.S);
+            var params = {
+                Subject: 'A new bark from ' + who,
+                Message: 'Woofer user ' + who + ' barked the following at ' + when + ':\n\n ' + what,
+                TopicArn: 'arn:aws:sns:region:accountID:wooferTopic'
+            };
+            sns.publish(params, function(err, data) {
+                if (err) {
+                    console.error("Unable to send message. Error JSON:", JSON.stringify(err, null, 2));
+                } else {
+                    console.log("Results from sending message: ", JSON.stringify(data, null, 2));
+                }
+            });
+        }
+    });
+    callback(null, `Successfully processed ${event.Records.length} records.`);
+};   
+```
+
 ### read consistency
 
 When your application writes data to a DynamoDB table and receives an HTTP 200 response (OK), that means the write completed successfully and has been durably persisted. DynamoDB provides __read-committed isolation__ and ensures that read operations always return committed values for an item. The read will never present a view to the item from a write which did not ultimately succeed. Read-committed isolation does not prevent modifications of the item immediately after the read operation.
@@ -407,6 +485,190 @@ When your application writes data to a DynamoDB table and receives an HTTP 200 r
 __Eventually consistent is the default read consistent model__ for all read operations. When issuing eventually consistent reads to a DynamoDB table or an index, the responses may not reflect the results of a recently completed write operation. If you repeat your read request after a short time, the response should eventually return the more recent item.
 
 Read operations such as GetItem, Query, and Scan provide an optional __ConsistentRead parameter__. If you set ConsistentRead to true, DynamoDB returns a response with the most up-to-date data, reflecting the updates from all prior write operations that were successful. Strongly consistent reads are only supported on tables and local secondary indexes.
+
+### global tables
+
+Specific benefits for using global tables include:
+- Replicating your DynamoDB tables automatically across your choice of AWS Regions
+- Eliminating the difficult work of replicating data between Regions and resolving update conflicts, so you can focus on your application's business logic.
+- Helping your applications stay highly available even in the unlikely event of isolation or degradation of an entire Region.
+
+Transactional operations provide atomicity, consistency, isolation, and durability (ACID) guarantees only within the region where the write is made originally. Transactions are not supported across regions in global tables. 
+
+There is no performance impact on source regions when adding new replicas.
+
+Each global table produces an independent stream based on all its writes, regardless of the origination point for those writes. You can choose to consume this DynamoDB stream in one Region or in all Regions independently.
+
+If you want processed local writes but not replicated writes, you can add your own Region attribute to each item. Then you can use a Lambda event filter to invoke only the Lambda for writes in the local Region.
+
+Any changes made to any item in any replica table are replicated to all the other replicas within the same global table. In a global table, a newly written item is usually propagated to all replica tables within a second.
+
+With a global table, each replica table stores the same set of data items. DynamoDB does not support partial replication of only some of the items.
+
+DynamoDB __doesn't support strongly consistent reads across Regions.__ 
+Therefore, if you write to one Region and read from another Region, the read response might include stale data that doesn't reflect the results of recently completed writes in the other Region. 
+
+If applications update the same item in different Regions at about the same time, conflicts can arise. 
+To help ensure eventual consistency, DynamoDB global tables use a __last writer wins__ reconciliation between concurrent updates, in which DynamoDB makes a best effort to determine the last writer.
+
+### Transactions
+
+You can use the DynamoDB transactional read and write APIs to manage complex business workflows that require adding, updating, or deleting multiple items as a single, all-or-nothing operation.
+
+With the transaction write API, you can group multiple __Put, Update, Delete, and ConditionCheck actions__. You can then submit the actions as a single __TransactWriteItems__ operation that either succeeds or fails as a unit. The same is true for __multiple Get actions__, which you can group and submit as a single __TransactGetItems__ operation.
+
+The aggregate size of the items in the transaction cannot exceed 4 MB
+
+You can't target the same item with multiple operations within the same transaction
+
+Idempotent: If the original TransactWriteItems call was successful, then subsequent TransactWriteItems calls with the same client token return successfully without making any changes.
+
+The isolation levels of transactional operations (TransactWriteItems or TransactGetItems) and other operations are as follows:
+- SERIALIZABLE:  results of multiple concurrent operations are the same as if no operation begins until the previous one has finished.
+- READ-COMMITTED: ensures that read operations always return committed values for an item - the read will never present a view to the item representing a state from a transactional write which did not ultimately succeed
+
+Transaction __conflicts__ can occur in the following scenarios:
+- A PutItem, UpdateItem, or DeleteItem request for an item conflicts with an ongoing TransactWriteItems request that includes the same item.
+- An item within a TransactWriteItems request is part of another ongoing TransactWriteItems request.
+- An item within a TransactGetItems request is part of an ongoing TransactWriteItems, BatchWriteItem, PutItem, UpdateItem, or DeleteItem request.
+
+__TransactWriteItems and TransactGetItems are both supported in DynamoDB Accelerator (DAX)__ with the same isolation levels as in DynamoDB.
+
+```
+...
+final String ORDER_PARTITION_KEY = "OrderId";
+final String ORDER_TABLE_NAME = "Orders";
+
+HashMap<String, AttributeValue> orderItem = new HashMap<>();
+orderItem.put(ORDER_PARTITION_KEY, new AttributeValue(orderId));
+orderItem.put(PRODUCT_PARTITION_KEY, new AttributeValue(productKey));
+orderItem.put(CUSTOMER_PARTITION_KEY, new AttributeValue(customerId));
+orderItem.put("OrderStatus", new AttributeValue("CONFIRMED"));
+orderItem.put("OrderTotal", new AttributeValue("100"));
+
+Put createOrder = new Put()
+    .withTableName(ORDER_TABLE_NAME)
+    .withItem(orderItem)
+    .withReturnValuesOnConditionCheckFailure(ReturnValuesOnConditionCheckFailure.ALL_OLD)
+    .withConditionExpression("attribute_not_exists(" + ORDER_PARTITION_KEY + ")");
+    Collection<TransactWriteItem> actions = Arrays.asList(
+        new TransactWriteItem().withConditionCheck(checkCustomerValid),
+        new TransactWriteItem().withUpdate(markItemSold),
+        new TransactWriteItem().withPut(createOrder));
+
+...
+TransactWriteItemsRequest placeOrderTransaction = new TransactWriteItemsRequest()
+    .withTransactItems(actions)
+    .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL);
+
+// Run the transaction and process the result.
+try {
+    client.transactWriteItems(placeOrderTransaction);
+    System.out.println("Transaction Successful");
+
+} catch (ResourceNotFoundException rnf) {
+    System.err.println("One of the table involved in the transaction is not found" + rnf.getMessage());
+} catch (InternalServerErrorException ise) {
+    System.err.println("Internal Server Error" + ise.getMessage());
+} catch (TransactionCanceledException tce) {
+    System.out.println("Transaction Canceled " + tce.getMessage());
+}
+```
+
+### In-memory acceleration with DynamoDB Accelerator
+
+DAX is a DynamoDB-compatible caching service that enables you to benefit from fast __in-memory__ performance for demanding applications.
+
+As an in-memory cache, DAX reduces the response times of __eventually consistent read workloads__ by an __order of magnitude__ from single-digit milliseconds to microseconds
+
+### Data modeling
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/data-modeling.html
+
+__Item collection__ is a group of items that share the same partition key value, which means the items are related. Item collections are the primary mechanism to model one-to-many relationships in DynamoDB
+
+__Single table design__ is a pattern that allows you to store multiple types (entities) of data in a single DynamoDB table. It aims to optimize data access patterns, improve performance, and reduce costs by eliminating the need for maintaining multiple tables and complex relationships between them.
+
+__Multiple table design__ is a pattern that is more like a traditional database design where you store a single type(entity) of data in a each DynamoDB table. Data within each table will still be organized by partition key so performance within a single entity type will be optimized for scalability and performance, but queries across multiple tables must be done independently.
+
+#### Composite sort key building
+
+One of the most critical patterns we can use to develop a logical hierarchy of our data in DynamoDB is a __composite sort key__. 
+The most common style for designing one is with each layer of the hierarchy (parent layer > child layer > grandchild layer) separated by a hashtag. For example, PARENT#CHILD#GRANDCHILD#ETC.
+
+While a partition key in DynamoDB always requires the exact value to query for data, we can apply a partial condition to the sort key from left to right similar to traversing a binary tree.
+
+| Primary Key                         |
+| Partition key: PK   | Sork key: SK  |
+|---------------------|-------------- |
+| UserID              | CART#ACTIVE#Apples
+|                     | CART#ACTIVE#Bananas
+
+#### Multi-tenancy building block
+
+We want to design the schema in a way that keeps all data from a single tenant in its own logical partition of the table. This leverages the concept of an Item Collection, which is a term for all items in a DynamoDB table with the same partition key. 
+
+| Primary Key                         |
+| Partition key: PK   | Sork key: SK  | Attributes
+|---------------------|---------------| ------------
+| UserOne             | PhotoID1      | ImageURL: https://.../file1.jpg
+| UserOne             | PhotoID2      | ImageURL: https://.../file2.jpg
+| UserTwo             | PhotoID3      | ImageURL: https://.../file3.jpg
+
+#### Time to live building block
+
+To facilitate data aging out from DynamoDB, it has a feature called time to live (TTL). The TTL feature allows you to define a specific attribute at the table level that needs monitoring for items with an epoch timestamp (that's in the past). This allows you to delete expired records from the table for free.
+
+| Primary Key                               |
+| Partition key: PK   | Sork key: SK        | Attributes
+|---------------------|---------------------| ------------
+| UserID              | 2030-06-10T11:45:01 | TTL: 1982736353
+|                     |                     | Message: "Hello"
+
+In this example, we have an application designed to let a user create messages that are short-lived. When a message is created in DynamoDB, the TTL attribute is set to a date seven days in the future by the application code. In roughly seven days, DynamoDB will see that the epoch timestamp of these items is in the past and delete them.
+
+Since the deletes done by TTL are free, it is strongly recommended to use this feature to remove historical data from the table
+
+#### Vertical partitioning building block
+
+Storing all related data within a single JSON document. While DynamoDB supports JSON data types, it does not support excuting KeyConditions on nested JSON. Since KeyConditions are what dictate how much data is read from disk and effectively how many RCUs a query consumes, this can result in inefficiencies at scale. To better optimize the writes and reads of DynamoDB, we recommend breaking apart the document's individual entities into individual DynamoDB items, also referred to as vertical partitioning.
+
+| Primary Key                                      |
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| UserOne             | PhoAddress#USA#CA#LA#90029 | StreetAddress: "1 main st"
+|                     | CART#ACTIVE#Coffee         | CoffeeSKU: "yuioy21yui3y21"
+
+#### Examples
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/data-modeling-schemas.html
+
+##### Social network access patterns
+
+Data access patterns:
+- getUserInfoByUserID
+- getFollowerListByUserID
+- getFollowingListByUserID
+- getPostListByUserID
+- getUserLikesByPostID
+- getLikeCountByPostID
+- getTimelineByUserID
+
+__Pattern: getUserInfoByUserID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| UserOne             | "count"                    | NumberOfFollowers: 12345; NumberOfFollowing: 10; NumberOfPosts: 1872
+|                     | "info"                     | Name: KJ; imageURL: http://; Country: "USA"
+
+__Pattern: getFollowerListByUserID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| UserOne#follower    | "UserTwo"                  | 
+| UserOne#follower    | "UserThree"                | 
+
+__Pattern: getFollowingListByUserID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| UserOne#follower    | "UserTwo"                  | 
 
 
 # Redshift <a id="Redshift"></a>
