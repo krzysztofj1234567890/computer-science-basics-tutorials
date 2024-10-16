@@ -943,6 +943,7 @@ There are several ways to load data into an Amazon Redshift database. One popula
 - __Load from data lake queries__: Create external tables to run data lake queries on your Amazon S3 files and then run INSERT INTO command to load results from your data lake queries into local tables. Loading data from AWS Glue using format: iceberg, hudi
 - __Streaming ingestion__: Streaming ingestion provides low-latency, high-speed ingestion of stream data from Amazon Kinesis Data Streams and Amazon Managed Streaming for Apache Kafka into an Amazon Redshift
 - __Batch loading__ using Amazon Redshift query: batch file ingestion workloads visually on Amazon Redshift query
+- __AWS Data Pipeline__ provide
 
 ## Redshift Spectrum
 
@@ -967,8 +968,6 @@ Snowflake doesn’t have the same aws integrations as Redshift. This, in turn, m
 Redshift doesn’t support some semi-structured data types, like Array, Object, and Variant, without additional and often complex extensions. Snowflake does.
 
 Snowflake wins when it comes to vacuuming and analyzing tables regularly. Snowflake provides a turnkey solution. With Redshift, this can become a problem as it can be challenging to scale up or down.
-
-
 
 
 # AWS Database interview questions <a id="InterviewQuestions"></a>
@@ -1003,5 +1002,26 @@ Multi-AZ (Availability Zone) deployments involve maintaining a standby replica o
 ### How can you scale the compute and storage resources of an Amazon RDS instance?
 
 You can scale resources vertically by modifying the instance type or horizontally by adding read replicas.
+
+### Which AWS services will you use to collect and process e-commerce data for near real-time analysis?
+
+DynamoDB + Redshift
+
+### What happens to my backups and DB Snapshots if I delete my DB Instance?
+
+When you delete a DB instance, you have an option of creating a final DB snapshot, if you do that you can restore your database from that snapshot. RDS retains this user-created DB snapshot along with all other manually created DB snapshots after the instance is deleted, 
+
+### Explain the purpose of Amazon RDS snapshots
+
+Amazon RDS snapshots are backups of database instances. They can be used to restore a database instance to a specific point in time.
+
+### How can you encrypt data at rest in Amazon RDS?
+
+You can enable encryption at rest during the creation of a database instance by selecting the appropriate option. Amazon RDS uses AWS Key Management Service (KMS) for encryption
+
+### Explain the concept of read and write IOPS in Amazon RDS
+
+Input/Output Operations Per Second (IOPS) measures the number of read or write operations that can be performed by an Amazon RDS instance.
+
 
 
