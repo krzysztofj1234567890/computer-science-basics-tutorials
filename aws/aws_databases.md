@@ -656,19 +656,43 @@ Data access patterns:
 __Pattern: getUserInfoByUserID:__
 | Partition key: PK   | Sork key: SK               | Attributes
 |---------------------|----------------------------| ------------
-| UserOne             | "count"                    | NumberOfFollowers: 12345; NumberOfFollowing: 10; NumberOfPosts: 1872
+| u#12345             | "count"                    | NumberOfFollowers: 12345; NumberOfFollowing: 10; NumberOfPosts: 1872
 |                     | "info"                     | Name: KJ; imageURL: http://; Country: "USA"
 
 __Pattern: getFollowerListByUserID:__
 | Partition key: PK   | Sork key: SK               | Attributes
 |---------------------|----------------------------| ------------
-| UserOne#follower    | "UserTwo"                  | 
-| UserOne#follower    | "UserThree"                | 
+| u#12345#follower    | u#1111                     | 
+| u#12345#follower    | u#2222222                  | 
 
 __Pattern: getFollowingListByUserID:__
 | Partition key: PK   | Sork key: SK               | Attributes
 |---------------------|----------------------------| ------------
-| UserOne#follower    | "UserTwo"                  | 
+| u#12345#following   | u#44444444                 | 
+| u#12345#following   | u#55555555                 | 
+
+__Pattern: getPostListByUserID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| u#12345#fpost       | p#12345                    | Content: "post content"; imageUrl: "http://..."; timestamp: 12355
+
+__Pattern: getUserLikesByPostID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| u#12345#likelist    | u#44444444                 | 
+| u#12345#likelist    | u#55555555                 | 
+
+__Pattern: getLikeCountByPostID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| u#12345#likecount   | count                      | count=100
+
+__Pattern: getTimelineByUserID:__
+| Partition key: PK   | Sork key: SK               | Attributes
+|---------------------|----------------------------| ------------
+| u#12345#timeline    | p#123#u5678                | timestamp: 12345
+
+Every time a user writes a post, their follower list is read and their userID and postID are slowly entered into the timeline key of all its followers. Then, when your application starts, you can read the timeline key with the Query operation and fill the timeline screen with a combination of userID and postID using the BatchGetItem operation for any new items. You cannot read the timeline with an API call, but this is a more cost effective solution if the posts could be edited frequently.
 
 
 # Redshift <a id="Redshift"></a>
