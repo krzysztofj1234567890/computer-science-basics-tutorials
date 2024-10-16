@@ -728,6 +728,249 @@ DocumentDB also supports global clusters to scale the reads across regions. (no 
 
 # Redshift <a id="Redshift"></a>
 
+https://docs.aws.amazon.com/redshift/latest/mgmt/welcome.html
+
+https://docs.aws.amazon.com/redshift/latest/dg/welcome.html
+
+Amazon Redshift is a fully managed, petabyte-scale data warehouse service in the cloud. Amazon Redshift Serverless lets you access and analyze data without all of the configurations of a provisioned data warehouse. 
+
+__Redshift Serverless__ features:
+- snapshots: restore a snapshot of Amazon Redshift Serverless or a provisioned data warehouse to Amazon Redshift Serverless
+- __recovery points__: __automatically__ creates a point of recovery every 30 minutes. These recovery points are kept for 24 hours.
+- usage limits: limit the amount of data transferred from a producer Region to a consumer Region
+- __UDFs__:  user-defined functions (UDFs)
+- stored procedures
+- materialized views 
+- spatial functions
+- __federated queries__: queries to join data with other Redshift databases, __Aurora DB__ cluster , __Amazon RDS__ databases, __S3__
+- HyperLogLog functions
+- Data sharing
+- Semistructured data querying
+- __Massively parallel processing__ (MPP) enables fast run of the most complex queries operating on large amounts of data. 
+Multiple compute nodes handle all query processing leading up to final result aggregation
+- __Columnar storage__ for database tables drastically reduces the overall disk I/O requirements and is an important factor in optimizing analytic query performance.
+- __Data compression__ reduces storage requirements, thereby reducing disk I/O, which improves query performance
+- Amazon Redshift __caches__ the results of certain types of queries in memory on the leader node
+
+__Redshift provisioned clusters__ features:
+- set of nodes, which consists of a leader node and one or more compute nodes
+- you can add or remove compute nodes to the cluster without any interruption to the service
+
+## Concepts
+
+https://docs.aws.amazon.com/redshift/latest/dg/c_high_level_system_architecture.html
+
+- __Cluster__: A cluster is composed of one or more compute nodes.
+- __Leader node__: manages communications with client programs and all communication with compute nodes. 
+It parses and develops execution plans to carry out database operations, in particular, the series of steps necessary to obtain results for complex queries. 
+Based on the execution plan, the leader node compiles code, distributes the compiled code to the compute nodes, and assigns a portion of the data to each compute node.
+- __Compute nodes__: run the compiled code and send intermediate results back to the leader node for final aggregation.
+Each compute node has its own dedicated CPU and memory, which are determined by the node type. 
+As your workload grows, you can increase the compute capacity of a cluster by increasing the number of nodes, upgrading the node type, or both.
+- __Managed Storage__: data is stored in a separate storage tier Redshift Managed Storage (RMS). RMS provides the ability to scale your storage to petabytes using Amazon S3 storage. 
+RMS lets you scale and pay for computing and storage independently, so that you can size your cluster based only on your computing needs. 
+- __Node slices__: A compute node is partitioned into slices. 
+Each slice is allocated a portion of the node's memory and disk space, where it processes a portion of the workload assigned to the node. 
+The leader node manages distributing data to the slices and apportions the workload for any queries or other database operations to the slices. 
+The slices then work in parallel to complete the operation.
+- __Databases__: A cluster contains one or more databases. User data is stored on the compute nodes. 
+SQL client communicates with the leader node, which in turn coordinates query run with the compute nodes.
+It is a relational database management system (RDBMS).
+
+## Data Modelling
+
+Amazon Redshift stores your data on disk in sorted order according to the sort key.
+
+When you run a query, the query optimizer redistributes the rows to the compute nodes as needed to perform any joins and aggregations. 
+The goal in selecting a table distribution style is to minimize the impact of the redistribution step by locating the data where it needs to be before the query is run
+
+### Star schema
+Central component comprises __Fact Tables__ that __link the data inside__ the __Dimension Tables__, which then radiate outward like the Star Schema.
+
+The star schema is the most straightforward method for arranging data in the data warehouse. 
+Any or even more Fact Tables that index a number of Dimension Tables may be present in the star schema's central area. 
+Dimensions Keys, Values, and Attributes are found in Dimension Tables, which are used to define Dimensions.
+
+The star schema's objective is to distinguish between the descriptive or "DIMENSIONAL" data and the numerical "FACT" data that pertains to a business.
+
+These are some of the main characteristics of the star schema:
+- A single one-dimension table can represent each aspect in a star schema.
+- The collection of attributes should be in the dimension table.
+- Using a foreign key, the dimensions table is connected to the fact table.
+- No connections are made between the dimension tables.
+- Key and measure would be in the fact table.
+
+Example:
+
+| Dimension: Dealer | Fact: Revenue | Dimension: Date
+|-------------------|---------------|-----------------
+| dealer_id         | dealer_id     | date_id
+| location_id       | date_id       | year
+| country_id        | units_sold    | month
+|                   | revenue       | queter
+|                   |               | date
+
+### Snowflake schema
+
+The snowflake schema aims to normalize the star schema's denormalized data. 
+When the star schema's dimensions are intricate, highly structured, and have numerous degrees of connection, and the kid tables have several parent tables, the snowflake structure emerges
+
+Snowflake schema divides the Dimension Tables into several tables, resulting in a snowflake pattern. 
+Up until they are fully normalized, the Dimension Tables are split across multiple tables.
+
+The snowflake schema is characterized by a normalized data structure, with data divided into smaller, more specialized tables that are related to each other through foreign keys. 
+
+These are its main characteristics:
+- Small disc space is required by the snowflake schema.
+- The new dimension to the schema is simple to implement.
+- Performance is impacted because there are numerous tables.
+- Two or even more sets of attributes that describe data at various grains make up the dimension table.
+- A single dimension table's sets of characteristics are filled in by various source systems.
+
+Example:
+
+| Dimension: Country | Dimension: Location | Dimension: Dealer | Fact: Revenue | Dimension: Date
+|--------------------|---------------------|-------------------|---------------|-----------------
+| country_id         | location_id         | dealer_id         | dealer_id     | date_id
+| country_name       | region              | location_id       | date_id       | year
+|                    |                     | country_id        | units_sold    | month
+|                    |                     |                   | revenue       | queter
+|                    |                     |                   |               | date
+
+
+## Amazon Redshift Serverless
+
+Redshift Serverless __automatically provisions data warehouse capacity__ and intelligently __scales__ the underlying resources. 
+Amazon Redshift Serverless __adjusts capacity in seconds__ to deliver consistently high performance and simplified operations for even the most demanding and volatile workloads. 
+
+When queries run, you're billed according to the capacity used in a given duration, in RPU hours on a per-second basis. 
+When no queries are running, you aren't billed for compute capacity. You are also charged for Redshift Managed Storage (RMS), based on the amount of data stored. 
+
+### Bulling
+
+To keep costs predictable for Amazon Redshift Serverless, you can set the __Maximum RPU hours used per day__, per week, or per month
+
+The __Max capacity__ setting serves as the RPU ceiling that Amazon Redshift Serverless can scale up to. It helps control your cost for compute resources
+
+__Storage is billed by GB / month__.
+
+__Data transfer costs__ and __machine learning (ML) costs__ apply separately
+
+## Redshift provisioned clusters
+
+An Amazon Redshift cluster consists of nodes. 
+Each cluster has a __leader node__ and one or more __compute nodes__. 
+The leader node receives queries from client applications, parses the queries, and develops query execution plans. 
+The leader node then coordinates the parallel execution of these plans with the compute nodes and aggregates the intermediate results from these nodes. 
+It then finally returns the results back to the client applications.
+
+Compute nodes run the query execution plans and transmit data among themselves to serve these queries. 
+The intermediate results are sent to the leader node for aggregation before being sent back to the client applications.
+
+Amazon Redshift managed storage uses large, high-performance SSDs in each RA3 node for fast local storage and Amazon S3 for longer-term durable storage. 
+If the data in a node grows beyond the size of the large local SSDs, Amazon Redshift managed storage automatically offloads that data to Amazon S3. 
+You pay the same low rate for Amazon Redshift managed storage regardless of whether the data sits in high-performance SSDs or Amazon S3.
+
+Amazon Redshift clusters run in Amazon EC2 instances that are configured for the Amazon Redshift node type and size that you select. 
+However, you can run them in your VPC: When using EC2-VPC, your cluster runs in a virtual private cloud (VPC) that is logically isolated to your AWS account
+
+## Zero-ETL integrations
+
+Zero-ETL integration is a fully managed solution that makes transactional and operational data available in Amazon Redshift from multiple operational and transactional sources
+
+The following sources are currently supported for zero-ETL integrations:
+- Amazon Aurora MySQL
+- Amazon Aurora PostgreSQL
+- Amazon RDS for MySQL
+- Amazon DynamoDB
+
+## Parameter groups
+
+A parameter group is a group of parameters that apply to all of the databases that you create in the cluster. 
+These parameters configure database settings such as __query timeout__ and __date style__.
+
+## Workload management
+
+In Amazon Redshift, you use workload management (WLM) to define the number of query queues that are available, and how queries are routed to those queues for processing. 
+WLM is part of parameter group configuration.
+
+WLM properties that you can configure:
+- __Auto__ WLM set to true enables automatic WLM. Automatic WLM sets the values for Concurrency on main and Memory (%) to Auto
+- __Short query acceleration__ (SQA) prioritizes selected short-running queries ahead of longer-running queries. Maximum run time for short queries: When you enable SQA, you can specify 0 to let WLM dynamically set the maximum run time for short queries. 
+- __Queue type__: Queue type designates a queue as used either by Auto WLM or Manual WLM. Concurrency: the number of queries that can run concurrently in a manual WLM queue
+- __Queue name__: The name of the queue. You can set the name of the queue based on your business needs. 
+- __User Groups__: A comma-separated list of user group names. When members of the user group run queries in the database, their queries are routed to the queue that is associated with their user group.
+
+## Example
+```
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.redshift.RedshiftClient;
+import software.amazon.awssdk.services.redshift.paginators.DescribeClustersIterable;
+
+/**
+ * Before running this Java V2 code example, set up your development
+ * environment, including your credentials.
+ *
+ * For more information, see the following documentation topic:
+ *
+ * https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/get-started.html
+ */
+public class HelloRedshift {
+    public static void main(String[] args) {
+        Region region = Region.US_EAST_1;
+        RedshiftClient redshiftClient = RedshiftClient.builder()
+            .region(region)
+            .build();
+
+        listClustersPaginator(redshiftClient);
+    }
+
+    public static void listClustersPaginator(RedshiftClient redshiftClient) {
+        DescribeClustersIterable clustersIterable = redshiftClient.describeClustersPaginator();
+        clustersIterable.stream()
+            .flatMap(r -> r.clusters().stream())
+            .forEach(cluster -> System.out
+                .println(" Cluster identifier: " + cluster.clusterIdentifier() + " status = " + cluster.clusterStatus()));
+    }
+}
+```
+
+## Loading data
+
+There are several ways to load data into an Amazon Redshift database. One popular source of data to load are Amazon S3 files:
+- __COPY__ command: Runs a batch file ingestion to load data from your Amazon S3 files. one time ingestion
+- __COPY... CREATE JOB__: COPY commands automatically when a new file is created on tracked Amazon S3 paths
+- __Load from data lake queries__: Create external tables to run data lake queries on your Amazon S3 files and then run INSERT INTO command to load results from your data lake queries into local tables. Loading data from AWS Glue using format: iceberg, hudi
+- __Streaming ingestion__: Streaming ingestion provides low-latency, high-speed ingestion of stream data from Amazon Kinesis Data Streams and Amazon Managed Streaming for Apache Kafka into an Amazon Redshift
+- __Batch loading__ using Amazon Redshift query: batch file ingestion workloads visually on Amazon Redshift query
+
+## Redshift Spectrum
+
+Using Amazon Redshift Spectrum, you can efficiently query and retrieve structured and semistructured data from files in Amazon S3 without having to load the data into Amazon Redshift tables.
+
+Amazon Redshift Spectrum resides on dedicated Amazon Redshift servers that are independent of your cluster. Amazon Redshift pushes many compute-intensive tasks, such as predicate filtering and aggregation, down to the Redshift Spectrum layer. 
+
+You create Redshift Spectrum tables by defining the structure for your files and registering them as tables in an external data catalog. The external data catalog can be AWS Glue, the data catalog that comes with Amazon Athena,
+
+## Redshift vs Snowflake
+
+To bundle or not to bundle: Redshift bundles the compute and storage services, providing instant scalability to enterprise level if necessary. But Snowflake offers compute and storage as separate services, and both have tiered editions, which for some businesses might be the more flexible, common-sense solution—you still get the features you need but can scale at any time.
+
+JSON: Deal? Or no deal? Snowflake offers more robust JSON storage than Redshift, meaning the functions for JSON storage and query are natively built into Snowflake. Redshift, on the other hand, splits JSON into strings upon load, making it much more difficult to query and use.
+
+Redshift can present performance challenges if the Sort and Distribution keys are not planned properly. These keys define how the system stores and accesses information. 
+
+If you use a live app database, Redshift isn't a suitable option. Although it's fast at running queries and analytics on large datasets, it doesn't offer the same performance on live apps
+
+Snowflake doesn’t have the same aws integrations as Redshift. This, in turn, makes it challenging to integrate the data warehouse with tools like Athena or Glue.
+
+Redshift doesn’t support some semi-structured data types, like Array, Object, and Variant, without additional and often complex extensions. Snowflake does.
+
+Snowflake wins when it comes to vacuuming and analyzing tables regularly. Snowflake provides a turnkey solution. With Redshift, this can become a problem as it can be challenging to scale up or down.
+
+
+
+
 # AWS Database interview questions <a id="InterviewQuestions"></a>
 
 ### If I launch a standby RDS instance, will it be in the same Availability Zone as my primary?
