@@ -284,3 +284,37 @@ Continue: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/getti
 
 # Redshift
 
+# AWS Database interview questions
+
+### If I launch a standby RDS instance, will it be in the same Availability Zone as my primary?
+No
+
+the purpose of having a standby instance is to avoid an infrastructure failure (if it happens), therefore the standby instance is stored in a different availability zone, which is a physically different independent infrastructure.
+
+### When would I prefer Provisioned IOPS over Standard RDS storage?
+If you have batch-oriented workloads
+
+Provisioned IOPS deliver high IO rates but on the other hand it is expensive as well. 
+Batch processing workloads do not require manual intervention they enable full utilization of systems, therefore a provisioned IOPS will be preferred for batch oriented workload.
+
+### How is Amazon RDS, DynamoDB and Redshift different?
+
+Amazon RDS is a database management service for relational databases, it manages patching, upgrading, backing up of data etc. of databases for you without your intervention. RDS is a Db management service for structured data only.
+DynamoDB, on the other hand, is a NoSQL database service, NoSQL deals with unstructured data.
+Redshift, is an entirely different service, it is a data warehouse product and is used in data analysis.
+
+### If I am running my DB Instance as a Multi-AZ deployment, can I use the standby DB Instance for read or write operations along with primary DB instance?
+
+No
+
+Standby DB instance cannot be used with primary DB instance in parallel, as the former is solely used for standby purposes, it cannot be used unless the primary instance goes down
+
+### Explain the concept of Multi-AZ deployments in Amazon RDS
+
+Multi-AZ (Availability Zone) deployments involve maintaining a standby replica of the primary database in a different Availability Zone for high availability and automatic failover.
+
+### How can you scale the compute and storage resources of an Amazon RDS instance?
+
+You can scale resources vertically by modifying the instance type or horizontally by adding read replicas.
+
+
