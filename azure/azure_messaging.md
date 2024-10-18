@@ -1,8 +1,19 @@
-# Event-driven architecture on azure
+# Table of Contents
+- [Event-driven architecture on azure](#EDAAzure)
+  - [Kinds of messages](#KindsOfMessages)
+  - [Event Grid](#EventGrid)
+  - [Event Hub](#EventHub)
+  - [Service Bus](#ServiceBus)
+  - [Logic Apps](#LogicApps)
+  - [API Management](#APIManagements)
+  - [Cloud Events](#CloudEvents)
+  - [Issues](#Issues)
+
+# Event-driven architecture on azure <a id="EDAAzure"></a>
 
 https://www.youtube.com/watch?v=FVOhLqE9fzw
 
-## Kinds of messages
+## Kinds of messages    <a id="KindsOfMessages"></a>
 
 __Job__ or __Commands__: someone gives a job to do to somebody and you expect them to do it (purchase order, delivery order). Happens exactly once. Measure progress. There is a contract.
 
@@ -10,7 +21,7 @@ __Events__: has happened already. Facts (image uploaded) and events streams (obs
 
 Events travel through many services / software components. The middleware (standarization) should have some way to move the same event.
 
-## Event Grid
+## Event Grid   <a id="EventGrid"></a>
 
 Scalable, fully managed Pub Sub message distribution service that offers flexible message consumption patterns using the MQTT and HTTP protocols.
 You can build data pipelines with device data, integrate applications, and build event-driven serverless architectures.
@@ -374,7 +385,70 @@ public class EventGridTimeTriggeredCustomPublisher {
 }
 ```
 
-## Event Hub
+#### Human Resources Scenario
+
+https://learn.microsoft.com/en-us/archive/msdn-magazine/2018/february/azure-event-driven-architecture-in-the-cloud-with-azure-event-grid
+
+When an employee is added to an organization and when an employee is removed. These events are close enough in nature that it will provide options that showcase how to filter and handle events in diverse ways.
+
+```
+HR application -> EmployeeEvents -> New-Employee_welcome (LogicApp) -> Welcome email
+HR application -> EmployeeEvents -> Equipment order (az function) -> Queue order (Queue)
+HR application -> EmployeeEvents -> Employee records system (Web App) -> Update records in rdbms (AzureSQL)
+```
+
+Employee Events will be an Event Grid Topic to which the HR application can send messages. This will include events for new and removed employees in the organization. Each message will contain information about the employee, her department and the type of event.
+
+New Employee Welcome will be a Logic App that subscribes to messages for new employees in the organization. It will ultimately send a welcome email to the new employee.
+
+New Employee Equipment Order is an Azure Function that will subscribe to events for new employees in the Engineering department. It will then create a message in a queue for additional processing.
+
+Employee Records is a custom Web site built on ASP.NET Core that will expose a Web API for receiving messages when employees leave the organization
+
+
+##### Create Custom Topic
+
+```
+az eventgrid topic create --name <topic-name> \
+  --location <location> \
+  --resource-group <resource group name>
+```
+
+##### Publishing an Event
+
+```
+[{
+  "id": "30934",
+  "eventType": "employeeAdded",
+  "subject": "department/engineering",
+  "eventTime": "2017-12-14T10:10:20+00:00",
+  "data":{
+    "employeeId": "14",
+    "employeeName": "Nigel Tufnel",
+    "employeeEmail": "nigel@contoso.com",
+    "manager": "itmanager@contoso.com",
+    "managerId": "4"
+  }
+}]
+```
+
+##### Handling Events with an Azure Function
+
+```
+public static async Task<HttpResponseMessage> Run(
+    ...
+    var gridEvent =
+            JsonConvert.DeserializeObject<List<GridEvent<Dictionary<string,
+              string>>>>(jsonContent)
+              ?.SingleOrDefault();
+   ...
+   // Pseudo code: place message into a queue for further processing.
+   return req.CreateResponse(HttpStatusCode.OK);
+)
+```
+
+
+## Event Hub    <a id="EventHub"></a>
 
 Streaming data, low latency, millions/s, at least once delivery, DATA STREAMING.
 
@@ -445,7 +519,7 @@ Event Hubs also integrates with Azure Functions for serverless architectures.
 
 
 
-## Service Bus
+## Service Bus <a id="ServiceBus"></a>
 
 queue or pub-sub, asynchronous message delivery, PULL-based, FIFO, batch/sessions, dead-letter, transaction, routing, at least once delivery, re-try, SEND COMMANDS (do something)
 
@@ -575,7 +649,7 @@ run:
 asyncio.run(run())
 ```
 
-## Logic Apps
+## Logic Apps   <a id="LogicApps"></a>
 
 Run automated workflows with little to no code. By using the visual designer and selecting from prebuilt operations, you can quickly build a workflow that integrates and manages your apps, data, services, and systems. It uses conditions and switches to determine the next action.
 
@@ -603,7 +677,7 @@ For example, you might start the workflow with a SQL Server trigger that checks 
 
 
 
-## API Management
+## API Management <a id="APIManagement"></a>
 
 Azure API Management is a hybrid, multicloud management platform for APIs across all environments. It supports the complete API lifecycle.
 
@@ -686,7 +760,7 @@ MQTT is a communication protocol with features specifically targeted at IoT solu
 - It is based on the publish/subscribe model (pub-sub).
 - The MQTT protocol can keep a connection open for as long as possible, sending only a single data packet. Unlike HTTP communication, which requires you to open and close a connection (including TCP) for every data packet you want to send
 
-## Cloud Events
+## Cloud Events <a id="CloudEvents"></a>
 
 A specification for describing event data in a common way
 
@@ -694,7 +768,7 @@ https://cloudevents.io/
 
 https://github.com/cloudevents/spec
 
-## Issues with event-driven
+## Issues with event-driven <a id="Issues"></a>
 
 - Complexity
 - Debugging: difficult to trace events

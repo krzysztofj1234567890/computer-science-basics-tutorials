@@ -429,6 +429,22 @@ https://www.eventcatalog.dev/
 
 help people document their EDA applications powered by markdown files and custom plugins.
 
+# AWS step function patterns  <a id="StepFunctionPatterns"></a>
+
+## Request Response
+
+Step Functions will wait for an HTTP response and then progress to the next state.
+
+## Run a Job (.sync)
+
+Step Functions can wait for a request to complete before progressing to the next state
+
+## Wait for a Callback with Task Token
+
+Callback tasks provide a way to pause a workflow until a task token is returned. A task might need to wait for a human approval, integrate with a third party, or call legacy systems.
+
+
+
 
 # Examples / Use Cases  <a id="EDAExamples"></a>
 
@@ -477,12 +493,12 @@ The final step involves sending a completed record back to the caller
 External Event -> API Gateway -> EventBridge -> Strp Function -> SNS - Fulfillment Processor -> SNS -> SQS -> Lambda -> EventBridge
 ```
 
-## Simple 
+## Simple Example
 
 ```
 API Gateway -> /Create_Account -> Event -> Event Bridge -> AccountService
 API Gateway -> /Create_Order -> Event -> Event Bridge -> OrdersService -> DynamoDB
-```
+``` 
 
 # References <a id="References"></a>
 
