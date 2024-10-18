@@ -15,7 +15,11 @@
   - [CloudEvents](#CloudEvents)
   - [Serverless Workflow specification](#ServerlessWorkflow)
   - [Event Catalog](#EventCatalog)
+  <a id="Considerations"></a>
+- [Considerations](#Considerations)
+- [Design](#Design)
 - [Examples / Use Cases](#EDAExamples)
+- [References](#References)
 
 
 # What is an Event-Driven Architecture? <a id="Whatis"></a>
@@ -115,6 +119,28 @@ This pattern ensures that the consumer sends a response to each consumed message
 Allows for the continuous delivery of events to interested parties. 
 It is often used in event-driven architecture to decouple applications and services and to enable real-time processing of events. 
 In this pattern, data is continuously ingested from various sources and streamed in real-time, enabling the ability to build instant insights and take immediate actions.
+
+### Choreography 
+
+Choreography achieves communication without tight control.
+
+Communication __between bounded contexts__ is often where choreography can be most effective.
+With choreography, producers don’t have expectations of how and when the event will be processed. 
+They are only responsible for sending events to an event ingestion service and adhering to the schema. 
+This reduces dependencies between the two bounded contexts.
+
+Event buses, such as EventBridge, can be used for choreography.
+
+### Orchestration
+
+In orchestration, communication is more tightly controlled. A central service coordinates the interaction and order in which services are invoked.
+
+__Often within a bounded context__, you need to __control the sequence of service integration__, maintain state, and handle errors and retries. 
+These use cases are well suited for orchestration.
+
+Workflow orchestration services like AWS Step Functions or Amazon Managed Workflows for Apache Airflow (Amazon MWAA) can help build for orchestration.
+
+Together, choreography and orchestration give you the flexibility to address different needs in your domain-driven designs
 
 ## Event consumption patterns <a id="EventConsumption"></a>
 
@@ -338,11 +364,11 @@ https://cloudevents.io/
 CloudEvents adds meta-data attributes to any given event. For example, a unique ID for the event and the type of the event.
 
 | Attribute Name 	| Type 	    | Note
-|-------------------|-----------|------------------
-| id 	            | String 	| Required. The ID of the event. A CloudEvent is uniquely identified with its source and id.
+|-----------------|-----------|------------------
+| id 	            | String 	  | Required. The ID of the event. A CloudEvent is uniquely identified with its source and id.
 | source 	        | String    | (URI-reference) 	Required. The source of the event.
-| specversion 	    | String 	| Required. The version of CloudEvents Specification the Cloud Event uses.
-| type 	            | String 	| Required. The type of the event.
+| specversion     | String 	  | Required. The version of CloudEvents Specification the Cloud Event uses.
+| type 	          | String 	  | Required. The type of the event.
 
 ## Serverless Workflow specification  <a id="CServerlessWorkflow"></a>
 
@@ -353,6 +379,17 @@ Serverless Workflow is a specification for describing workflows in a standard wa
 https://www.eventcatalog.dev/
 
 help people document their EDA applications powered by markdown files and custom plugins.
+
+# Considerations <a id="Considerations"></a>
+
+- Eventual consistency: 
+- Variable latency: Workloads that require consistent low-latency performance are not good candidates for event-driven architectures
+
+# Design <a id="Design"></a>
+
+- Identifying events with event storming
+- Event naming conventions
+- Bounded context mappings: Patterns to help when consuming events
 
 
 # Examples / Use Cases  <a id="EDAExamples"></a>
@@ -403,7 +440,7 @@ External Event -> API Gateway -> EventBridge -> Strp Function -> SNS - Fulfillme
 ```
 
 
-# References
+# References <a id="References"></a>
 
 https://serverlessland.com/
 
