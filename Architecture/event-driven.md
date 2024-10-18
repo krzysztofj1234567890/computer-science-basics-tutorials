@@ -1,6 +1,9 @@
 # Table of Contents
 - [What is an Event-Driven Architecture?](#Whatis)
   - [Benefits of an event-driven architecture](#Benefits)
+  - [Quotes](#Quotes)
+- [Considerations](#Considerations)
+- [Design](#Design)
 - [Patterns of Event driven architecture](#Patterns)
   - [Event Generation](#EventGeneraton)
   - [Event Communication](#EventCommunication)
@@ -16,8 +19,6 @@
   - [Serverless Workflow specification](#ServerlessWorkflow)
   - [Event Catalog](#EventCatalog)
   <a id="Considerations"></a>
-- [Considerations](#Considerations)
-- [Design](#Design)
 - [Examples / Use Cases](#EDAExamples)
 - [References](#References)
 
@@ -45,6 +46,7 @@ Event-driven architecture ensures that when an event occurs, information about t
 - Develop with __agility__:  the event router will automatically filter and push events to consumers. The router also removes the need for heavy coordination between producer and consumer services
 - __Cut costs__: Event-driven architectures are push-based, so everything happens on-demand as the event presents itself in the router. This way, you’re not paying for continuous polling to check for an event. This means less network bandwidth consumption, less CPU utilization, less idle fleet capacity, and less SSL/TLS handshakes.
 - improved __responsiveness__, scalability, and agility. Being able to react to real-time information and being able to add new services and analytics quickly and easily, considerably enhances business processes and customer experience.
+- __easy to evolve__
 
 When to use it:
 - Cross-account, cross-region data replication
@@ -60,6 +62,53 @@ To set yourself up for success, consider the following:
 - Your performance control requirements. Your application should be able to handle the asynchronous nature of event routers. 
 - Your event flow tracking. The indirection introduced by an event-driven architecture allows for dynamic tracking via monitoring services, but not static tracking via code analysis. 
 - The data in your event source. If you need to rebuild state, your event source should be deduplicated and ordered.
+
+## Nice quotes  <a id="Quotes"></a>
+
+Event driven systems are easy to evolve
+
+Event driven systems are composable
+
+Workflows enable us to build applications from loosely coupled components (aws step functions or aws event bridge)
+
+Use serverless components to stich together to get overall system you want.
+
+# Considerations <a id="Considerations"></a>
+
+- Eventual consistency: 
+- Variable latency: Workloads that require consistent low-latency performance are not good candidates for event-driven architectures
+- synchronous is fast 
+- synchronous is fail fast
+
+# Design <a id="Design"></a>
+
+- Identifying events with event storming
+- Event naming conventions
+- Bounded context mappings: Patterns to help when consuming events
+- Services can be consumers and producers of events
+
+| Service                       | Event
+|-------------------------------|-------------------
+| ShoppingCart  --creates-->    | OrderRequested
+| PaymentService <--receives--  | OrderRequested
+| PaymentService --creates-->   | PaymentProcessed
+| OrdersService <--receives--   | PaymentProcessed
+| OrdersService --creates-->    | OrderConfirmed
+| ShippingService <--receives-- | OrderConfirmed
+| ShippingService --creates-->  | ShipmentPrepared
+| ShippingService <--receives-- | ShipmentPrepared
+| ShippingService --creates-->  | ShipmentDispatched
+| ShippingService <--receives-- | ShipmentDispatched
+| ShippingService --creates-->  | ShipmentDelivered
+| OrdersService <--receives--   | ShipmentDelivered
+| OrdersService --creates-->    | OrderCompleted
+
+- easy extendable: we can add invoice service or emailnotification service
+
+| Service                                | Event
+|----------------------------------------|-------------------
+| EmailNotificationService <--receives-- | ShipmentDispatched
+| InvoiceService <--receives--           | ShipmentDispatched
 
 # Patterns of Event driven architecture <a id="Patterns"></a>
 
@@ -380,17 +429,6 @@ https://www.eventcatalog.dev/
 
 help people document their EDA applications powered by markdown files and custom plugins.
 
-# Considerations <a id="Considerations"></a>
-
-- Eventual consistency: 
-- Variable latency: Workloads that require consistent low-latency performance are not good candidates for event-driven architectures
-
-# Design <a id="Design"></a>
-
-- Identifying events with event storming
-- Event naming conventions
-- Bounded context mappings: Patterns to help when consuming events
-
 
 # Examples / Use Cases  <a id="EDAExamples"></a>
 
@@ -439,8 +477,18 @@ The final step involves sending a completed record back to the caller
 External Event -> API Gateway -> EventBridge -> Strp Function -> SNS - Fulfillment Processor -> SNS -> SQS -> Lambda -> EventBridge
 ```
 
+## Simple 
+
+```
+API Gateway -> /Create_Account -> Event -> Event Bridge -> AccountService
+API Gateway -> /Create_Order -> Event -> Event Bridge -> OrdersService -> DynamoDB
+```
 
 # References <a id="References"></a>
 
 https://serverlessland.com/
+
+https://www.youtube.com/watch?v=RfvL_423a-I
+
+https://learn.microsoft.com/en-us/archive/msdn-magazine/2018/february/azure-event-driven-architecture-in-the-cloud-with-azure-event-grid
 
