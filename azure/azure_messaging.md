@@ -653,7 +653,9 @@ asyncio.run(run())
 
 Run automated workflows with little to no code. By using the visual designer and selecting from prebuilt operations, you can quickly build a workflow that integrates and manages your apps, data, services, and systems. It uses conditions and switches to determine the next action.
 
-A workflow always starts with a single __trigger__, which specifies the condition to meet before running any subsequent actions in the workflow. Each time the trigger fires, Azure Logic Apps creates and runs a workflow instance. Trigger follows either a polling pattern or a push pattern. 
+A workflow always starts with a single __trigger__, which specifies the condition to meet before running any subsequent actions in the workflow. 
+Each time the trigger fires, Azure Logic Apps creates and runs a workflow instance. 
+Trigger follows either a polling pattern or a push pattern. 
 
 Following a trigger, an __action__ is any subsequent step that runs some operation in the workflow. Any action can use the outputs from the previous operations, which include the trigger and any other actions.
 
@@ -666,6 +668,43 @@ Built-in connectors:
 - Batch: Batch messages: Trigger a workflow that processes messages in batches. 
 - Ftp: Connect to an FTP or FTPS
 - Azure BloB Storage: Connect to your Azure Blob Storage
+
+### Trigger
+
+Every workflow includes a trigger, which defines the calls that instantiate and start the workflow. 
+Here are the general trigger categories:
+- A polling trigger, which checks a service's endpoint at regular intervals
+- A push trigger, which creates a subscription to an endpoint and provides a callback URL so the endpoint can notify the trigger when the specified event happens or data is available.
+
+Example:
+
+```
+"<trigger-name>": {
+   "type": "<trigger-type>",
+   "inputs": { "<trigger-inputs>" },
+   "recurrence": { 
+      "frequency": "<time-unit>",
+      "interval": <number-of-time-units>
+   },
+   "conditions": [ "<array-with-conditions>" ],
+   "runtimeConfiguration": { "<runtime-config-options>" },
+   "splitOn": "<splitOn-expression>",
+   "operationOptions": "<operation-option>"
+}
+```
+
+Trigger types:
+- Built-in triggers
+  - __HTTP__: C__hecks or polls any endpoint__. This endpoint must conform to a specific trigger contract either by using a 202 asynchronous pattern or by returning an array.
+  - __HTTPWebhook__: Creates a __callable endpoint__ for your logic app but calls the specified URL to register or unregister
+  - __Recurrence__:	Fires based on a defined __schedule__.
+  - __Request__: Creates a callable endpoint for your logic app and is also known as a "manual" trigger.
+- Managed API triggers
+  - __ApiConnection__: Checks or polls an endpoint by using Microsoft-managed APIs
+  - __ApiConnectionWebhook__: Creates a callable endpoint for your logic app workflow by calling Microsoft-managed APIs. This trigger sends a subscription request to an endpoint by using a Microsoft-managed API, provides a callback URL to where the endpoint can send a response
+
+Trigger conditions: is a trigger setting used to specify one or more conditional expressions which must be true for the trigger to fire. There is no need to implement any logic inside the workflow 
+
 
 ## Pros and Cons
 
