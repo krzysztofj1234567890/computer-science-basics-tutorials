@@ -65,9 +65,9 @@ To set yourself up for success, consider the following:
 
 ## Nice quotes  <a id="Quotes"></a>
 
-Event driven systems are easy to evolve
+Event driven systems are __easy to evolve__
 
-Event driven systems are composable
+Event driven systems are __composable__
 
 Workflows enable us to build applications from loosely coupled components (aws step functions or aws event bridge)
 
@@ -320,6 +320,8 @@ By using the saga pattern in event-driven architecture, you can maintain data co
 This helps to avoid race conditions, data inconsistencies, and other issues that can arise when working with distributed systems.
 
 A saga is a long-running process that is implemented as a series of small, independent transactions. Each transaction updates the state of the system and, if successful, triggers the next transaction in the saga. If any transaction fails, the saga is rolled back to a previous state. This pattern is useful for building applications that need to maintain consistency across multiple systems.
+
+Example: https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-data-persistence/saga-pattern.html
 
 ## Governance Patterns  <a id="EventGovernance"></a>
 
