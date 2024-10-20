@@ -46,6 +46,21 @@ Publish-subscribe messaging model - Communicate efficiently using one-to-many, m
 - millions per second
 - descrete events to serverless workloads
 
+## Access event grid from data center
+
+https://learn.microsoft.com/en-us/azure/event-grid/consume-private-endpoints
+
+You can use private endpoints to allow ingress of events directly from your virtual network to your custom topics and domains securely over a private link without going through the public internet.
+
+__Pull__ delivery supports consuming events using private links. Pull delivery is a feature of Event Grid namespaces. 
+Once you have added a private endpoint connection to a namespace, your consumer application can connect to Event Grid on a private endpoint to receive events.
+
+__With push delivery isn't possible to deliver events using private endpoints__. 
+That is, with push delivery, either in Event Grid basic or Event Grid namespaces, your application can't receive events over private IP space. 
+However, there's a secure alternative using __managed identities with public endpoints__.
+
+See https://learn.microsoft.com/en-us/azure/event-grid/managed-service-identity
+
 ### Featues
 
 __Push__: push delivery mechanism sends data to destinations that include your own application webhooks and Azure services. Push delivery features a 24-hour retry mechanism with exponential backoff to make sure events are delivered.
@@ -657,7 +672,8 @@ A workflow always starts with a single __trigger__, which specifies the conditio
 Each time the trigger fires, Azure Logic Apps creates and runs a workflow instance. 
 Trigger follows either a polling pattern or a push pattern. 
 
-Following a trigger, an __action__ is any subsequent step that runs some operation in the workflow. Any action can use the outputs from the previous operations, which include the trigger and any other actions.
+Following a trigger, an __action__ is any subsequent step that runs some operation in the workflow. 
+Any action can use the outputs from the previous operations, which include the trigger and any other actions.
 
 Use a __connector__ to work with data, events, and resources in other apps, services, systems, and platforms - without writing code. A connector provides one or more prebuilt operations, which you use as steps in your workflow. In a connector, each operation is either a trigger condition that starts a workflow or a subsequent action that performs a specific task, along with properties that you can configure. Connectors are either __built__ (run directly and natively inside Azure Logic Apps) in or __managed__ (deployed, hosted, and managed in Azure by Microsoft). 
 
@@ -668,6 +684,9 @@ Built-in connectors:
 - Batch: Batch messages: Trigger a workflow that processes messages in batches. 
 - Ftp: Connect to an FTP or FTPS
 - Azure BloB Storage: Connect to your Azure Blob Storage
+
+Sometimes your workflow must connect to an on-premises data source and can use only connectors that provide this access through an __on-premises data gateway__. 
+To set up this on-premises data gateway, you have to complete the following tasks: install the local on-premises data gateway and create an on-premises data gateway resource
 
 ### Trigger
 
@@ -704,6 +723,52 @@ Trigger types:
   - __ApiConnectionWebhook__: Creates a callable endpoint for your logic app workflow by calling Microsoft-managed APIs. This trigger sends a subscription request to an endpoint by using a Microsoft-managed API, provides a callback URL to where the endpoint can send a response
 
 Trigger conditions: is a trigger setting used to specify one or more conditional expressions which must be true for the trigger to fire. There is no need to implement any logic inside the workflow 
+
+### Actions
+
+Action types:
+- Built-in action types such as these examples and more:
+  - HTTP for calling endpoints over HTTP or HTTPS
+  - Response for responding to requests
+  - Execute JavaScript Code for running JavaScript code snippets
+  - Function for calling Azure Functions
+  - Data operation actions such as Join, Compose, Table, Select, and others that create or transform data from various inputs
+  - Workflow for calling another logic app workflow
+- Managed API action types such as ApiConnection and ApiConnectionWebHook that call various connectors and APIs managed by Microsoft, for example, Azure Service Bus, Office 365 Outlook, Power BI, Azure Blob Storage, OneDrive, GitHub, and more
+- Control workflow action types such as If, Foreach, Switch, Scope, and Until, which contain other actions and help you organize workflow execution
+
+Example:
+```
+"<action-name>": {
+   "type": "<action-type>",
+   "inputs": { 
+      "<input-name>": { "<input-value>" },
+      "retryPolicy": "<retry-behavior>" 
+   },
+   "runAfter": { "<previous-trigger-or-action-status>" },
+   "runtimeConfiguration": { "<runtime-config-options>" },
+   "operationOptions": "<operation-option>"
+}
+```
+
+### Connectors
+
+A connector provides one or more prebuilt operations, which you use as steps in your workflow.
+
+In a connector, each operation is either a trigger condition that starts a workflow or a subsequent action that performs a specific task, along with properties that you can configure. 
+While many connectors have both triggers and actions, 
+
+Built-in: are designed to run directly and natively inside Azure Logic Apps.
+- schedule
+
+you can create your own built-in connector
+
+Managed connectors: mostly provide a proxy or a wrapper around an API that the underlying service or system uses to communicate with Azure Logic Apps:
+- connector to connect to service bus
+- cnnector to sftp server
+
+
+
 
 
 ## Pros and Cons
