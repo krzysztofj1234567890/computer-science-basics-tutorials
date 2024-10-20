@@ -196,7 +196,7 @@ When to use it:
 
 #### push vs pull
 
-Pull:
+Push:
 - scenarios requiring low latency, high throughput, and real-time updates.
 - Consumers must handle backpressure, where they cannot keep up with incoming events, which may cause congestion, loss, or duplication of events
 - Consumers must implement idempotency to process the same event multiple times without side effects; this may increase complexity and cost of the logic.
