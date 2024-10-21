@@ -5,6 +5,14 @@ With ExpressRoute, you can establish connections to Microsoft cloud services, su
 
 ExpressRoute connections offer more reliability, faster speeds, consistent latencies, and higher security than typical connections over the Internet, because they don’t go over the public Internet.
 
+ExpressRoute connections use a private, dedicated connection through a third-party connectivity provider. The private connection extends your on-premises network into Azure.
+
+https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/expressroute
+
+ExpressRoute connections do not go over the public Internet, and offer more reliability, faster speeds, lower latencies and higher security than typical connections over the Internet.
+
+
+
 # Azure Private Link
 
 Azure Private Link enables you to access Azure PaaS Services (for example, Azure Storage and SQL Database) and Azure hosted customer-owned/partner services over a private endpoint in your virtual network.
@@ -19,4 +27,9 @@ private IP in my VNET that represents a PaaS service.
 
 
 # Azure to data center conectivity
+
+
+# Azure Stack Hub
+
+Azure Stack Hub is an extension of Azure that provides a way to run apps in an on-premises environment and deliver Azure services in your datacenter. 
 
