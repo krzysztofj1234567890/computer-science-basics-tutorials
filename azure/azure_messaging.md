@@ -106,6 +106,37 @@ Event Example:
 }
 ```
 
+#### Azure Event Grid event schema
+
+Events consist of a set of four required string properties. 
+The properties are common to all events from any publisher. The data object has properties that are specific to each publisher
+
+Event schema:
+```
+[
+  {
+    "topic": string,
+    "subject": string,
+    "id": string,
+    "eventType": string,
+    "eventTime": string,
+    "data":{
+      object-unique-to-each-publisher
+    },
+    "dataVersion": string,
+    "metadataVersion": string
+  }
+]
+```
+
+Azure Event Grid natively supports events in the JSON implementation of CloudEvents v1.0.
+CloudEvents simplifies interoperability by providing a common event schema for publishing, and consuming cloud based events.
+
+You set the input schema for a custom topic when you create the custom topic by using the input-schema parameter.
+```
+az eventgrid topic create --name demotopic -l westcentralus -g gridResourceGroup --input-schema cloudeventschemav1_0
+```
+
 #### Publisher
 
 Application that sends events to Event Grid
@@ -130,9 +161,11 @@ Namespace topics support pull delivery and push delivery.
 
 #### Subscriptions
 
-An event subscription is a configuration resource associated with a single topic. Among other things, you use an event subscription to set the event selection criteria to define the event collection available to a subscriber out of the total set of events available in a topic. You can filter events according to the subscriber's requirements. 
+An event subscription is a configuration resource associated with a single topic. 
+Among other things, you use an event subscription to set the event selection criteria to define the event collection available to a subscriber out of the total set of events available in a topic. You can filter events according to the subscriber's requirements. 
 
-For example, you can filter events by their event type. You can also define filter criteria on event data properties if using a JSON object as the value for the data property
+For example, you can filter events by their __event type or subscription__. 
+You can also define filter criteria __on event data properties__ if using a JSON object as the value for the data property
 
 #### Pull delivery
 
@@ -194,19 +227,30 @@ With pull delivery, subscriber applications connect to Event Grid to consume eve
 When to use it:
 - avoid constant polling to determine that a system state change has occurred.
 
+##### dead-letter location and retry policy
+
+event subscription, you can customize the settings for event delivery
+
+To set a dead letter location, you need a storage account for holding events that can't be delivered to an endpoint.
+
+The Event Grid service creates blobs in this container. 
+
+By default, Event Grid tries for 24 hours (1440 minutes), or 30 times.
+
+
 #### push vs pull
 
 Push:
-- scenarios requiring low latency, high throughput, and real-time updates.
-- Consumers must handle backpressure, where they cannot keep up with incoming events, which may cause congestion, loss, or duplication of events
-- Consumers must implement idempotency to process the same event multiple times without side effects; this may increase complexity and cost of the logic.
+- scenarios requiring __low latency__, __high throughput__, and __real-time updates__.
+- Consumers must handle __backpressure__, where they cannot keep up with incoming events, which may cause congestion, loss, or duplication of events
+- Consumers must implement __idempotency__ to process the same event multiple times without side effects; this may increase complexity and cost of the logic.
 
 Pull:
 - consumers query the storage for new events
-- Consumers control the pace and frequency of fetching events and process them at their own convenience. 
+- Consumers __control the pace and frequency of fetching events__ and process them at their own convenience. 
 - This model is suitable for scenarios where high availability, resilience, and eventual consistency are needed. 
-- producers may experience latency, overhead, and failure points when writing events to the storage. 
-- Additionally, consumers may generate unnecessary traffic, waste resources, and miss updates when polling the storage. 
+- producers may __experience latency, overhead, and failure points__ when writing events to the storage. 
+- Additionally, consumers may generate __unnecessary traffic__, waste resources, and miss updates when polling the storage. 
 - Consumers must handle concurrency when multiple instances of the same consumer access the same events, which can cause conflicts, inconsistencies, or duplicates.
 
 #### Event Handler
@@ -226,6 +270,13 @@ Several Azure services are automatically configured to handle events and Azure E
 Use Event Hubs when your solution gets events from Event Grid faster than it can process the events. Once the events are in an event hub, your application can process events from the event hub at its own schedule.
 
 ### Pros and Cons
+
+### Limits
+
+- Event ingress: 	1,000 events per second or 1 MB /s 
+- Event egress (push and pull APIs): 	Up to 2,000 events per second or 2 MB /s
+- Maximum event retention on Event Grid namespace topics: 	7 days
+- Event Grid namespace topics:	100 per TU  (Throughput units)
 
 ### Use cases
 
@@ -544,8 +595,6 @@ Service Bus is used to decouple applications and services from each other, provi
 * __Load-balancing__ work across competing workers
 * Safely routing and transferring data and control across service and application boundaries
 * __Coordinating transactional work__ that requires a high-degree of reliability
-
-
 - __exactly one processing__
 - __exclusive ownership of message (queue)__
 - __assignment of work with load-aware balancing__
@@ -556,6 +605,61 @@ Service Bus is used to decouple applications and services from each other, provi
 - state propagation
 - order processing
 - queue, topic (pub-sub)
+
+### Concepts
+
+#### Queues
+
+Queues offer First In, First Out (__FIFO__) message delivery to one or more competing consumers.
+Only one message consumer receives and processes each message.
+
+A key benefit of using queues is to achieve temporal __decoupling__ of application components.
+The producer doesn't have to wait for a reply from the consumer to continue to process and send messages.
+
+A related benefit is __load-leveling__, which enables producers and consumers to send and receive messages at different rates. 
+
+There are 2 different modes in which consumers can __receive messages from Service Bus__:
+- __Receive and delete__: for scenarios in which the application can tolerate not processing a message if a failure occurs.
+- __Peek lock__. In this mode, the receive operation becomes two-stage, which makes it possible to support applications that can't tolerate missing messages
+
+#### Topics and subscriptions
+
+Provides a one-to-many form of communication in a publish and subscribe pattern. It's useful for scaling to large numbers of recipients. 
+
+The subscriptions can use more __filters__ to restrict the messages that they want to receive.
+
+Consumers don't receive messages directly from the topic. Instead, consumers receive messages from subscriptions of the topic. 
+A topic subscription resembles a __virtual queue__ that receives copies of the messages that are sent to the topic. 
+Consumers receive messages from a subscription identically to the way they receive messages from a queue.
+
+#### Message sessions
+
+To create a first-in, first-out (FIFO) guarantee in Service Bus, use sessions. Message sessions enable exclusive, ordered handling of unbounded sequences of related messages. 
+
+#### Dead-letter queue
+
+All Service Bus queues and topics' subscriptions have associated dead-letter queues.
+
+#### Scheduled delivery
+
+You can submit messages to a queue or a topic for delayed processing, setting a time when the message becomes available for consumption.
+
+#### Transactions
+
+A transaction groups two or more operations together into an execution scope. 
+Service Bus allows you to group operations against multiple messaging entities within the scope of a single transaction.
+
+If Service Bus accepts a message, it has already been stored and labeled with a sequence number. 
+From then on, any message transfers within Service Bus are coordinated operations across entities, and will neither lead to loss (source succeeds and target fails) or to duplication (source fails and target succeeds) of the message.
+
+#### Duplicate detection
+
+The duplicate detection feature enables the sender to resend the same message again and for the broker to drop a potential duplicate.
+
+If an application fails due to a fatal error immediately after sending a message, and the restarted application instance erroneously believes that the prior message delivery didn't occur, a subsequent send causes the same message to appear in the system twice.
+
+If any new message is sent with MessageId that was logged during the time window, the message is reported as accepted (the send operation succeeds), but the newly sent message is instantly ignored and dropped.
+
 
 ### Pros and Cons
 
@@ -767,9 +871,14 @@ Managed connectors: mostly provide a proxy or a wrapper around an API that the u
 - connector to connect to service bus
 - cnnector to sftp server
 
+### Limits
 
-
-
+For a single workflow definition:
+- Workflows per region:
+  - Consumption: 1,000 workflows where each logic app always has only 1 workflow
+  - Standard: Unlimited, based on the selected hosting plan
+- Actions per workflow: 500 actions
+- Run duration:	90 days
 
 ## Pros and Cons
 
