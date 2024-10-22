@@ -4,6 +4,43 @@ Azure Functions is a serverless solution that allows you to write less code, mai
 
 Functions provides a comprehensive set of event-driven triggers and bindings that connect your functions to other services without having to write extra code.
 
+## Durable azure functions
+
+Durable Functions is a feature of Azure Functions that lets you write stateful functions in a serverless compute environment. 
+
+The extension lets you define stateful workflows by writing orchestrator functions and stateful entities by writing entity functions using the Azure Functions programming mode
+
+The primary use case for Durable Functions is simplifying complex, stateful coordination requirements in serverless applications.
+
+### Pattern #1: Function chaining
+
+In the function chaining pattern, a sequence of functions executes in a specific order. 
+In this pattern, the output of one function is applied to the input of another function. 
+The use of queues between each function ensures that the system stays durable and scalable, even though there is a flow of control from one function to the next.
+
+You can use Durable Entities to maintain state across an entire orchestration without making round trips to the database, which is useful for application state management, as opposed to persisting client data
+
+
+Example:
+```
+[FunctionName("Chaining")]
+public static async Task<object> Run(
+    [OrchestrationTrigger] IDurableOrchestrationContext context)
+{
+    try
+    {
+        var x = await context.CallActivityAsync<object>("F1", null);
+        var y = await context.CallActivityAsync<object>("F2", x);
+        var z = await context.CallActivityAsync<object>("F3", y);
+        return  await context.CallActivityAsync<object>("F4", z);
+    }
+    catch (Exception)
+    {
+        // Error handling or compensation goes here.
+    }
+}
+```
+
 ## Use Cases
 
 ###  Process file uploads
