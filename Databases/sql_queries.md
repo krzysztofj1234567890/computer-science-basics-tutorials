@@ -62,6 +62,14 @@ SELECT start_terminal,
 SELECT Name, Age, Department, Salary, AVG(Salary) OVER( PARTITION BY Department) AS Avg_Salary
 FROM employee
 ```
+Result:
+| Name 	  | Age   |	Department 	  | Salary 	  | Avg_Salary
+|---------|-------|---------------|-----------|-----------
+| Ramesh 	| 20 	  | Finance 	    | 50,000 	  | 40,000
+| Suresh 	| 22 	  | Finance 	    | 50,000 	  | 40,000
+| Ram 	  | 28 	  | Finance 	    | 20,000 	  | 40,000
+| Deep 	  | 25 	  | Sales 	      | 30,000 	  | 25,000
+| Pradeep |	22 	  | Sales 	      | 20,000 	  | 25,000
 
 ### Example 2: Calculate the average session duration for each session type?
 
@@ -198,8 +206,8 @@ SET  Persons.PersonCityName=(SELECT AddressList.PostCode
 
 Stripe asked this tricky SQL interview question, about identifying any payments made at the same merchant with the same credit card for the same amount within 10 minutes of each other and reporting the count of such repeated payments.
 
-| transaction_id	| merchant_id	| credit_card_id	| amount	| transaction_timestamp
-|-------------------|---------------|-------------------|-----------|----------------
+| transaction_id	  | merchant_id	| credit_card_id	  | amount	| transaction_timestamp
+|-------------------|-------------|-------------------|---------|----------------
 | 1	                | 101	        | 1	                | 100   	| 09/25/2022 12:00:00
 | 2	                | 101	        | 1	                | 100	    | 09/25/2022 12:08:00
 
@@ -207,10 +215,7 @@ Stripe asked this tricky SQL interview question, about identifying any payments 
 WITH payments AS (
   SELECT 
     merchant_id, 
-    EXTRACT(EPOCH FROM transaction_timestamp - 
-      LAG(transaction_timestamp) OVER(
-        PARTITION BY merchant_id, credit_card_id, amount 
-        ORDER BY transaction_timestamp)
+    EXTRACT(EPOCH FROM transaction_timestamp - LAG(transaction_timestamp) OVER( PARTITION BY merchant_id, credit_card_id, amount ORDER BY transaction_timestamp)
     )/60 AS minute_difference 
   FROM transactions) 
 
