@@ -271,6 +271,10 @@ FROM revenue
 ORDER BY period;
 ```
 
+## Tests
+
+https://www.windowfunctions.com/questions/over/
+
 ## References
 
 https://learnsql.com/blog/advanced-sql-interview-questions/?gad_source=1

@@ -1,8 +1,28 @@
-# Spark - the definitive Guide by Bill Chambers and Matei Zaharia 2018
+# Table of Contents
+- [Spark - the definitive Guide by Bill Chambers and Matei Zaharia 2018](#DefinitiveGuide)
+  - [A Gentle Introduction to Spark](#DefinitiveGuideIntroduction)
+  - [Structured API Overview](#StructuredAPI)
+  - [Basic Structured Operations](#StructuredOperations)
+  - [Spark SQL](#SparkSQL)
+  - [RDD](#RDD)
+  - [How Spark Runs on a Cluster](#SparkClusterRun)
+  - [Writing Python Applications](#PythonApplications)
+- [Spark Optimizations](#SparkOptimizations)
+  - [Optimizing Spark Configurations](#OptimizationsConf)
+  - [Optimizing Spark program](#OptimizationsProgramD)
+  - [Optimizing storage](#OptimizationsStorage)
+- [Spark debugging and analyzing](#SparkDebugging)
+- [Examples](#Examples)
+  - [Notebook](#Notebook)
+  - [Databricks Job](#DatabricksJob)
+  - [Spark Streaming](#SparkStreaming)
+- [Links](#Links)
+
+# Spark - the definitive Guide by Bill Chambers and Matei Zaharia 2018  <a id="DefinitiveGuide"></a>
 
 Apache Spark is a unified computing engine and a set of libraries for parallel data processing on computer clusters
 
-## A Gentle Introduction to Spark
+## A Gentle Introduction to Spark   <a id="DefinitiveGuideIntroduction"></a>
 
 Spark Applications consist of a driver process and a set of executor processes. 
 
@@ -20,36 +40,33 @@ Spark employs a __cluster manager__ that keeps track of the resources available
 
 ### The SparkSession
 
-You control your Spark Application through a driver process called the SparkSession. The SparkSession instance is the way Spark executes
-user-defined manipulations across the cluster. There is a one-to-one correspondence between a
-SparkSession and a Spark Application. In Scala and Python, the variable is available as spark
-when you start the console. 
+You control your Spark Application through a driver process called the SparkSession. 
+The SparkSession instance is the way Spark executes user-defined manipulations across the cluster. 
+There is a one-to-one correspondence between a SparkSession and a Spark Application. 
+In Scala and Python, the variable is available as spark when you start the console. 
 
 ### DataFrame
 
-A DataFrame is the most common Structured API and simply represents a table of data with
-rows and columns. The list that defines the columns and the types within those columns is called
-the schema.
+A DataFrame is the most common Structured API and simply represents a table of data with rows and columns. 
+The list that defines the columns and the types within those columns is called the schema.
 
 Spark DataFrame can span thousands of computers.
 
-To allow every executor to perform work in parallel, Spark breaks up the data into chunks called
-__partitions__. A partition is a collection of rows that sit on one physical machine in your cluster.
+To allow every executor to perform work in parallel, Spark breaks up the data into chunks called __partitions__. 
+A partition is a collection of rows that sit on one physical machine in your cluster.
 
 ### DataSets
 
-A type-safe version of Spark’s structured API called Datasets, for writing statically typed code in Java and Scala. The Dataset API is not available in Python and R, because those languages are dynamically typed.
+A type-safe version of Spark’s structured API called Datasets, for writing statically typed code in Java and Scala. 
+The Dataset API is not available in Python and R, because those languages are dynamically typed.
 
 The Dataset API gives users the ability to assign a Java/Scala class to the records within a DataFrame and manipulate it as a
 collection of typed objects, similar to a Java ArrayList or Scala Seq.
 
-The APIs available on Datasets are type-safe, meaning that you cannot accidentally view the objects in a Dataset as
-being of another class than the class you put in initially. This makes Datasets especially attractive
-for writing large applications, with which multiple software engineers must interact through
-well-defined interfaces.
+The APIs available on Datasets are type-safe, meaning that you cannot accidentally view the objects in a Dataset as being of another class than the class you put in initially. 
+This makes Datasets especially attractive for writing large applications, with which multiple software engineers must interact through well-defined interfaces.
 
-One final advantage is that when you call collect or take on a Dataset, it will collect objects of
-the proper type in your Dataset, not DataFrame Rows.
+One final advantage is that when you call collect or take on a Dataset, it will collect objects of the proper type in your Dataset, not DataFrame Rows.
 
 ```
 // in Scala
@@ -69,27 +86,29 @@ flights
 
 In Spark, the core data structures are immutable, meaning they cannot be changed after they’re created.
 
-To “change” a DataFrame, you need to instruct Spark how you would like to modify it to do what you want. These instructions are called transformations.
+To “change” a DataFrame, you need to instruct Spark how you would like to modify it to do what you want. 
+These instructions are called __transformations__.
 
 ```
 # in Python
 divisBy2 = myRange.where("number % 2 = 0")
 ```
 
-Notice that these return no output. This is because we specified only an abstract transformation, and Spark will not act on transformations until we call an action.
+Notice that these return no output. 
+This is because we specified only an abstract transformation, and Spark will not act on transformations until we call an action.
 
-Lazy evaulation means that Spark will wait until the very last moment to execute the graph of
-computation instructions. In Spark, instead of modifying the data immediately when you express
-some operation, you build up a plan of transformations that you would like to apply to your
-source data. By waiting until the last minute to execute the code, Spark compiles this plan from
-your raw DataFrame transformations to a streamlined physical plan that will run as efficiently as
-possible across the cluster. This provides immense benefits because Spark can optimize the
-entire data flow from end to end. 
+Lazy evaulation means that Spark will wait until the very last moment to execute the graph of computation instructions. 
+In Spark, instead of modifying the data immediately when you express some operation, you build up a plan of transformations that you would like to apply to your source data. 
+
+By waiting until the last minute to execute the code, Spark compiles this plan from your raw DataFrame transformations to a streamlined physical plan that will run as efficiently as
+possible across the cluster. 
+This provides immense benefits because Spark can optimize the entire data flow from end to end. 
 
 ### Actions
 
-Transformations allow us to build up our logical transformation plan. To trigger the computation,
-we run an action. An action instructs Spark to compute a result from a series of transformations.
+Transformations allow us to build up our logical transformation plan. 
+To trigger the computation, we run an action. 
+An action instructs Spark to compute a result from a series of transformations.
 
 The simplest action is count, which gives us the total number of records in the DataFrame:
 ```
@@ -108,23 +127,21 @@ United States,Ireland,344
 ```
 
 Code:
-
 ```
 # in Python
 flightData2015 = spark\
 .read\
 .option("inferSchema", "true")\
 .option("header", "true")\
-.csv("/data/flight-data/csv/2015-summary.csv"
+.csv("/data/flight-data/csv/2015-summary.csv")
 
 flightData2015.take(3)
 
 flightData2015.sort("count").explain()
-
 ```
 
-By default, when we perform a shuffle, Spark outputs 200 shuffle partitions. Let’s set this value to 5 to reduce the number of the output
-partitions from the shuffle:
+By default, when we perform a shuffle, Spark outputs 200 shuffle partitions. 
+Let’s set this value to 5 to reduce the number of the output partitions from the shuffle:
 
 ```
 spark.conf.set("spark.sql.shuffle.partitions", "5")
@@ -155,11 +172,9 @@ dataFrameWay.explain()
 
 ### Structured Streaming
 
-With Structured Streaming, you can take the same operations that you perform in
-batch mode using Spark’s structured APIs and run them in a streaming fashion. This can reduce
-latency and allow for incremental processing. The best thing about Structured Streaming is that it
-allows you to rapidly and quickly extract value out of streaming systems with virtually no code
-changes. 
+With Structured Streaming, you can take the same operations that you perform in batch mode using Spark’s structured APIs and run them in a streaming fashion. 
+This can reduce latency and allow for incremental processing. 
+The best thing about Structured Streaming is that it allows you to rapidly and quickly extract value out of streaming systems with virtually no code changes. 
 
 Sample of the data:
 ```
@@ -199,8 +214,7 @@ staticDataFrame\
     .show(5)
 ```
 
-Streaming code. The biggest change is that we used readStream instead of read, additionally you’ll notice the maxFilesPerTrigger option, which simply specifies the number of files we should read in at once
-
+Streaming code. The biggest change is that we used __readStream__ instead of read, additionally you’ll notice the maxFilesPerTrigger option, which simply specifies the number of files we should read in at once
 ```
 # in Python
 streamingDataFrame = spark.readStream\
@@ -220,7 +234,7 @@ purchaseByCustomerPerHour = streamingDataFrame\
     .sum("total_cost")
 ```
 
-## Structured API Overview
+## Structured API Overview  <a id="StructuredAPI"></a>
 
 ### Structured API Execution
 
@@ -231,16 +245,13 @@ steps:
 4. Spark then executes this Physical Plan (RDD manipulations) on the cluster.
 
 __Logical Planning__ represents a set of abstract transformations that do not refer to executors or drivers. 
-This plan is unresolved because although your code might be valid, the tables or columns that it refers to might or might
-not exist. Spark uses the catalog, a repository of all table and DataFrame information, to resolve
-columns and tables in the analyzer. The analyzer might reject the unresolved logical plan if the
-required table or column name does not exist in the catalog. If the analyzer can resolve it, the
-result is passed through the Catalyst Optimizer, a collection of rules that attempt to optimize the
-logical plan by pushing down predicates or selections.
+This plan is unresolved because although your code might be valid, the tables or columns that it refers to might or might not exist. 
+Spark uses the catalog, a repository of all table and DataFrame information, to resolve columns and tables in the analyzer. 
+The analyzer might reject the unresolved logical plan if the required table or column name does not exist in the catalog. 
+If the analyzer can resolve it, the result is passed through the Catalyst Optimizer, a collection of rules that attempt to optimize the logical plan by pushing down predicates or selections.
 
-After successfully creating an optimized logical plan, Spark then begins the __physical planning__
-process. The physical plan, often called a Spark plan, specifies how the logical plan will execute
-on the cluster by generating different physical execution strategies and comparing them through a cost model.
+After successfully creating an optimized logical plan, Spark then begins the __physical planning__ process. 
+The physical plan, often called a Spark plan, specifies how the logical plan will execute on the cluster by generating different physical execution strategies and comparing them through a cost model.
 
 An example of the cost comparison might be choosing how to perform a given join by looking at the physical attributes of a given table
 
@@ -248,7 +259,7 @@ Physical planning results in a series of RDDs and transformations
 
 Upon selecting a physical plan, Spark runs all of this code over RDDs, the lower-level programming interface of Spark
 
-## Basic Structured Operations
+## Basic Structured Operations <a id="StructuredOperations"></a>
 
 A __schema__ defines the column names and types of a DataFrame.
 
@@ -257,17 +268,18 @@ A __schema__ defines the column names and types of a DataFrame.
 spark.read.format("json").load("/data/flight-data/json/2015-summary.json").schema
 ```
 
-To Spark, __columns__ are logical constructions that simply represent a value computed on a per-record basis by means of an expression. This means that to have a real value for a column, we need to have a row; and to have a row, we need to have a DataFrame. You cannot manipulate an
-individual column outside the context of a DataFrame; you must use Spark transformations
-within a DataFrame to modify the contents of a column.
+To Spark, __columns__ are logical constructions that simply represent a value computed on a per-record basis by means of an expression. 
+This means that to have a real value for a column, we need to have a row; and to have a row, we need to have a DataFrame. 
+You cannot manipulate an individual column outside the context of a DataFrame; you must use Spark transformations within a DataFrame to modify the contents of a column.
 
 An __expression__ is a set of transformations on one or more values in a record in a DataFrame.
 
 Columns provide a subset of expression functionality. 
 
-In Spark, each __row__ in a DataFrame is a single record. Spark represents this record as an object of
-type Row. Spark manipulates Row objects using column expressions in order to produce usable
-values. Row objects internally represent arrays of bytes. 
+In Spark, each __row__ in a DataFrame is a single record. 
+Spark represents this record as an object of type Row. 
+Spark manipulates Row objects using column expressions in order to produce usable values. 
+Row objects internally represent arrays of bytes. 
 
 ### DataFrame Transformations
 
@@ -276,7 +288,7 @@ To create dataFrame we can:
 ```
 # in Python
 df = spark.read.format("json").load("/data/flight-data/json/2015-summary.json")
-df.createOrReplaceTempView("dfTable"
+df.createOrReplaceTempView("dfTable")
 ```
 
 * taking a set of rows and converting them to a DataFrame
@@ -331,9 +343,8 @@ def power3(double_value):
 power3(2.0)
 ```
 
-Now that we’ve created these functions and tested them, we need to register them with Spark so
-that we can use them on all of our worker machines. Spark will serialize the function on the
-driver and transfer it over the network to all executor processes. 
+Now that we’ve created these functions and tested them, we need to register them with Spark so that we can use them on all of our worker machines. 
+Spark will serialize the function on the driver and transfer it over the network to all executor processes. 
 
 ### Joins
 
@@ -380,15 +391,15 @@ person.join(graduateProgram, joinExpression, joinType).show()
 
 ```
 
-Spark approaches cluster communication in two different ways during joins. It either incurs a
-shuffle join, which results in an all-to-all communication or a broadcast join.
+Spark approaches cluster communication in two different ways during joins. 
+It either incurs a shuffle join, which results in an all-to-all communication or a broadcast join.
 
-When you join a big table to another big table, you end up with a __shuffle join__. In a shuffle join, every node talks to every other node and they share data according to which
-node has a certain key or set of keys (on which you are joining). These joins are expensive because the network can become congested with traffic, especially if your data is not partitioned
-well.
+When you join a big table to another big table, you end up with a __shuffle join__. 
+In a shuffle join, every node talks to every other node and they share data according to which node has a certain key or set of keys (on which you are joining). 
+These joins are expensive because the network can become congested with traffic, especially if your data is not partitioned well.
 
-When the table is small enough to fit into the memory of a single worker node, it can often be more efficient to use a __broadcast join.__ What this
-means is that we will replicate our small DataFrame onto every worker node in the cluster.
+When the table is small enough to fit into the memory of a single worker node, it can often be more efficient to use a __broadcast join__.
+What this means is that we will replicate our small DataFrame onto every worker node in the cluster.
 
 With the DataFrame API, we can also explicitly give the optimizer a hint that we would like to use a broadcast join by using the correct function around the small DataFrame in question.
 
@@ -429,7 +440,7 @@ spark.read.format("csv")
     .load()
 ```
 
-The core structure for __writing data __is as follows:
+The core structure for __writing data__ is as follows:
 ```
 DataFrameWriter.format(...).option(...).partitionBy(...).bucketBy(...).sortBy(...).save()
 ```
@@ -448,10 +459,11 @@ csvFile.write.format("csv").mode("overwrite").option("sep", "\t").save("/tmp/my-
 
 First, Spark makes a best-effort attempt to filter data in the database itself before creating the DataFrame.
 
-Spark can actually do better than this on certain queries. For example, if we specify a filter on our DataFrame, Spark will push that filter down into the database.
+Spark can actually do better than this on certain queries. 
+For example, if we specify a filter on our DataFrame, Spark will push that filter down into the database.
 
-Spark can’t translate all of its own functions into the functions available in the SQL database in which you’re working. Therefore, sometimes you’re going to want to pass an entire query into
-your SQL that will return the results as a DataFrame.
+Spark can’t translate all of its own functions into the functions available in the SQL database in which you’re working. 
+Therefore, sometimes you’re going to want to pass an entire query into your SQL that will return the results as a DataFrame.
 
 Rather than specifying a table name, you just specify a SQL query.
 
@@ -465,8 +477,8 @@ dbDataFrame = spark.read.format("jdbc")\
 
 #### Reading or Writing Data in Parallel
 
-The number of files or data written is dependent on the number of partitions the DataFrame has
-at the time you write out the data. By default, one file is written per partition of the data. 
+The number of files or data written is dependent on the number of partitions the DataFrame has at the time you write out the data. 
+By default, one file is written per partition of the data. 
 
 The following code
 ```
@@ -487,15 +499,16 @@ This means that the data is prepartitioned according to how you expect to use th
 
 #### Managing File Size
 
-You can use the maxRecordsPerFile option and specify a number of your choosing. This allows you to better
-control file sizes by controlling the number of records that are written to each file. 
+You can use the maxRecordsPerFile option and specify a number of your choosing. 
+This allows you to better control file sizes by controlling the number of records that are written to each file. 
 
-## Spark SQL
+## Spark SQL <a id="SparkSQL"></a>
 
-In a nutshell, with Spark SQL you can run SQL queries against views or tables organized into databases. You also can use system functions or define user functions and analyze query plans in
-order to optimize their workloads.
+In a nutshell, with Spark SQL you can run SQL queries against views or tables organized into databases. 
+You also can use system functions or define user functions and analyze query plans in order to optimize their workloads.
 
-Spark SQL has a great relationship with Hive because it can connect to Hive metastores. The Hive metastore is the way in which Hive maintains table information for use across sessions.
+Spark SQL has a great relationship with Hive because it can connect to Hive metastores. 
+The Hive metastore is the way in which Hive maintains table information for use across sessions.
 With Spark SQL, you can connect to your Hive metastore (if you already have one) and access table metadata to reduce file listing when accessing information. 
 
 To connect to the Hive metastore, there are several properties that you’ll need. 
@@ -505,7 +518,33 @@ Spark provides several interfaces to execute SQL queries:
 * Spark’s Programmatic SQL Interface
 * JDBC/ODBC Server
 
-## RDDs
+### Hive
+
+https://spark.apache.org/docs/3.5.2/sql-data-sources-hive-tables.html
+
+Configuration of Hive is done by placing your hive-site.xml, core-site.xml (for security configuration), and hdfs-site.xml (for HDFS configuration) file in conf/.
+
+When working with Hive, one must instantiate SparkSession with Hive support, including connectivity to a persistent Hive metastore, support for Hive serdes, and Hive user-defined functions.
+
+Example:
+```
+# warehouse_location points to the default location for managed databases and tables
+warehouse_location = abspath('spark-warehouse')
+
+spark = SparkSession \
+    .builder \
+    .appName("Python Spark SQL Hive integration example") \
+    .config("spark.sql.warehouse.dir", warehouse_location) \
+    .enableHiveSupport() \
+    .getOrCreate()
+
+# spark is an existing SparkSession
+spark.sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive")
+spark.sql("LOAD DATA LOCAL INPATH 'examples/src/main/resources/kv1.txt' INTO TABLE src")
+
+```
+
+## RDDs <a id="RDD"></a>
 
 You should generally use the lower-level APIs in three situations:
 * You need some functionality that you cannot find in the higher-level APIs; for example, if you need very tight control over physical data placement across the cluster.
@@ -515,29 +554,26 @@ You should generally use the lower-level APIs in three situations:
 ### Distributed Shared Variables
 
 Chapter 14. Distributed Shared Variables In addition to the Resilient Distributed Dataset (RDD) interface, the second kind of low-level
-API in Spark is two types of “distributed shared variables”: broadcast variables and accumulators. These are variables you can use in your user-defined functions (e.g., in a map
-function on an RDD or a DataFrame) that have special properties when running on a cluster.
+API in Spark is two types of “distributed shared variables”: broadcast variables and accumulators. 
+These are variables you can use in your user-defined functions (e.g., in a map function on an RDD or a DataFrame) that have special properties when running on a cluster.
 
 Specifically, __accumulators__ let you add together data from all the tasks into a shared result (e.g., to implement a counter so you can see how many of your job’s input records failed to parse), while __broadcast variables__ let you save a large value on all the worker nodes and reuse it across many Spark actions without re-sending it to the cluster.
 
-## How Spark Runs on a Cluster
+## How Spark Runs on a Cluster <a id="SparkClusterRun"></a>
 
 Execution Modes:
-* Cluster mode: a user submits a pre-compiled JAR, Python script, or R script to a cluster manager. The cluster
-manager then launches the driver process on a worker node inside the cluster, in addition to the
-executor processes. This means that the cluster manager is responsible for maintaining all Spark
-Application–related processes.
-* Client mode: Client mode is nearly the same as cluster mode except that the Spark driver remains on the client
-machine that submitted the application. This means that the client machine is responsible for
-maintaining the Spark driver process, and the cluster manager maintains the executor processses.
-* Local mode: it runs the entire Spark Application on a single machine. It achieves parallelism through threads on that single machine.
+* __Cluster mode__: a user submits a pre-compiled JAR, Python script, or R script to a cluster manager. 
+The cluster manager then launches the driver process on a worker node inside the cluster, in addition to the executor processes. 
+This means that the cluster manager is responsible for maintaining all Spark Application–related processes.
+* __Client mode__: Client mode is nearly the same as cluster mode except that the Spark driver remains on the client machine that submitted the application. 
+This means that the client machine is responsible for maintaining the Spark driver process, and the cluster manager maintains the executor processses.
+* __Local mode__: it runs the entire Spark Application on a single machine. It achieves parallelism through threads on that single machine.
 
-## Writing Python Applications
+## Writing Python Applications  <a id="PythonApplications"></a>
 
-Writing PySpark Applications is really no different than writing normal Python applications or
-packages. It’s quite similar to writing command-line applications in particular. Spark doesn’t
-have a build concept, just Python scripts, so to run an application, you simply execute the script
-against the cluster.
+Writing PySpark Applications is really no different than writing normal Python applications or packages. 
+It’s quite similar to writing command-line applications in particular. 
+Spark doesn’t have a build concept, just Python scripts, so to run an application, you simply execute the script against the cluster.
 
 ```
 # in Python
@@ -552,9 +588,9 @@ if __name__ == '__main__':
     print(spark.range(5000).where("id > 500").selectExpr("sum(id)").collect())
 ```
 
-# Spark Optimizations
+# Spark Optimizations <a id="SparkOptimizations"></a>
 
-## Optimizing Spark Configurations
+## Optimizing Spark Configurations  <a id="OptimizationsConf"></a>
 
 Example:
 ```
@@ -569,9 +605,12 @@ spark = (SparkSession.builder
 
 ### Tuning Spark Executor
 
-Most of the time, we allocate static resources to the application. But what if some day you are getting massive data in source and the other day you are getting small data? Static allocation will not be a practical choice in this scenario. 
+Most of the time, we allocate static resources to the application. 
+But what if some day you are getting massive data in source and the other day you are getting small data? Static allocation will not be a practical choice in this scenario. 
 
-We can dynamically add/remove executors according to our Spark application's workload. Spark has a dynamic allocation technique to enable executor scaling. This approach is best when we have an inconsistent workload daily. 
+We can dynamically add/remove executors according to our Spark application's workload. 
+Spark has a dynamic allocation technique to enable executor scaling. 
+This approach is best when we have an inconsistent workload daily. 
 
 Set the:
 * spark.dynamicAllocation.enabled = true
@@ -585,23 +624,26 @@ Set the:
 
 ### Tune Shuffle File Buffer
 
-Disk access is slower when compared to in-memory data access as it involves a serialization process that takes up time and resources. We can reduce disk I/O costs by introducing a shuffle read/write file buffer in the memory.
+Disk access is slower when compared to in-memory data access as it involves a serialization process that takes up time and resources. 
+We can reduce disk I/O costs by introducing a shuffle read/write file buffer in the memory.
 
 Set the:
 * spark.shuffle.file.buffer 
 
 ### Tune Shuffle Partitions value
 
-The shuffle-partition means the number of partitions generated after each transformation step that causes data shuffling, such as join(), agg(), reduce(), etc. By setting spark.sql.shuffle.partitions property, you can decide the level of parallelism in your Spark application.
+The shuffle-partition means the number of partitions generated after each transformation step that causes data shuffling, such as join(), agg(), reduce(), etc. 
+By setting spark.sql.shuffle.partitions property, you can decide the level of parallelism in your Spark application.
 
 Set the:
 * spark.sql.shuffle.partitions
 
-## Optimizing Spark program
+## Optimizing Spark program <a id="OptimizationsProgram"></a>
 
 ### Broadcast Join
 
-If you are joining a big table with a small table. During this join operation, more shuffling will happen. We can avoid shuffling by using a broadcast join. It will copy a small table to every node where the executor is running. 
+If you are joining a big table with a small table. During this join operation, more shuffling will happen. 
+We can avoid shuffling by using a broadcast join. It will copy a small table to every node where the executor is running. 
 
 ```
 from pyspark.sql.functions import broadcastemp_df = spark.sql("select id, name, dept_id from employee")
@@ -612,19 +654,26 @@ df_joined.show(20)
 
 ### Cache data
 
-Every time we call the Action in the Spark program, it triggers DAG and executes it from the beginning. That's why it's recommended not to use unnecessary Actions in Spark programs. Double-check the code and remove or comment Actions you wrote for debugging/testing in your Spark program.
+Every time we call the Action in the Spark program, it triggers DAG and executes it from the beginning. 
+That's why it's recommended not to use unnecessary Actions in Spark programs. 
+Double-check the code and remove or comment Actions you wrote for debugging/testing in your Spark program.
 
-One key point to improve performance when the same dataframe is being referred to in multiple places is to cache that dataframe. Spark has two functions to cache dataframe: cache() and persist(). RDD's cache() function default saves the dataframe to memory while the persist() function is used to store dataframe at the user-defined storage level. 
+One key point to improve performance when the same dataframe is being referred to in multiple places is to cache that dataframe. 
+Spark has two functions to cache dataframe: cache() and persist(). 
+RDD's cache() function default saves the dataframe to memory while the persist() function is used to store dataframe at the user-defined storage level. 
 
 Spark SQL can cache tables using an in-memory columnar format by calling spark.catalog.cacheTable("tableName") or dataFrame.cache().
 
 ### Repartition data
 
-A dataframe is partitioned means there are logical groups of records in it. Each task processes each partition, many tasks run in parallel inside one executor, and parallel execution happens in Spark.
+A dataframe is partitioned means there are logical groups of records in it. 
+Each task processes each partition, many tasks run in parallel inside one executor, and parallel execution happens in Spark.
 
 __coalesce()__ is mainly used to decrease partitions and __repartition()__ is used to increase partitions.
 
-If you are processing large data and want to create more simultaneous tasks, then you can use the repartition() function to increase the partitions. If you want to re-shuffle the data based on column value, you can also use the repartition() function. If you want to reduce the number of output files, then you can use the coalesce() function. 
+If you are processing large data and want to create more simultaneous tasks, then you can use the repartition() function to increase the partitions. 
+If you want to re-shuffle the data based on column value, you can also use the repartition() function. 
+If you want to reduce the number of output files, then you can use the coalesce() function. 
 
 __The optimal number of partitions is usually set as a factor of the total number of cores available in the cluster.__
 
@@ -634,7 +683,13 @@ The key point to improve the performance of joins and other processing is to fil
 
 ### Use Salting Technique to eliminate data skewness issues
 
-We often see on Spark UI that some tasks take longer, and some finish quickly. This happens when your data is skewed. That means data is not evenly distributed across the partitions. So, tasks working on partitions where the data size is more than the other partitions take more time to complete. This also causes an out-of-memory issue sometimes. Re-shuffling data across partitions can eliminate data skewness. We can achieve shuffling by using the repartition() function. But this function does not guarantee the even distribution of records. So, we must add some random values in a new column in the dataframe, which we often call the salted key, and then we can pass that salted key in the repartition function as an argument. After that repartition() function will re-shuffle data based on the salted key column values.
+We often see on Spark UI that some tasks take longer, and some finish quickly. 
+This happens when your data is skewed. That means data is not evenly distributed across the partitions. 
+So, tasks working on partitions where the data size is more than the other partitions take more time to complete. 
+This also causes an out-of-memory issue sometimes. Re-shuffling data across partitions can eliminate data skewness. 
+We can achieve shuffling by using the repartition() function. But this function does not guarantee the even distribution of records. 
+So, we must add some random values in a new column in the dataframe, which we often call the salted key, and then we can pass that salted key in the repartition function as an argument. 
+After that repartition() function will re-shuffle data based on the salted key column values.
 
 ```
 salt_df_new = df.withColumn(“salted_key”, (rand * n).cast(IntegerType))
@@ -654,34 +709,38 @@ from pyspark.sql.types import StructType, IntegerType, DateTypeschema = StructTy
 ```
 ### Use the ReduceByKey function over GroupByKey
 
-Both reduceByKey() and groupByKey() are broad transformations, meaning both will shuffle across the partitions. The critical difference between reduceByKey() and groupByKey() is that reduceByKey() does a map side combine and groupByKey() does not. The reduceByKey() acts like a mini reducer. So, the shuffling of data can be reduced if we use reduceByKey()
+Both reduceByKey() and groupByKey() are broad transformations, meaning both will shuffle across the partitions. 
+The critical difference between reduceByKey() and groupByKey() is that reduceByKey() does a map side combine and groupByKey() does not. 
+The reduceByKey() acts like a mini reducer. So, the shuffling of data can be reduced if we use reduceByKey()
 
 ### Avoid the use of UDFs (User Defined Functions)
 
-UDFs are heavy when it comes to performance. Spark does not optimize UDFs as it's like a black box for them. Built-in "Spark SQL" functions are optimized and recommended to be used in programs. 
+UDFs are heavy when it comes to performance. Spark does not optimize UDFs as it's like a black box for them. 
+Built-in "Spark SQL" functions are optimized and recommended to be used in programs. 
 
 ### Check the uniqueness of keys while using the join columns
 
-We should always carefully choose the join columns for joining two dataframes. If duplicate values exist in either of the columns, it takes a long time to join such dataframes because a cartesian product can happen.
+We should always carefully choose the join columns for joining two dataframes. 
+If duplicate values exist in either of the columns, it takes a long time to join such dataframes because a cartesian product can happen.
 
-## Optimizing storage
+## Optimizing storage <a id="OptimizationsStorage"></a>
 
 ### Bucketing and Partitioning
 
-__Partitioning__ splits records into files present under different directories named the same as partition column values, based on the partition column. __Bucketing__ is helpful in further splitting records into different files based on a hashing function. This improves performance when we read data in Spark.
+__Partitioning__ splits records into files present under different directories named the same as partition column values, based on the partition column. 
+__Bucketing__ is helpful in further splitting records into different files based on a hashing function. This improves performance when we read data in Spark.
 
 Partitioning is often represented as directories, and bucketing is represented as files. 
 
 ### Serialized data formats
 
 
+# Spark debugging and analyzing <a id="SparkDebugging"></a>
 
-# Spark debugging and analyzing
 
+# Examples <a id="Examples"></a>
 
-# Examples
-
-## Notebook
+## Notebook <a id="Notebook"></a>
 
 ### One
 
@@ -731,7 +790,7 @@ df_emp = (
 df_emp.write.format("delta").partitionBy("YEAR", "MONTH").mode("overwrite").saveAsTable("employee_partition_data")
 ```
 
-## DataBrics job on azure
+## DataBrics job on azure <a id="DatabricksJob"></a>
 
 Run notebook from databrics job and trigger the job via rest api
 
@@ -822,9 +881,9 @@ https://github.com/rchynoweth/Demo/blob/main/Workflows/Parameters/APIJobDefiniti
 }
 ```
 
-## Spark streaming
+## Spark streaming  <a id="SparkStreaming"></a>
 
-# Links
+# Links <a id="Links"></a>
 
 https://www.databricks.com/blog/2016/02/17/introducing-databricks-community-edition-apache-spark-for-all.html
 
