@@ -7,6 +7,7 @@
   - [RDD](#RDD)
   - [How Spark Runs on a Cluster](#SparkClusterRun)
   - [Writing Python Applications](#PythonApplications)
+  - [Spark Catalog](#SparkCatalog)
 - [Spark Optimizations](#SparkOptimizations)
   - [Optimizing Spark Configurations](#OptimizationsConf)
   - [Optimizing Spark program](#OptimizationsProgramD)
@@ -586,6 +587,30 @@ if __name__ == '__main__':
         .config("spark.some.config.option", "some-value") \
         .getOrCreate()
     print(spark.range(5000).where("id > 500").selectExpr("sum(id)").collect())
+```
+
+## Spark Catalog <a id="SparkCatalog"></a>
+
+https://pyspark.itversity.com/08_spark_metastore/03_exploring_spark_catalog.html
+
+Metadata such as table names, column names, data types etc for the permanent tables or views will be stored in Metastore. 
+We can access the metadata using spark.catalog which is exposed as part of SparkSession object.
+
+Notebook example:
+```
+from pyspark.sql import SparkSession
+
+import getpass
+username = getpass.getuser()
+
+spark = SparkSession. \
+    builder. \
+    config('spark.ui.port', '0'). \
+    config("spark.sql.warehouse.dir", f"/user/{username}/warehouse"). \
+    enableHiveSupport(). \
+    appName(f'{username} | Python - Spark Metastore'). \
+    master('yarn'). \
+    getOrCreate()
 ```
 
 # Spark Optimizations <a id="SparkOptimizations"></a>
