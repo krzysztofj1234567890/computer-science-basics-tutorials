@@ -56,6 +56,29 @@ Spark DataFrame can span thousands of computers.
 To allow every executor to perform work in parallel, Spark breaks up the data into chunks called __partitions__. 
 A partition is a collection of rows that sit on one physical machine in your cluster.
 
+DataFrame is a distributed data structure. It is neither required __nor possible to parallelize it__. 
+Do not distribute large datasets not to mention redistributing RDDs or higher level data structures.
+
+If you want to convert between RDD / Dataframe (Dataset) use methods which are designed to do it.
+
+from DataFrame to RDD:
+```
+    import org.apache.spark.sql.DataFrame
+    import org.apache.spark.sql.Row
+    import org.apache.spark.rdd.RDD
+
+    val df: DataFrame  = Seq(("foo", 1), ("bar", 2)).toDF("k", "v")
+    val rdd: RDD[Row] = df.rdd
+```
+form RDD to DataFrame:
+```
+    val rdd: RDD[(String, Int)] = sc.parallelize(Seq(("foo", 1), ("bar", 2)))
+    val df1: DataFrame = rdd.toDF
+    // or
+    val df2: DataFrame = spark.createDataFrame(rdd) // From 1.x use sqlContext
+```
+
+
 ### DataSets
 
 A type-safe version of Spark’s structured API called Datasets, for writing statically typed code in Java and Scala. 
@@ -613,6 +636,33 @@ spark = SparkSession. \
     getOrCreate()
 ```
 
+Example how to use catalog:
+```
+from pyspark.sql import SparkSession
+
+# Create a Spark session
+spark = SparkSession.builder.appName("getTableExample").getOrCreate()
+
+# Specify the table identifier
+table_identifier = "mydb.sales_data"
+
+# Use Catalog.getTable to fetch table metadata
+table_metadata = spark.catalog.getTable(table_identifier)
+
+# Print the table metadata
+print("Table Name:", table_metadata.name)
+print("Database Name:", table_metadata.database)
+print("Table Location:", table_metadata.location)
+print("Table Schema:")
+table_metadata.schema.printTreeString()
+```
+
+Use cases:
+- __Schema Validation__: You can use it to validate the schema of a table before performing data transformations or loading data into it.
+- __Dynamic Table Discovery__: When working with large and evolving datasets, you can dynamically discover table metadata to adapt your data processing logic accordingly.
+- __Automated Data Pipelines__: It can be integrated into data pipeline orchestration tools to fetch table details and automate ETL (Extract, Transform, Load) processes.
+
+
 # Spark Optimizations <a id="SparkOptimizations"></a>
 
 ## Optimizing Spark Configurations  <a id="OptimizationsConf"></a>
@@ -702,6 +752,75 @@ If you want to reduce the number of output files, then you can use the coalesce(
 
 __The optimal number of partitions is usually set as a factor of the total number of cores available in the cluster.__
 
+You can partition or repartition the Dataframe by calling repartition() or coalesce() transformations.
+
+We should make sure our data is well-partitioned in each executing stage.
+
+The adaptive query execution (introduced in Spark 3) is now enabled by default in the latest Spark version (3.2.1), and you should keep it that way. 
+It reduces the number of partitions used in shuffle operations in run-time, as a dependent of dataset size (hence, adaptive).
+
+You can check the number of partitions:
+```
+data.rdd.partitions.size
+```
+To change the number of partitions:
+```
+newDF = data.repartition(3000)
+```
+
+- __Coalesce__ – The coalesce method reduces the number of partitions in Dataframe. It avoids full shuffle , instead of creating new partitions, it shuffles the data using the default Hash Partitioner, and adjusts into existing partitions, this means it can only decrease the number of partitions.
+- __Repartition__ – The repartition method can be used to either increase or decrease the number of partitions in a Dataframe. Repartition is a full shuffle operations, where whole data is taken out from existing partitions and equally distributed into newly formed partitions
+- __Partition By__ – Spark partition By() is a function of pyspark.sql.DataFrameWriter class which is used to partition based on one or multiple column values while writing Data frame to Disk/File system. When you write Spark Data frame to disk by calling partition By(), Pyspark splits the records based on the partition column and stores each partition data into a sub-directory.
+
+We can dynamically repartition our dataset using Spark’s different partition strategies:
+- __Round Robin__ Partitioning
+- __Hash Partitioning__: Splits our data in such way that elements with the same hash will be in the same partition
+- __Range Partitioning__: Very similar to hash partitioning, only it’s based on a range of values.
+
+#### Example
+
+https://engineering.salesforce.com/how-to-optimize-your-apache-spark-application-with-partitions-257f2c1bb414/
+
+Instead of:
+```
+spark = SparkSession.builder.getOrCreate()
+df = spark.read.option('header', 'true').csv('./example_data/dataset_1.csv')
+df = df.withColumn('amount', F.col('amount').cast('int'))
+df = df.groupBy('business').agg(F.sum('amount').alias('total_amount'))
+
+df_avg = df.select(F.avg('total_amount').alias('avg_amount'))
+df = df.crossJoin(df_avg)
+df = df.withColumn('compared_to_avg', F.round(F.col('total_amount') / F.col('avg_amount'), 3))
+df.write.mode('overwrite').partitionBy('compared_to_avg').csv('./output_data/')
+```
+__Spark UI__ stats shows issues.
+- Spark used 192 partitions, each containing ~128 MB of data
+
+To optimize we need to have knowledge of our data size, it’s cardinality, and our resources.
+
+
+Do this:
+- the optimal number of partitions will be ~48 (number of cpu cores x 3), which means ~500 MB per partition
+
+```
+spark_conf = SparkConf()
+spark_conf.set('spark.sql.adaptive.coalescePartitions.initialPartitionNum', 24)
+spark_conf.set('spark.sql.adaptive.coalescePartitions.parallelismFirst', 'false')
+spark_conf.set('spark.sql.files.minPartitionNum', 1)
+spark_conf.set('spark.sql.files.maxPartitionBytes', '500mb')
+spark = SparkSession.builder.config(conf=spark_conf).getOrCreate()
+
+df = spark.read.option('header', 'true').csv('./example_data/dataset_1.csv')
+df = df.withColumn('amount', F.col('amount').cast('int'))
+df = df.groupBy('business').agg(F.sum('amount').alias('total_amount'))
+
+df_avg = df.select(F.avg('total_amount').alias('avg_amount'))
+df = df.crossJoin(df_avg)
+df = df.withColumn('compared_to_avg', F.round(F.col('total_amount') / F.col('avg_amount'), 3))
+df = df.repartition(24, 'compared_to_avg')
+df.write.mode('overwrite').partitionBy('compared_to_avg').csv('./output_data/')
+```
+
 ### Filter data in earlier steps
 
 The key point to improve the performance of joins and other processing is to filter data in earlier steps which you don't need in the result set.
@@ -730,10 +849,12 @@ The predefined schema makes it easier for Spark to get columns and datatypes wit
 We can use the inferSchema=True option if we want Spark to identify schemas implicitly, and we can use the schema option to provide a schema to dataframe.
 
 ```
-from pyspark.sql.types import StructType, IntegerType, DateTypeschema = StructType([
+from pyspark.sql.types import StructType, IntegerType, DateType
+schema = StructType([
          StructField(“col_01”, IntegerType()),
          StructField(“col_02”, DateType()),
-         StructField(“col_03”, IntegerType()) ])df = spark.read.csv(filename, header=True, schema=schema)
+         StructField(“col_03”, IntegerType()) ])
+df = spark.read.csv(filename, header=True, schema=schema)
 
 ```
 ### Use the ReduceByKey function over GroupByKey
@@ -754,6 +875,17 @@ We should always carefully choose the join columns for joining two dataframes.
 If duplicate values exist in either of the columns, it takes a long time to join such dataframes because a cartesian product can happen.
 
 ## Optimizing storage <a id="OptimizationsStorage"></a>
+
+### Narrow and Wide transformations
+
+- __Narrow transformations__: These are transformations in which data in each partition does not require access to data in other partitions in order to be fully executed. 
+For example, functions like map, filter, and union are narrow transformations.
+- __Wide transformations__: These are transformations in which data in each partition is not independent, requiring data from other partitions in order to be fully executed. 
+For example, functions like reduceByKey, groupByKey, and join are wide transformations.
+
+Wide transformations require an operation called “shuffle,” which is basically transferring data between the different partitions. 
+Shuffle is considered to be a rather expensive operation, and we should avoid it if we can. Shuffle will result in different partitions.
+
 
 ### Bucketing and Partitioning
 
