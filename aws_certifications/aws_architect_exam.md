@@ -7,14 +7,14 @@ IAM is used to securely control individual and group access to AWS resources.
 It makes it easy to provide multiple users with access to AWS resources.
 
 And with IAM, you can manage
--     users,
--     groups,
--     access policies,
--     roles
--     user credentials
--     User password policies
--     enable multifactor authentication
--     generate API keys for programmatic access to IAM.
+- users,
+- goups,
+- access policies,
+- roles
+- user credentials
+- User password policies
+- enable multifactor authentication
+- generate API keys for programmatic access to IAM.
 
 By default, all __new users are created with no access to any services__. They can only log into AWS, but they can't actually do anything.
 
@@ -27,60 +27,60 @@ __IAM is a universal or global service__, so it doesn't apply to specific region
 __IAM is eventually consistent__.
 
 Authentication methods:
--     __console passwords__ for logging into the management console,
--     __access keys__ for programmatic access,
--     __server certificates__, which can be used for some services as well.
+- __console passwords__ for logging into the management console,
+- __access keys__ for programmatic access,
+- __server certificates__, which can be used for some services as well.
 
 IAM users:
--     IAM user is an entity that represent a person or a service.
--     By default, they cannot access anything in the account.
--     The root user credentials are the email address used to create the account, and there's a password associated with that account.
--     The __root account has full administrative permissions and they cannot be restricted__.
--     IAM users can be created to represent applications, and those are known then as __service accounts__.
--     You can have up to 5,000 users per AWS account.
+- IAM user is an entity that represent a person or a service.
+- By default, they cannot access anything in the account.
+- The root user credentials are the email address used to create the account, and there's a password associated with that account.
+- The __root account has full administrative permissions and they cannot be restricted__.
+- IAM users can be created to represent applications, and those are known then as __service accounts__.
+- You can have up to 5,000 users per AWS account.
 
 IAM groups:
--     IAM groups are collections of users and have policies attached to them.
--     A group's not an identity in itself, so it can't be identified as a principal in a policy.
--     use groups to assign permissions to users.
--     Always follow the principal of least privilege when assigning permissions.
--     You can't nest groups
+- IAM groups are collections of users and have policies attached to them.
+- A group's not an identity in itself, so it can't be identified as a principal in a policy.
+- use groups to assign permissions to users.
+- Always follow the principal of least privilege when assigning permissions.
+- You can't nest groups
 
 IAM Roles:
--     Roles are created and then assumed by trusted entities.
--     They are a __way of delegating permissions to resources for users and services__.
--     __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
+- Roles are created and then assumed by trusted entities.
+- They are a __way of delegating permissions to resources for users and services__.
+- __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
 
 IAM Policies:
--     Policies are documents that define the permissions and they can be applied to users, groups, and roles
--     Policy documents are written in JSON and include key value pairs that consist of an attribute and a value.
--     __All permissions are implicitly denied by default__.
--     The most restrictive policy is applied if there's multiple policies with conflicting statements.
+- Policies are documents that define the permissions and they can be applied to users, groups, and roles
+- Policy documents are written in JSON and include key value pairs that consist of an attribute and a value.
+- __All permissions are implicitly denied by default__.
+- The most restrictive policy is applied if there's multiple policies with conflicting statements.
 
 Types of IAM policy:
--     __identity-based policies__ which you can attach to users, groups, or roles.
--     __resource-based policies__. They get attached to resources like S3 buckets, and you can define permissions for principals accessing the resources using a resource policy.
--     __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity.
--     __organizations service__ control policies. These specify the maximum permissions for an organization or an OU.
--     __session policies__ that are used with Assume Role API actions.
+- __identity-based policies__ which you can attach to users, groups, or roles.
+- __resource-based policies__. They get attached to resources like S3 buckets, and you can define permissions for principals accessing the resources using a resource policy.
+- __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity.
+- __organizations service__ control policies. These specify the maximum permissions for an organization or an OU.
+- __session policies__ that are used with Assume Role API actions.
 
 IAM best practices:
--     lock away your account root user access keys,
--     create individual users,
--     use groups to assign permissions to users,
--     grant least privilege,
--     get started using permissions with AWS managed policies,
--     Use customer managed policies instead of inline policies.
--     Use access levels to review IAM permissions always bearing in mind that least privilege,
--     Configure a strong password policy for your users.
--     Enable multi-factor authentication.
--     Use roles for applications that run on EC2 instances,
--     use roles to delegate permissions.
--     Do not share access keys. Always keep them to yourself and use them only for your accounts.
--     rotate all credentials regularly.
--     remove any unnecessary credentials.
--     use policy conditions for extra security when you're writing your IAM policies.
--     monitor activity in your account to see what's actually happening.
+- lock away your account root user access keys,
+- create individual users,
+- use groups to assign permissions to users,
+- grant least privilege,
+- get started using permissions with AWS managed policies,
+- Use customer managed policies instead of inline policies.
+- Use access levels to review IAM permissions always bearing in mind that least privilege,
+- Configure a strong password policy for your users.
+- Enable multi-factor authentication.
+- Use roles for applications that run on EC2 instances,
+- use roles to delegate permissions.
+- Do not share access keys. Always keep them to yourself and use them only for your accounts.
+- rotate all credentials regularly.
+- remove any unnecessary credentials.
+- use policy conditions for extra security when you're writing your IAM policies.
+- monitor activity in your account to see what's actually happening.
 
 ### Architecture Patterns
 
@@ -123,9 +123,9 @@ The storage is either Amazon EBS, which is persistent storage, or Instance Store
 An Amazon Machine Image provides the information required to launch an instance.
 
 AMI includes:
--     a __template__ for the root volume of the instance,
--     __launch permissions__
--     a __block device mapping__, which specifies which volume is to attach to the instance.
+- a __template__ for the root volume of the instance,
+- __launch permissions__
+- a __block device mapping__, which specifies which volume is to attach to the instance.
 
 __AMIs are regional__, so you can only launch an AMI from the region in which it is created.
 
@@ -144,30 +144,30 @@ Benefits of Amazon EC2 include:
 - __Inexpensive__, so it can be very low cost and you only pay for what you use.
 
 public IP address:
--     lost when you stop your instance
--     used in public subnets
--     no charge
--     associated with private IP of the instance
--     cannot be moved between instances
+- lost when you stop your instance
+- used in public subnets
+- no charge
+- associated with private IP of the instance
+- cannot be moved between instances
 
 private IP address:
--     retained when the instance is stopped
--     Used in public and private subnets
+- retained when the instance is stopped
+- Used in public and private subnets
 
 elastic IP address:
--     static public IP address,
--     charged if not used
--     associated with private IP address on the instance
--     can move around between instances
+- static public IP address,
+- charged if not used
+- associated with private IP address on the instance
+- can move around between instances
 
 Placement groups:
--     __Cluster placement group__ is designed to keep instances very close for low latency. Think about high performance computing, tightly coupled applications where you've got node to node communication
--     __Partition__ will spread your instances across logical partitions so that the groups in one partition don't share the same underlying hardware with other groups of instances. So you can use this for high availability. It's usually used with distributed and replicated workloads. For example, Hadoop, Cassandra and Kafka.
--     __Spread placement group__: This will place a small group of instances across distinct underlying hardware to reduce any kind of correlated failures.
+- __Cluster placement group__ is designed to keep instances very close for low latency. Think about high performance computing, tightly coupled applications where you've got node to node communication
+- __Partition__ will spread your instances across logical partitions so that the groups in one partition don't share the same underlying hardware with other groups of instances. So you can use this for high availability. It's usually used with distributed and replicated workloads. For example, Hadoop, Cassandra and Kafka.
+- __Spread placement group__: This will place a small group of instances across distinct underlying hardware to reduce any kind of correlated failures.
 
 NAT instances versus NAT gateways:
--     The __NAT instance__ is fully managed by you. It's really the old way of doing things.
--     __NAT gateway__ is likely to be the best solution in most use cases.    
+- The __NAT instance__ is fully managed by you. It's really the old way of doing things.
+- __NAT gateway__ is likely to be the best solution in most use cases.    
   - It's fully managed by AWS.
   - You get more scalability over NAT gateway.
   - You get automatic high availability as well.
@@ -206,30 +206,30 @@ EC2 instance lifecycle:
   - A recovered instance is identical to the original instance.
 
 The __Nitro__ system:
--     is the underlying platform for the __newer generation EC2 instances__.
--     __Breaks logical functions into specialized hardware__ with a hypervisor.
--     The hardware includes the Nitro cards for VPC, EBS, Instance Storage, a card controller, a security chip, and the hypervisor itself.
--     Nitro aims to improve performance, security, and innovation.
--     The __performance is close to bare metal__, even for virtualized instances.
--     It gives you the ENA and the EFA.
--     You have more available bare metal instance types you can use, and it gives you higher network performance.
--     It's also good for HPC because there's more optimizations for high performance computing.
--     It can also have dense storage instances as well.
+- is the underlying platform for the __newer generation EC2 instances__.
+- __Breaks logical functions into specialized hardware__ with a hypervisor.
+- The hardware includes the Nitro cards for VPC, EBS, Instance Storage, a card controller, a security chip, and the hypervisor itself.
+- Nitro aims to improve performance, security, and innovation.
+- The __performance is close to bare metal__, even for virtualized instances.
+- It gives you the ENA and the EFA.
+- You have more available bare metal instance types you can use, and it gives you higher network performance.
+- It's also good for HPC because there's more optimizations for high performance computing.
+- It can also have dense storage instances as well.
 
 __Nitro enclaves__:
--     are __isolated compute environments__ that run on hardened virtual machines.
--     __no persistent storage, interactive access, or external networking__,
--     uses cryptographic attestation to ensure only the authorized code is running
--     integrates with KMS.
--     __good for securing and protecting highly sensitive data like PII__, health care data, financial data, or intellectual property data.
+- are __isolated compute environments__ that run on hardened virtual machines.
+- __no persistent storage, interactive access, or external networking__,
+- uses cryptographic attestation to ensure only the authorized code is running
+- integrates with KMS.
+- __good for securing and protecting highly sensitive data like PII__, health care data, financial data, or intellectual property data.
 
 EC2 pricing options:
--     __on-demand__, which is the standard rate, there's no discount, there's no commitment. It's very good for any kind of short-term requirements or unpredictable workloads.
--     __reserved__ one or three year commitment, but you get a good discount.
--     __spot__ instances, you get a very low price because you're essentially using unused capacity. So you can get a large discount, but you can also be terminated at any time.
--     __Dedicated instances__ offer physical isolation at the host hardware level from instances belonging to other customers. And you pay per instance.
--     __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there.
--     __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
+- __on-demand__, which is the standard rate, there's no discount, there's no commitment. It's very good for any kind of short-term requirements or unpredictable workloads.
+- __reserved__ one or three year commitment, but you get a good discount.
+- __spot__ instances, you get a very low price because you're essentially using unused capacity. So you can get a large discount, but you can also be terminated at any time.
+- __Dedicated instances__ offer physical isolation at the host hardware level from instances belonging to other customers. And you pay per instance.
+- __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there.
+- __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
 
 ### Architecture Patterns
 
@@ -276,21 +276,21 @@ Use an AWS Nitro instance type
 ## Elastic Load Balancing and Auto Scaling
 
 Auto Scaling:
--     Auto Scaling __launches and terminates EC2 instance__ is automatically.
--     __Scaling is horizontal__, it scales out.
--     It provides elasticity and scalability
--     __Responds to EC2 status checks and CloudWatch metrics__.
--     You can __scale based on demand, performance or on a schedule__.
--     __Scaling policies__ will define how to respond to changes in-demand.
--     Auto Scaling groups define collections of EC2 instances that are scaled and managed together.
+- Auto Scaling __launches and terminates EC2 instance__ is automatically.
+- __Scaling is horizontal__, it scales out.
+- It provides elasticity and scalability
+- __Responds to EC2 status checks and CloudWatch metrics__.
+- You can __scale based on demand, performance or on a schedule__.
+- __Scaling policies__ will define how to respond to changes in-demand.
+- Auto Scaling groups define collections of EC2 instances that are scaled and managed together.
 
 Health checks:
--     __EC2 health checks__, which are the EC2 status checks
--     __ELB health checks__, which means it's going to use the ELB health checks in addition to the EC2 instance status checks.
+- __EC2 health checks__, which are the EC2 status checks
+- __ELB health checks__, which means it's going to use the ELB health checks in addition to the EC2 instance status checks.
 
 The __health check grace period__:
--     how long to wait before checking the health status of an instance after it's been launched into an Auto Scaling group.
--     Auto Scaling does not act on health checks until the grace period expires.
+- how long to wait before checking the health status of an instance after it's been launched into an Auto Scaling group.
+- Auto Scaling does not act on health checks until the grace period expires.
 
 Auto scaling monitoring:
 - __Group metrics__:
@@ -328,36 +328,36 @@ You need to ensure you have at least a /27 subnet and make sure there's at least
 ELBs can be configured as internet facing or internal only.
 
 Internet facing ELBs:
--     the ELB nodes will have public IPs
--     they will route traffic to the private addresses of the EC2 instances.
--     You need one public subnet in each AZ where the ELB is defined even if you're routing to a private subnet.
+- the ELB nodes will have public IPs
+- they will route traffic to the private addresses of the EC2 instances.
+- You need one public subnet in each AZ where the ELB is defined even if you're routing to a private subnet.
 
 Internal only ELB:
--     the nodes have private IPs and
--     also routes to the private IPS of the instances.
+- the nodes have private IPs and
+- also routes to the private IPS of the instances.
 
 Application Load Balancer:
--     use it with web applications with layer 7 routing - http and https,
--     microservices architectures such as Docker containers
--     Lambda targets.
+- use it with web applications with layer 7 routing - http and https,
+- microservices architectures such as Docker containers
+- Lambda targets.
 
 Network Load Balancer:
--     operating at the TCP and UDP level – layer 4
--     offers ultra-low latency
--     static IP addresses.
--     can be used with VPC endpoint services.
+- operating at the TCP and UDP level – layer 4
+- offers ultra-low latency
+- static IP addresses.
+- can be used with VPC endpoint services.
 
 Gateway Load Balancer:
--     This is layer 3.
--     listens for all IP packets across all ports.
--     GLP and virtual appliances exchange application traffic using the GENEVE protocol on port 6081.
--     Used with virtual appliances such as firewalls, intrusion detection systems, intrusion prevention systems, and deep packet inspection systems.
+- This is layer 3.
+- listens for all IP packets across all ports.
+- GLP and virtual appliances exchange application traffic using the GENEVE protocol on port 6081.
+- Used with virtual appliances such as firewalls, intrusion detection systems, intrusion prevention systems, and deep packet inspection systems.
 
 Cross-zone load balancing:
--     when cross-zone load balancing is enabled, each load balancer node will distribute traffic across the register targets in all enabled AZ.
--     When it's disabled, each load balancer node distributes traffic only across the registered targets in its availability zone.
--     With __Application Load Balancers, cross-zone load balancing is always enabled__.
--     With __Network Load Balancers and Gateway Load Balancers, cross-zone load balancing is disabled by default__.
+- when cross-zone load balancing is enabled, each load balancer node will distribute traffic across the register targets in all enabled AZ.
+- When it's disabled, each load balancer node distributes traffic only across the registered targets in its availability zone.
+- With __Application Load Balancers, cross-zone load balancing is always enabled__.
+- With __Network Load Balancers and Gateway Load Balancers, cross-zone load balancing is disabled by default__.
 
 ### Architectural Patterns
 
@@ -410,26 +410,26 @@ It includes the root account and Organizational Units.
 Policies get applied to root accounts or OUs.
 
 Consolidated billing includes:
--     a paying account, which is independent and can't access the resources of other accounts
--     linked accounts - all linked accounts are also independent of each other.
+- a paying account, which is independent and can't access the resources of other accounts
+- linked accounts - all linked accounts are also independent of each other.
 
 Consolidated billing:
--     __single payment method__ for all the AWS accounts in the Organization.
--     __combined view__ of charges incurred by all accounts
--     __pricing benefits__ from the aggregated usage.
--     There's a limit of 20 linked accounts for consolidated billing by default.
--     can help with cost control through the volume discounts.
--     __unused reserved instances are applied across the group__
--     paying accounts should be used for billing purposes only.
+- __single payment method__ for all the AWS accounts in the Organization.
+- __combined view__ of charges incurred by all accounts
+- __pricing benefits__ from the aggregated usage.
+- There's a limit of 20 linked accounts for consolidated billing by default.
+- can help with cost control through the volume discounts.
+- __unused reserved instances are applied across the group__
+- paying accounts should be used for billing purposes only.
 
 Service Control Policies:
--     __manage the maximum available permissions__.
--     must have all features enabled in the Organization
--     can be applied to accounts or OUs.
--     __policies can be assigned at different points in the hierarchy__
--     __SCPs affect only IAM users and roles, not resource policies__.
--     __SCPs affect the root account in member accounts__.
--     SCPs do not affect any action performed by the management accounts.
+- __manage the maximum available permissions__.
+- must have all features enabled in the Organization
+- can be applied to accounts or OUs.
+- __policies can be assigned at different points in the hierarchy__
+- __SCPs affect only IAM users and roles, not resource policies__.
+- __SCPs affect the root account in member accounts__.
+- SCPs do not affect any action performed by the management accounts.
 
 Different strategies:
 - The __deny list strategy__ uses the FullAWSAccess SCP
@@ -444,9 +444,9 @@ Different strategies:
   - SCPs must be attached to target accounts and every OU above it including the root.
 
 AWS Organizations – migration
--     accounts can be migrated between organizations.
--     You must have root or IAM access to both the member and management accounts.
--     Use the AWS Organization's console if it's just a few accounts or use the API or CLI if there are many accounts to migrate.
+- accounts can be migrated between organizations.
+- You must have root or IAM access to both the member and management accounts.
+- Use the AWS Organization's console if it's just a few accounts or use the API or CLI if there are many accounts to migrate.
 
 ### Architectural Patterns
 
@@ -491,8 +491,8 @@ A __default VPC gets created in each region and that always has a subnet in each
 By default, you can create up to five VPCs per region.
 
 __Public subnets__ are subnet that have:
--     the __auto assigned public IPv4 address__ setting configured to yes, and
--     the __subnet route table must have a route to an internet gateway__.
+- the __auto assigned public IPv4 address__ setting configured to yes, and
+- the __subnet route table must have a route to an internet gateway__.
 
 When you create a VPC, you specify a range of IPv4 addresses for the VPC in the form of a CIDR block.
 
@@ -516,16 +516,16 @@ Components of a VPC:
   - the __customer gateway__ is the customer side of VPN connection.
 
 Rules for your IP CIDR blocks:
--     the __size can vary between /16 and /28__.
--     The CIDR block cannot overlap with any existing CIDR block that's associated with the VPC.
--     you __cannot increase or decrease the size of an existing CIDR block__.
--     The first four and last IP addresses in a subnet are not available for use.
--     AWS recommend you use the RC 1918 ranges.
--     Ensure you have enough networks and hosts.
--     Bigger CIDR blocks are often better and smaller subnets are usually okay.
--     Consider deploying your application tiers into subnets.
--     Split your high availability resources across subnets that are assigned to different AZ.
--     VPC peering requires non-overlapping CIDR blocks.
+- the __size can vary between /16 and /28__.
+- The CIDR block cannot overlap with any existing CIDR block that's associated with the VPC.
+- you __cannot increase or decrease the size of an existing CIDR block__.
+- The first four and last IP addresses in a subnet are not available for use.
+- AWS recommend you use the RC 1918 ranges.
+- Ensure you have enough networks and hosts.
+- Bigger CIDR blocks are often better and smaller subnets are usually okay.
+- Consider deploying your application tiers into subnets.
+- Split your high availability resources across subnets that are assigned to different AZ.
+- VPC peering requires non-overlapping CIDR blocks.
 
 Security groups versus network ACLs:
 - __Security groups__:
