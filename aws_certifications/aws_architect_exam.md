@@ -7,8 +7,8 @@ IAM is used to securely control individual and group access to AWS resources.
 It makes it easy to provide multiple users with access to AWS resources.
 
 And with IAM, you can manage:
-- users,
-- goups,
+- users,
+- goups,
 - access policies,
 - roles
 - user credentials
