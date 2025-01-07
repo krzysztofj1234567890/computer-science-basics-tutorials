@@ -212,6 +212,8 @@ The __Nitro__ system:
 - Nitro aims to improve performance, security, and innovation.
 - The __performance is close to bare metal__, even for virtualized instances.
 - It gives you the ENA and the EFA.
+  - ENA (Elastic Network Adapter) allows: 200 Gbps / network card etc.
+  - EFA (Elastic Fabric Adapter): lower and more consistent latency and higher throughput than the TCP transport traditionally used in cloud-based HPC systems
 - You have more available bare metal instance types you can use, and it gives you higher network performance.
 - It's also good for HPC because there's more optimizations for high performance computing.
 - It can also have dense storage instances as well.
