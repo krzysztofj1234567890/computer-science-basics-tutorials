@@ -82,6 +82,15 @@ IAM best practices:
 - use policy conditions for extra security when you're writing your IAM policies.
 - monitor activity in your account to see what's actually happening.
 
+Set a custom password policy on your AWS account to specify complexity requirements and mandatory rotation periods for your IAM users' passwords
+
+The IAM password policy does not apply to the AWS account root user password or IAM user access keys
+
+You must configure permissions to allow an IAM entity (user or role) to view or edit their account password policy:
+- iam:GetAccountPasswordPolicy
+- iam:DeleteAccountPasswordPolicy
+- iam:UpdateAccountPasswordPolicy
+
 ### Architecture Patterns
 
 #### select group of users only should be allowed to change their IAM password
@@ -232,6 +241,20 @@ EC2 pricing options:
 - __Dedicated instances__ offer physical isolation at the host hardware level from instances belonging to other customers. And you pay per instance.
 - __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there.
 - __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
+
+### Amazon EC2
+
+Reserved instances:
+- Provides a capacity reservation when used in a __specific AZ__,
+- __Can switch AZ within the same region__
+- Can change the instance size within the __same instance type__
+
+You can modify the following attributes of an instance only when it is stopped:
+- Instance type.
+- User data.
+- Kernel.
+- RAM disk
+
 
 ### Architecture Patterns
 
@@ -596,6 +619,22 @@ Connecting to a VPC:
   - The flow log data is stored using CloudWatch logs or Amazon S3.
   - can be created at different levels: The VPC level, subnet level, or the network interface level.
 
+
+The VPC router connects different AZs together and connects the VPC to the Internet Gateway
+
+Internet Gateways (IGW) must be created and then attached to a VPC, be added to a route table, and then associated with the relevant subnet(s)
+IGW is horizontally scaled, redundant and HA and performs NAT between private and public IPv4 addresses
+
+Public subnet:
+- Auto-assign public IPv4 address” set to 'Yes'.
+- If your subnet is associated with a route to the Internet
+
+To enable access to or from the Internet for instances in a VPC subnet, you must do the following:
+- Attach an Internet Gateway to your VPC
+- Ensure that your subnetʼs route table points to the Internet Gateway
+- Ensure that instances in your subnet have a globally unique IP address
+- Ensure that your network access control and security group rules allow the relevant traffic to flow to and from your instance
+
 ### Architecture Patterns
 
 #### An Amazon S3 bucket must only allow access from EC2 instances in a private subnet using private IPs.
@@ -904,6 +943,59 @@ Lambda@edge:
   - __after CloudFront receives the response__ from the origin, origin response,
   - __before CloudFront forwards the response__ to the viewer and that's called the viewer response.
 
+### Amazon Route 53
+
+Amazon Route 53 automatically creates the Name Server (NS) and Start of Authority (SOA) records for the hosted zones.
+
+The Alias record is a Route 53 specific record type. The Alias is pointed to the DNS name of the service.
+Alias records work like a CNAME record in that you can map one DNS name (e.g. example.com) to another ‘targetʼ DNS name (e.g. elb1234.elb.amazonaws.com).
+An Alias record can be used for resolving apex / naked domain names (e.g. example.com rather than sub.example.com).
+A CNAME record canʼt be used for resolving apex / naked domain names.
+
+### Amazon S3 and Glacier
+
+A bucket owner can grant cross-account permissions to another AWS account (or users in an account) to upload objects.
+- The AWS account that uploads the objects owns them.
+- The bucket owner does not have permissions on objects that other accounts own, however:
+  - The bucket owner pays the charges.
+  - The bucket owner can deny access to any objects regardless of ownership
+
+You can use the AWS Policy Generator to create a bucket policy for your Amazon S3 bucket.
+
+Bucket and object permissions are independent of each other.
+
+#### Transfer acceleration
+
+Amazon S3 Transfer Acceleration enables fast, easy, and secure transfers of files over long distances between your client and your Amazon S3 bucket.
+
+S3 Transfer Acceleration leverages Amazon CloudFrontʼs globally distributed AWS Edge Locations.
+
+Transfer acceleration is as secure as a direct upload to S3
+
+Must use one of the following endpoints:
+- .s3-accelerate.amazonaws.com.
+- .s3-accelerate.dualstack.amazonaws.com (dual-stack option)
+
+__Cross Region Replication requires versioning__ to be enabled on the source and destination buckets.
+
+__Replication is 1:1__ (one source bucket, to one destination bucket).
+You can configure __separate S3 Lifecycle rules on the source and destination buckets__.
+
+#### Static Websites
+
+You can use a custom domain name with S3 using a __Route 53 Alias record__.
+
+When using a custom domain name the __bucket name must be the same as the domain name__.
+
+__Does not support HTTPS/SSL__
+
+Only supports __GET and HEAD requests__ on objects.
+
+To enable website hosting on a bucket, specify:
+- An __Index document__ (default web page).
+- Error document (optional).
+
+
 ### Architecture Patterns
 
 #### An elastic load balancer must be resolvable using a company's public domain name, a Route 53 hosted zone already exists.
@@ -1078,6 +1170,45 @@ Storage gateway - tape gateway:
 - Annotate gateway can have up to 1,500 virtual tapes with a maximum aggregate capacity of one petabytes.
 - All data transferred between the gateway and AWS storage is encrypted using SSL.
 - all data stored by Tape Gateway in S3 is encrypted with server-side encryption using Amazon S3 managed encryption keys, SSE-S3
+
+### Amazon EBS
+
+EBS volume data is replicated across multiple servers in an AZ
+
+Volume sizes and types can be upgraded without downtime: increase volume size, adjust performance, or change the volume type
+However, you cannot decrease an EBS volume size.
+
+
+### Amazon EFS
+
+Amazon EFS is a fully managed service for hosting Network File System (NFS) filesystems in the cloud.
+
+It is an implementation of a NFS file share and is accessed using the NFS protocol.
+
+Data is stored across multiple AZs within a region
+
+Provides elastic storage capacity and __pay for what you use__
+
+You can mount an AWS EFS filesystem from on-premises systems ONLY if you are using __AWS Direct Connect or a VPN connection__
+
+You can concurrently connect up to thousands of Amazon EC2 instances, from multiple AZs
+
+A file system can be accessed concurrently from __all AZs in the region__ where it is located.
+
+Lifecycle management moves files that have not been accessed for a period of time to the EFS Infrequent Access Storage class
+
+Amazon EFS is designed to burst to allow high throughput levels for periods of time
+
+Encryption in transit is enabled when mounting the file system
+
+Enable encryption at rest in the EFS console or by using the AWS CLI or SDKs.
+
+EFS is much more __expensive__ than EBS or S3
+
+EFS vs FSx:
+- EFS - managed NAS (Network File System) on EC2. It __does not support Windows systems__.
+- FSx - managed Windows Server that runs Windows Server Message Block (SMB)-based file services
+
 
 ### Architecture Patterns
 
@@ -1315,6 +1446,46 @@ API Gateway:
 - By default, API Gateway limits to steady state requests to 10,000 requests per second and the maximum concurrent request is 5,000 across all APIs within the account. If you go over those limits, you get a 429 too many requests error message.
 - if those exceptions occur, then you'll need your client application to resubmit the failed requests in a way that doesn't exceed those rate limits again.
 
+
+### Amazon API Gateway
+
+All the APIs created with Amazon API Gateway expose HTTPS endpoints only (does not support unencrypted endpoints).
+
+An API can present a certificate to be authenticated by the back end
+
+CloudFront is used as the public endpoint for API Gateway
+
+With API Gateway, you can route requests to private resources in your VPC. Using HTTP APIs, you can
+build APIs for services behind private ALBs, private NLBs, and IP-based services registered in AWS Cloud Map, such as ECS tasks
+
+#### AIP Gateway endpoints
+
+An API endpoint type is a hostname for an API in API Gateway that is deployed to a specific region.
+The hostname is of the form {api-id}.execute-api.{region}.amazonaws.com.
+
+The API endpoint type can be:
+- __edge-optimized__ for geographically distributed clients. API requests are routed to the nearest CloudFront Point of Presence (POP)
+- __regional__ intended for clients in the same region. When a client running on an EC2 instance calls an API in the same region
+- __private__ can only be accessed from your Amazon Virtual Private Cloud (VPC) using an interface VPC endpoint, which is an endpoint network interface (ENI) that you create in your VPC
+
+#### Caching
+
+You can add caching to API calls by provisioning an Amazon API Gateway cache and specifying its size in gigabytes.
+
+API Gateway caches responses for a specific amount of time (time to live or TTL). The default TTL is 300 seconds
+
+#### API throttling
+
+API Gateway sets a limit on a steady-state rate and a burst of request submissions against all APIs in your account.
+
+By default API Gateway limits the steady-state request rate to 10,000 requests per second.
+The maximum concurrent requests is 5,000 requests across all APIs within an AWS account
+
+#### Usage plans and API keys
+
+A usage plan specifies who can access one or more deployed API stages and methods — and how much and how fast they can access them
+
+
 ### Architecture Patterns
 
 #### an application includes EC2 and RDS and spikes in traffic are causing writes to be dropped by RDS.
@@ -1538,6 +1709,278 @@ AWS Glue:
 - the crawler can crawl multiple data stores in a single run.
 - Upon completion, the crawler creates or updates one or more tables in your data catalog.
 - ETL jobs that you define in Glue use the data catalog tables as sources and targets.
+
+### Amazon RDS
+
+Automated backups and patching are applied in customer- defined maintenance windows.
+
+Push-button scaling, replication, and redundancy
+
+You cannot have an encrypted Read Replica of an unencrypted DB instance or an unencrypted Read Replica of an encrypted DB instance
+
+RDS supports SSL encryption between applications and RDS DB instances. RDS generates a certificate for the instance.
+
+Enable db encryption without data loss: create snapshot -> encrypted snapshot of db -> encrypted rds db -> DMS to synchronize data
+
+#### RDS Scaling
+
+You can only scale RDS up (compute and storage).
+You cannot decrease the allocated storage for an RDS instance.
+You can scale storage and change the storage type for all DB engines except MS SQL.
+
+RDS now supports Storage Auto Scaling
+
+Scaling compute will cause downtime.
+
+#### Multi-AZ and Read Replicas
+
+Multi-AZ:
+- Multi-AZ RDS creates a replica in another AZ and synchronously replicates to it (DR only)
+- During failover RDS automatically updates configuration (including DNS endpoint) to use the second node.
+- It is recommended to implement DB connection retries in your application
+- The secondary DB in a multi-AZ configuration cannot be used as an independent read node (read or write).
+
+Read Replica Support for Multi-AZ:
+- Amazon RDS Read Replicas for MySQL, MariaDB, PostgreSQL, and Oracle support Multi-AZ deployments
+- A Read Replica in a different region than the source database can be used as a standby database and promoted
+
+Read Replicas:
+- Read replicas are used for read-heavy DBs and replication is __asynchronous__.
+- Read replicas provide read-only DR.
+- Read replicas are created from a snapshot of the master instance.
+- Read replicas are available for MySQL, PostgreSQL, MariaDB, Oracle, Aurora, and SQL Server.
+- In a multi-AZ failover the read replicas are switched to the new primary.
+
+#### Migrate database from datacenter to RDS using DMS
+
+Use the AWS __Database Migration Service__ (AWS DMS), which allows you to transfer data between on-premises databases and cloud-based RDS instances with minimal downtime
+
+steps involved in migrating a database to RDS using AWS DMS:
+- Create AWS resources
+- Configure source database
+- Create replication instance in DMS
+- Set up data providers
+- Create migration project
+- Perform schema conversion (if needed)
+- Start migration
+- Test and switch over
+
+#### Migrate database from RDS without DMS
+
+- Take a full backup of the database on the on-premises DB instance.
+- Upload the backup file to Amazon S3.
+- Download the backup file from S3 to your RDS Custom for SQL Server DB instance.
+- Restore a database using the downloaded backup file on the RDS Custom for SQL Server DB instance.
+
+
+### Amazon Aurora
+
+2 copies of data are kept in each AZ with a minimum of 3 AZʼs (6 copies)
+
+Can handle the loss of up to two copies of data without affecting DB write availability and up to three copies without affecting read availability.
+
+Aurora Auto Scaling enables your Aurora DB cluster to handle sudden increases in connectivity or workload.
+Aurora Auto Scaling dynamically adjusts the number of Aurora Replicas (reader DB instances) provisioned for an Aurora DB cluster.
+Aurora Auto Scaling enables your Aurora DB cluster to handle sudden increases in connectivity or workload.
+When the connectivity or workload decreases, Aurora Auto Scaling removes unnecessary Aurora Replicas so that you don't pay for unused provisioned DB instances.
+The scaling policy defines the minimum and maximum number of Aurora Replicas that Aurora Auto Scaling can manage
+
+Amazon Auroraʼs backup capability enables point-in-time recovery for your instance.
+Allows you to restore your database to any second during your retention period
+
+Aurora Replicas:
+- __Aurora Replica__
+  - up to 15 replicas
+  - in-region
+  - automated failover
+  - asynchronous
+- __MySQL Replica__
+  - up to 5 replicas
+  - cross-region
+  - manual failover
+  - asynchronous
+
+Cross-Region Read Replicas:
+- available ONLY for __Amazon Aurora with MySQL compatibility__
+
+#### Aurora global databases:
+
+An __Aurora global database__ consists of a:
+- __primary Aurora DB cluster__ in one AWS Region, where your data is __written__,
+- up to 5 __read-only secondary DB clusters__ in up to five other AWS Regions.
+
+You issue __write__ operations directly to the __primary__ DB cluster in the primary AWS Region.
+Aurora replicates data to the secondary AWS Regions using dedicated infrastructure, with latency typically under 1 second.
+
+A database in a secondary region can be __promoted to full read/write__ capabilities in less than 1 minute
+
+#### Multi-Master
+
+Amazon Aurora Multi-Master is a feature of the __Aurora MySQL-compatible__ edition that adds the ability to
+__scale out write performance__ across multiple Availability Zones, allowing applications to direct read/write workloads to multiple
+instances in a database cluster and operate with higher availability.
+
+designed to achieve high availability and __ACID transactions across a cluster of database nodes__ with configurable __read after write consistency__
+
+#### Aurora Serverless
+
+On-demand, auto-scaling configuration for Amazon Aurora.
+
+Available for MySQL-compatible and PostgreSQL-compatible editions.
+
+You only pay for database storage and the database capacity and I/O your database consumes while it is active. Pay on a per-second basis for the database capacity you use
+when the database is active.
+
+### Amazon DynamoDB
+
+Data is synchronously __replicated across 3 AZs in a region__
+
+Multi-AZ redundancy and Cross-Region Replication option.
+
+DynamoDB stores and retrieves data based on a __Primary key__. There are 2 types of primary key:
+- __Partition key__ - unique attribute. Value of the Partition key is input to an internal hash function which determines the partition or physical location on which the data is stored
+- __Composite key__ - combination of __primary key and sort key__. All items with the same Partition key are stored together, then sorted according to the Sort key value.
+
+If your access pattern exceeds 3000 RCU or 1000 WCU for a single partition key value, your requests might be throttled.
+
+DynamoDB supports:
+- __eventually consistent reads__: When you read data from a DynamoDB table, the response might not reflect the results of a recently completed write
+- __strongly consistent reads__: response with the most up-to-date data, reflecting the updates from all prior write operations that were successful
+  - may have higher latency than eventually consistent reads.
+  - are not supported on global secondary indexes.
+  - use more throughput capacity than eventually consistent reads.
+
+#### DynamoDB Transactions
+
+Transactions provide atomicity, consistency, isolation, and durability (ACID) in DynamoDB.
+
+Enables reading and writing of __multiple items across multiple tables__ as an all or nothing operation
+
+#### Scan and Query API calls
+
+Scan:
+- returns one or more items and item attributes by accessing every item in a table or a secondary index.
+- reads up to the maximum number of items set (if using the Limit parameter) or a maximum of 1 MB.
+- A filter expression is applied after a Scan finishes but before the results are returned
+
+Query:
+- finds items in your table based on the primary key attribute and a distinct value to search for.
+- You can use an optional sort key name and value to refine the results.
+- Results are always sorted by the sort key
+
+#### Indexes
+
+An index is a data structure which allows you to perform fast queries on specific columns in a table.
+
+You select columns that you want included in the index and run your searches on the index instead of the entire dataset.
+
+2 types of indexes:
+- Local Secondary Index
+  - alternative sort key to use for scans and queries.
+  - You can have up to five LSIs per table.
+  - The sort key consists of exactly one scalar attribute
+  - must be created at table creation time
+  - benefit of an LSI is that you can query on additional values in the table other than the partition key / sort key
+- Global Secondary Index
+  - You can create when you create your table or at any time later.
+  - A GSI has a different partition key as well as a different sort key
+
+#### Global Tables
+
+Provide a fully managed solution for deploying a __multi-region__, __multi-master__ database.
+
+Global tables provide automatic multi-master replication to AWS regions world-wide
+
+A __global table__ is a collection of one or more __replica tables__, all owned by a single AWS account.
+
+Each replica table stores the same set of data items.
+
+An application can read and write data to any replica table.
+If your application only uses eventually consistent reads, and only issues reads against one AWS region, then it will work without any modification.
+
+If your application requires strongly consistent reads, then it must perform all its strongly consistent reads and writes in the same region. DynamoDB does not support
+strongly consistent reads across AWS regions.
+
+Conflicts can arise if applications update the same item in different Regions at about the same time. To help ensure eventual consistency, DynamoDB global tables use a “last writer wins” method to reconcile between concurrent updates.
+
+### Amazon RedShift
+
+Option to query directly from data __files on S3 via Amazon RedShift Spectrum__
+
+Amazon RedShift can store huge amounts of data but __cannot ingest huge amounts of data in real time__.
+
+Only available in one AZ but you can restore snapshots into another AZ.
+Alternatively, you can run data warehouse clusters in multiple AZʼs by loading data into two Amazon RedShift data warehouse clusters in separate AZs from the same set of Amazon S3 input files.
+
+Amazon RedShift does not support Multi-AZ deployments.
+
+Amazon RedShift always keeps three copies of your data:
+- The original.
+- A replica of compute nodes (within the cluster).
+- A backup copy on S3.
+
+
+### Amazon ElastiCache
+
+Push-button scalability for memory, writes and reads.
+
+ElastiCache EC2 nodes cannot be accessed from the Internet, nor can they be accessed by EC2 instances in other VPCs.
+
+Memcached:
+- Does not support multi-AZ failover or replication.
+- Does not support snapshots.
+- You can place nodes in different AZs.
+- multi-threaded
+- no HA (replication)
+
+Redis:
+- Supports master / slave replication and multi-AZ for cross-AZ redundancy
+- Supports automatic and manual snapshots (S3)
+- Data is persistent and it can be used as a datastore.
+- Redis is not multi-threaded
+- Supports more complex data structures: sorted sets and lists.
+- Replication from the primary node is asynchronous
+
+Multi-AZ failover:
+- ElastiCache automatically promotes the replica that has the lowest replica lag
+
+### Amazon Kinesis
+
+Kinesis is a collection of services for processing streams of various data
+
+Data is processed in “shards” – with each shard able to ingest 1000 records per second. One shard provides a capacity of 1MB/sec data input and 2MB/sec data output
+
+A record consists of a partition key, sequence number, and data blob (up to 1 MB)
+
+Transient data store – default retention of 24 hours but can be configured for up to 7 days
+
+Kinesis Data Streams:
+- enables you to build custom applications that process or analyze streaming data for specialized needs.
+- enables real-time processing of streaming big data
+- A __shard is the base throughput unit__ of an Amazon Kinesis data stream.
+- A __stream__ is composed of one or more shards
+- __stores data__ for later processing by applications (__key difference with Firehose__ which delivers data directly to AWS services)
+- Producers continually push data to Kinesis Data Streams.
+- Consumers process the data in real time.
+- Consumers can store their results using an AWS service such as Amazon DynamoDB, Amazon Redshift, or Amazon S3.
+- Kinesis Streams __applications are consumers that run on EC2 instances__.
+- Kinesis Data Streams replicates synchronously across three AZs
+
+Kinesis Data Firehose:
+- easiest way to load streaming data into data stores and analytics tools.
+- Captures, transforms, and loads streaming data. It can also batch, compress, and encrypt.
+- Kinesis Data Streams can be used as the source(s) to Kinesis Data Firehose
+- No shards, totally automated
+
+Kinesis Data Analytics:
+- easiest way to process and analyze real-time, streaming data.
+- Can use standard SQL queries to process Kinesis data streams.
+- Provides real-time analysis.
+- A Kinesis Data Analytics application consists of three components:
+  - Input – the streaming source for your application.
+  - Application code – a series of SQL statements that process input and produce output.
+  - Output – one or more in-application streams to hold intermediate results.
+
 
 ### Architecture Patterns
 
@@ -1962,6 +2405,28 @@ AWS shield:
 
 ![ Secure Architecture ](./images/secure_architecture.png)
 
+### Amazon Cognito
+
+AWS Cognito works with external identity providers that support SAML or OpenID Connect, social identity providers (such as Facebook, Twitter, Amazon)
+
+Federation allows users to authenticate with a Web Identity Provider (e.g. Google, Facebook, Amazon).
+
+The user authenticates first with the Web ID provider and receives an authentication token, which is then exchanges for temporary AWS credentials allowing them to assume an IAM role allowing access to the required resources.
+
+Cognito is an Identity Broker which handles interaction between your applications and the Web ID provider
+
+User pools:
+- Cognito User Pools are user directories used to manage sign-up and sign-in functionality for mobile and web applications.
+- With a user pool, users can sign in to your web or mobile app through Amazon Cognito
+- Users can also sign in through social identity providers like Facebook or Amazon, and through SAML identity providers.
+
+Identity Pools:
+- With an identity, you can obtain temporary, limited-privilege AWS credentials to access other AWS services.
+- Cognito tracks the association between user identity and the various different devices they sign-in from
+- In order to provide a seamless user experience for your application, Cognito uses Push Synchronization to push updates and synchronize user data across multiple devices
+
+
+
 ### Architectural Patterns
 
 #### you need to enable a custom domain name and encryption in transit for an application that's running behind an ALB.
@@ -2041,6 +2506,42 @@ Snowball:
 - There are a few ways to optimize the performance of Snowball transfers:
   - You can use the latest Mac or Linux Snowball client, batch small files together, perform multiple copy operations at one time, copy from multiple workstations, and transfer directories, not individual files.
 - Use cases for Snowball are cloud data migration, so migrating data to the cloud. Content distribution, sending data to clients or customers.
+
+### AWD Data Transfer
+
+#### Site-to-Site VPN
+
+For small to moderate amounts of data (< 100 GB) that need infrequent transfers
+
+#### AWS Direct Connect
+
+For large amounts of data (< 10 TB) that need frequent transfers and a consistent connection with low latency
+
+Direct Connect bypasses the public internet and provides a secure and dedicated connection to AWS.
+
+#### Snow family
+
+For very large amounts of data ( > 10s of TBs) and infrequent transfers
+
+#### DataSync
+
+A secure, online service that automatically moves data between on-premises storage and AWS services.
+
+It __uses AWS Direct Connect__ to move data between on-premises storage systems and AWS storage services
+
+Can copy data between Network File System (NFS), Server Message Block (SMB), and Hadoop Distributed File Systems (HDFS)
+
+Can also transfer data between AWS storage services
+
+Uses in-flight encryption and end-to-end data validation
+
+Steps to move data using AWS DataSync:
+- Deploy and activate an AWS DataSync agent virtual machine
+- Gather configuration data from your data center
+- Validate network connectivity
+- Create an AWS DataSync task
+- Run the task to copy data to your Amazon S3 bucket
+
 
 ### Architectural Patterns
 
