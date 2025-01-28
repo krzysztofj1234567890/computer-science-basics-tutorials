@@ -1,6 +1,22 @@
 # AWS Architect exam
 
-## IAM
+- [IAM](#IAM)
+- [EC2](#EC2)
+- [ELB](#ELB)
+- [Organizations](#Organizations)
+- [VPC](#VPC)
+- [S3](#S3)
+- [DNS](#DNS)
+- [Block and File Storage](#Block_File_Storage)
+- [Containers](#Containers)
+- [Serverless](#Serverless)
+- [Database](#Database)
+- [Deployment](#Deployment)
+- [Observability](#Observability)
+- [Security](#Security)
+- [Migration](#Migration)
+
+## IAM <a id="IAM"></a>
 
 IAM is used to securely control individual and group access to AWS resources.
 
@@ -117,7 +133,7 @@ In this case, you can instruct the developer to create a set of access keys and 
 
 Create a permissions policy that uses a wildcard for the action element relating to EC2. And that would look like the (ec2:*) action.
 
-## Amazon Elastic Compute Cloud (EC2)
+## Amazon Elastic Compute Cloud (EC2) ## EC2 <a id="EC2"></a>
 
 With EC2, you launch virtual server instances on the AWS cloud.
 
@@ -182,6 +198,7 @@ NAT instances versus NAT gateways:
   - You get automatic high availability as well.
   - The only real limitations of the NAT gateway are things like you can't use it as a bastion host, but you should probably separate that into a different instance anyway.
   - There are also no security groups with a NAT gateway, whereas there are with a NAT instance.
+  - NAT gateway is deployed inside a subnet and it can scale only inside that subnet. For fault tolerance, it is recommended that you deploy one NAT gateway per availability zone
 
 EC2 instance lifecycle:
 - __Stopping__:
@@ -242,6 +259,12 @@ EC2 pricing options:
 - __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there.
 - __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
 
+### Savings Plan
+With Compute Savings Plan, you can get a significant discount (up to 66%) on any compute services such as EC2, Lambda, and Fargate Containers.
+
+So, the compute savings plan applies to both server-based and serverless computing. 
+Reservation applies only to EC2 instances and does not cover serverless usage.
+
 ### Amazon EC2
 
 Reserved instances:
@@ -285,6 +308,11 @@ Use NAT gateways so that your instances in the private subnets have internet acc
 
 Deploy a bastion host to jump to the instances in private subnets.
 
+#### You need to allow remote SSH login to the private EC2 instances from the on-premises network. All requests are sent over the internet
+
+Using the Session Manager (part of the system manager service), authorized employees can log in to their EC2 instances using IAM credentials.
+Session Manager does not use SSH or RDP ports
+
 #### An application uses several EC2 instances, the architect must eliminate the risk of correlated hardware failures.
 
 Launch the instances in a spread placement group across distinct underlying hardware.
@@ -298,7 +326,21 @@ Choose an instance type that supports enhanced networking. And you need to ensur
 
 Use an AWS Nitro instance type
 
-## Elastic Load Balancing and Auto Scaling
+#### You are using T2 burstable EC2 instances. You are seeing a sustained load on your application running on these instances. What would be the behavior you would observe?
+
+Burstable instances continuously accumulate CPU credits if usage is below baseline performance.
+
+When there is increased load, it can use the available CPU credits to temporarily boost the performance to fully utilize available CPU capacity.
+
+However, when instances are out of CPU credits, it will fall back to baseline performance and applications may get throttled.
+
+To prevent this situation, you can enable the new “unlimited” mode in burstable types and you will simply be billed an additional hourly charge based on extra CPU capacity consumed
+
+####  You have a fleet of hundreds of EC2 instances. If there are problems with AWS managed items like Physical host, network connectivity to host, and system power, how would you be able to track it?   
+
+System status check would identify AWS infrastructure related issues. Instance status check would also fail if a system status check fails. So, either one can be used
+
+## Elastic Load Balancing and Auto Scaling  <a id="ELB"></a>
 
 Auto Scaling:
 - Auto Scaling __launches and terminates EC2 instance__ is automatically.
@@ -422,7 +464,7 @@ In this case, you could use a session state store such as DynamoDB or ElastiCach
 
 Use a Gateway Load Balancer in front of the virtual appliances.
 
-## AWS Organizations and Control Tower
+## AWS Organizations and Control Tower <a id="Organizations"></a>
 
 With __AWS Organizations, you can consolidate multiple AWS accounts__ into an Organization that you create and then centrally manage.
 
@@ -501,7 +543,7 @@ Create an OU and add the member accounts and then attached the SCP to the OU.
 
 Create an AWS Organization and send an invite to each developer's AWS account to join the Organization.
 
-## Amazon VPC
+## Amazon VPC <a id="VPC"></a>
 
 Analogous to having your own data center inside AWS.
 
@@ -565,6 +607,12 @@ Security groups versus network ACLs:
   - rules get __processed in order__
   - automatically applies to all instances in the subnets that it's associated with.
 
+ACL Ephemeral Ports
+![ Ephemeral Ports ](./images/ephemeral_ports.jpg)
+
+Network ACL – Fix Allow Local Traffic
+![ Fix Allow Local Traffic ](./images/fix_allow_local_traffic.jpg)
+
 Connecting to a VPC:
 - AWS __managed VPN__
   - What: an IPSec VPN connection over the Internet.
@@ -619,7 +667,6 @@ Connecting to a VPC:
   - The flow log data is stored using CloudWatch logs or Amazon S3.
   - can be created at different levels: The VPC level, subnet level, or the network interface level.
 
-
 The VPC router connects different AZs together and connects the VPC to the Internet Gateway
 
 Internet Gateways (IGW) must be created and then attached to a VPC, be added to a route table, and then associated with the relevant subnet(s)
@@ -634,6 +681,12 @@ To enable access to or from the Internet for instances in a VPC subnet, you must
 - Ensure that your subnetʼs route table points to the Internet Gateway
 - Ensure that instances in your subnet have a globally unique IP address
 - Ensure that your network access control and security group rules allow the relevant traffic to flow to and from your instance
+
+Interface Endpoint:
+![ Gateway endpoints ](./images/interface_endpoints.jpg)
+
+Gateway endpoints:
+![ Gateway endpoints ](./images/gateway_endpoints.jpg)
 
 ### Architecture Patterns
 
@@ -673,7 +726,14 @@ Attach an Internet gateway to the VPC, update the route table so, for the new su
 
 Deploy an AWS transit gateway, attach the VPN connection from the on-premises and then attach it also to each VPC.
 
-## Amazon Simple Storage Service
+#### How would you increase the availability of your VPN setup between on-premises and AWS cloud?
+
+Use a single virtual private gateway (VGW) and two customer gateways (CGW). VGWs are highly available and can tolerate AZ failure
+
+#### What capability can you use for auditing inbound and outbound traffic in your VPC?
+
+
+## Amazon Simple Storage Service <a id="S3"></a>
 
 You can store any type of file.
 
@@ -705,6 +765,8 @@ S3 objects:
 - Objects remain in the region in which they're stored unless you set up replication.
 - Permissions can be defined on objects at any time.
 - The storage class is set at the object level.
+
+S3:__PutObjectLegalHold__ permissions privileges are limited to people with a business need
 
 Storage classes:
 ![ Storage classes ](./images/s3_storage_classes.png)
@@ -857,7 +919,18 @@ Generate a presigned URL and the users won't need an AWS account and it will be 
 
 For that, you can configure cross account access using IAM roles.
 
-## DNS, Caching and Performance Optimization
+####  You want to put restrictions in an S3 bucket so that only your EC2 instances can access the bucket.
+
+EC2 instances access S3 using Public IP Address and traffic is routed through internet gateway.
+If VPC endpoint is used, S3 is accessed using AWS private network. In this case, bucket policy can use VPC ID or VPC Endpoint ID to restrict access.
+
+####  You want to distribute content in S3 bucket using CloudFront edge locations. You also want to restrict access to the content to only the users who are authorized by your application.
+
+Configure content to be accessible only using signed URLs or signed cookies
+Create CloudFront user nad grant read access to S3
+Remove permissions for anywone to directly access S3 bucket
+
+## DNS, Caching and Performance Optimization <a id="DNS"></a>
 
 Route 53:
 - Route 53 gives you:
@@ -1023,7 +1096,7 @@ Configure signed cookies and then update the application so it processes those c
 
 Create an AWS global accelerator and add the ALBs
 
-## Block and File Storage
+## Block and File Storage <a id="Block_File_Storage"></a>
 
 EBS:
 - __volume data persists independently of the life of the EC2 instance__.
@@ -1249,7 +1322,19 @@ modifying the delete on termination attribute when you launch the instances.
 
 use a storage gateway, file gateway and that will give you the local cache and it backs onto S3.
 
-## Docker Containers and ECS
+#### How can you change the encryption key associated with an EBS volume?
+
+Change the key during snapshot copy process. Another option is: from an EC2 instance, mount a new EBS volume with the desired key and copy data from old volume to new volume
+
+#### A company is evaluating use of AWS for backing up data in the cloud.  One important consideration is that data needs to be available even when connection over the internet is down
+
+The Volume Gateway runs in either a cached or stored mode.
+
+In the cached mode, your primary data is written to S3, while retaining your frequently accessed data locally in a cache for low-latency access.
+
+In the stored mode, your primary data is stored locally and your entire dataset is available for low-latency access while asynchronously backed up to AWS
+
+## Docker Containers and ECS <a id="Containers"></a>
 
 Key features of the Elastic Container Service:
 - __serverless computing with AWS Fargate__ managed for you and fully scalable.
@@ -1337,7 +1422,18 @@ use an ALB in front of ESC and use query string parameter-based routing.
 
 use the CloudWatch performance monitoring tool and it has a feature called Container Insights. And you can view that data in the CloudWatch console.
 
-## Serverless Applications
+####  Your lambda function needs to access internet and other AWS Service end points: By default, a lambda function is not bounded to a VPC
+
+If you attach the lambda to a VPC, you'll loose internet access, which prevents you from accessing resources such S3 and Dynamo, and from making HTTP requests.
+
+####  Lambda functions, by default, are allowed access to internet resources.
+
+To access databases and other resources in your VPC, you need to configure Lambda function to run inside the context of a private subnet in your VPC.
+When this is done: your lambda function gets a private IP address and can reach resources in your VPC.
+In this mode, it can access internet services only if private subnet has a route to a NAT device
+
+
+## Serverless Applications <a id="Serverless"></a>
 
 Serverless Services:
 - no instances to manage.
@@ -1359,6 +1455,7 @@ Lambda:
 - An __event source is an AWS service application that produces events that trigger an AWS Lambda function__.
 - Event sources are mapped to Lambda functions.
 - __For stream-based services Lambda performs the polling e.g. DynamoDB and Kinesis__. So that means Lambda checks with the stream based service rather than the polling coming the other way.
+- Inbound network connections are blocked by AWS Lambda. However, outbound calls are allowed from Lambda. In this case, we can use an API Gateway to listen and receive inbound requests. The API Gateway would then invoke a Lambda function to process the request
 - Benefits of Lambda:
   - there's no service to manage.
   - continuous scaling,
@@ -1369,6 +1466,14 @@ Lambda:
   - real time file processing,
   - real time streaming processing,
   - building serverless backends for various different use cases.
+
+There is an upper limit on number of __concurrent lambda function executions__ for your account in each region.
+
+Lambda support __versioning__ and you can maintain one or more versions of your lambda function. Each lambda function has a unique ARN.
+
+Lambda also supports __Alias__ for each of your functions. 
+Lambda alias is a pointer to a specific lambda function version.
+Alias enables you to promote new lambda function versions to production and if you need to rollback a function, you can simply update the alias to point to the desired version
 
 Different types of function invocation:
 - synchronous
@@ -1393,7 +1498,10 @@ Kinesis vs SQS vs SNS
  
 SQS Queue Types
 ![ SQS Queue Types ](./images/queue_types.png)
- 
+
+### SQS
+The MessageRetentionPeriod attribute in SQS allows you to set the message retention period, which is the length of time (in seconds) that Amazon SQS retains a message.
+
 __FIFO queue__:
 - require the __message group ID__ and __message deduplication ID__ parameters to be added to messages.
 - The message group ID: is a tag that indicates that a message belongs to a certain group.
@@ -1406,7 +1514,7 @@ Long polling versus short polling:
 - Long polling as a way to retrieve messages from SQS queues and it waits for messages to arrive. Long polling can lower costs. Long polling is enabled at the queue level or at the API level with the wait time seconds parameter. Long polling is in effect when the receive message wait time is a value greater than zero up to 20 seconds.
 - Short polling returns immediately even if the queue is empty. So that can turn out more expensive from an API cost perspective.
 
-SNS
+### SNS
 - is a highly available, durable, secure, fully managed publisher/subscriber messaging service.
 - it provides topics for high throughput, push-based, many-to-many messaging.
 - can fan out messages to a large number of subscriber endpoints. And those include SQS queues Lambda functions, HTTP or HTTPS webhooks, mobile push, and SMS, and also, of course, email.
@@ -1419,7 +1527,7 @@ SNS plus SQS fan out is where you subscribe one or more SQS queue to an SNS topi
 
 When you publish a message to a topic, SNS sends the message to every subscribed queue.
 
-Step Functions:
+### Step Functions:
 - allows you to build distributed applications as a series of steps
 - in a visual workflow, so it's an orchestration service.
 - You can run state machines to execute the steps of your application,
@@ -1427,14 +1535,14 @@ Step Functions:
 - you get to define your app as what's called a state machine.
 - You create the tasks, sequential steps, parallel steps, branching paths, or timers.
 
-EventBridge:
+### EventBridge:
 - This is a serverless event bus for building event-driven applications.
 - Events are generated by custom applications, SAS applications, or AWS services
 - an event is a signal that a systems state has changed.
 - it routes events to AWS service targets and API destinations via HTTP endpoints.
 - targets include Lambda, SNS, SQS, and API Gateway.
 
-API Gateway:
+### API Gateway:
 - fully managed service for publishing, maintaining, monitoring and securing APIs
 - An API endpoint type refers to the hostname of the API.
 - all of the APIs created with API Gateway expose HTTPS endpoints only.
@@ -1458,7 +1566,7 @@ CloudFront is used as the public endpoint for API Gateway
 With API Gateway, you can route requests to private resources in your VPC. Using HTTP APIs, you can
 build APIs for services behind private ALBs, private NLBs, and IP-based services registered in AWS Cloud Map, such as ECS tasks
 
-#### AIP Gateway endpoints
+#### API Gateway endpoints
 
 An API endpoint type is a hostname for an API in API Gateway that is deployed to a specific region.
 The hostname is of the form {api-id}.execute-api.{region}.amazonaws.com.
@@ -1467,6 +1575,8 @@ The API endpoint type can be:
 - __edge-optimized__ for geographically distributed clients. API requests are routed to the nearest CloudFront Point of Presence (POP)
 - __regional__ intended for clients in the same region. When a client running on an EC2 instance calls an API in the same region
 - __private__ can only be accessed from your Amazon Virtual Private Cloud (VPC) using an interface VPC endpoint, which is an endpoint network interface (ENI) that you create in your VPC
+
+![ Gateway endpoints ](./images/gateway_endpoints.jpg)
 
 #### Caching
 
@@ -1528,7 +1638,7 @@ Use Lambda functions along with step functions for coordinating and orchestratin
 
 For this, you can create an event source notification to notify Lambda to process the new objects.
 
-## Database and Analytics
+## Database and Analytics <a id="Database"></a>
 
 Different options:
 - We can use a database on EC2. We might do that if we need full control over the instance in the database or maybe the third party database engine is not available on RDS.
@@ -1721,6 +1831,12 @@ You cannot have an encrypted Read Replica of an unencrypted DB instance or an un
 RDS supports SSL encryption between applications and RDS DB instances. RDS generates a certificate for the instance.
 
 Enable db encryption without data loss: create snapshot -> encrypted snapshot of db -> encrypted rds db -> DMS to synchronize data
+
+For __multi-AZ__ high availability, RDS uses __synchronous__ replication between primary and standby systems.
+If standby is slow, transactions will take longer to complete.
+
+__RDS Read Replica__ on the other hand uses __asynchronous__ replication and any slowness in Read Replica instance would simply cause data lag in the read - replica.
+Transactions in primary is not impacted
 
 #### RDS Scaling
 
@@ -2073,7 +2189,7 @@ use Kinesis data streams for the real time streaming and then Firehose to load t
 
 load the data from the OLTP databases into a Redshift data warehouse for OLAP.
 
-## Deployment and Management
+## Deployment and Management <a id="Depolyment"></a>
 
 CloudFormation:
 - CloudFormation deploys infrastructure using code, and that code is in JSON or YAML.
@@ -2166,7 +2282,7 @@ use a change set so that you can view what's going to happen before you actually
 
 use AWS Config to create rules to monitor compliance and use auto-remediation to enforce the compliance.
 
-## Monitoring, Logging and Auditing
+## Monitoring, Logging and Auditing <a id="Observability"></a>
 
 CloudWatch is used for performance monitoring, alarms, log connection, and automated actions.
 
@@ -2262,7 +2378,11 @@ create a CloudTrail trail and an EventBridge rule that looks for API events that
 
 use AWS Config to check the encryption status of the buckets and use auto remediation to enable encryption as required.
 
-## Security in the Cloud
+#### You would like to monitor two different metrics in an AWS Service and take automated action based on the metric value.  How many CloudWatch alarms would you need?
+
+Two. Alarm is associated with one metric. So, we need one alarm per metric.
+
+## Security in the Cloud <a id="Security"></a>
 
 Managed Microsoft AD:
 - This is a __fully managed AWS service__.
@@ -2341,6 +2461,7 @@ AWS managed KMS keys:
 - You can't manage these keys, you can't rotate them or change their key policies.
 - You also cannot use AWS managed KMS keys, encrypt graphic operations directly.
 - The service uses them on your behalf,
+- KMS - AWS Managed Keys are automatically rotated Every year
 
 Data Encryption Keys:
 - data keys are encryption keys that you can use to encrypt data, including large amounts of data and other data encryption keys.
@@ -2373,6 +2494,7 @@ AWS Certificate Manager:
 AWS web application firewall - WAF
 - This service lets you create rules to filter web traffic based on conditions such as IP addresses, http headers and body or custom URIs.
 - It makes it easy to create rules that block common web exploits like sequel injection and cross site scripting.
+-  Web Application Firewall allows you to enforce country-specific rules. You can block or allow traffic from specific countries.
 - Concepts:
   - __web ACLS__, are used to protect a set of resources
   - __rules__: that define the inspection criteria and actions to take if a web request meets your defined criteria
@@ -2453,7 +2575,11 @@ use a Cognito user pool that leverages the social IDPs and an identity pool for 
 
 use an AD connector that uses
 
-## Migration and Transfer
+#### How often is the KMS-CMK rotated? 
+
+Every year when automatic rotation is enabled.
+
+## Migration and Transfer <a id="Migration"></a>
 
 Service Migration Service – SMS:
 - agentless service for migrating on-premises and cloud-based VMs to AWS.
@@ -2568,3 +2694,6 @@ use the MGN and perform a final synchronization before cutting over in a short o
 #### you need to migrate 50 terabytes of data and the company only has a one gigabits per second internet link.
 
 Use AWS Snowball to transfer data
+
+####  AWS Transfer Family: Your environment has several existing clients that use SFTP, FTP, FTPS, and AS2 protocols for file transfer. Which service offers a fully managed solution to move data into and out of AWS Storage services using these protocols?
+
