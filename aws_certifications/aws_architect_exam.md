@@ -2342,9 +2342,9 @@ use a change set so that you can view what's going to happen before you actually
 
 use AWS Config to create rules to monitor compliance and use auto-remediation to enforce the compliance.
 
-## Monitoring, Logging and Auditing <a id="Observability"></a>
+## Observability = Monitoring, Logging and Auditing <a id="Observability"></a>
 
-CloudWatch is used for performance monitoring, alarms, log connection, and automated actions.
+### CloudWatch for monitoring <a id="CloudWatch"></a>
 
 CloudWatch Use cases and benefits:
 - it collects performance metrics from AWS and on-premises systems.
@@ -2369,7 +2369,17 @@ EC2 metrics:
   - standard with one minute granularity
   - high resolution with granularity of one second.
 
-CloudWatch Alarms:
+![ CloudWatch metrics ](./images/cloudwatch_metrics.jpg)
+
+#### Unified CloudWatch Agent:
+- Collect __internal system-level metrics from EC2 instances__ across operating systems,
+- collect system level metrics from __on-premises servers__
+- retrieve custom metrics __from your applications using the StatsD and collectD__ the protocols.
+- can __collect logs__ from EC2 instances and on-premises servers running Windows and Linux.
+- The agent must be installed on the server and it can be installed on EC2, on-premises servers, Linux, Windows Server, or Mac OS.
+
+### CloudWatch Alarms <a id="CloudWatchAlarms"></a>
+
 - 2 types of alarms:
   - the __metric alarm__ for one or more actions based on a single metric
   - the __composite alarm__, which uses a rule expression and takes into account multiple alarms.
@@ -2378,25 +2388,30 @@ CloudWatch Alarms:
   - __Alarm__, when the metric is outside the threshold,
   - __insufficient data__ when there's simply not enough data to make a determination.
 
-CloudWatch logs:
+### CloudWatch logs <a id="CloudWatchLogs"></a>
+
 - gathers application and system logs in CloudWatch.
 - can define expiration policies and KMS encryption.
 - can send them to S3 by exporting Kinesis Data Streams and Kinesis Data Firehose.
 
-Unified CloudWatch Agent:
-- Collect __internal system-level metrics from EC2 instances__ across operating systems,
-- collect system level metrics from __on-premises servers__
-- retrieve custom metrics __from your applications using the StatsD and collectD__ the protocols.
-- can __collect logs__ from EC2 instances and on-premises servers running Windows and Linux.
-- The agent must be installed on the server and it can be installed on EC2, on-premises servers, Linux, Windows Server, or Mac OS.
+![ CloudWatch logs ](./images/cloudwatch_logs.jpg)
 
-CloudTrail:
+- Log Events: Activity recorded by an application or system
+- Log Streams: Sequence of log events from the same source (application instance, resource)
+- Log Groups: 
+  - Group of Log Streams
+  - Shares the same retention, monitoring, and access control settings
+- Metric Filters convert log file events to CloudWatch data points
+- Specify retention period for events kept in CloudWatch logs
+- Expired log events are deleted automatically
+
+### CloudTrail
 - logs API activity for auditing.
 - By default, management events are logged and all retained for 90 days.
 - You can create a ClaudTrail trail and then your events are logged to S3 with indefinite retention.
 - Trails can be logged within a region or within all regions.
 
-CloudWatch events:
+### CloudWatch events
 - can be triggered based on API calls in CloudTrail.
 - Events can also be streamed to CloudWatch logs.
 - types of events:
