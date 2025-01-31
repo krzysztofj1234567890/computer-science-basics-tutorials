@@ -24,6 +24,11 @@
 - [Database](#Database)
 - [Deployment](#Deployment)
 - [Observability](#Observability)
+  - [CloudWatch](#CloudWatch)
+  - [CloudWatch Alarms](#CloudWatchAlarms)
+  - [CloudWatchLogs](#CloudWatchLogs)
+  - [CloudTrail](#CloudTrail)
+  - [CloudWatch Events](#CloudWatchEvents)
 - [Security](#Security)
 - [Migration](#Migration)
 
@@ -2405,13 +2410,14 @@ EC2 metrics:
 - Specify retention period for events kept in CloudWatch logs
 - Expired log events are deleted automatically
 
-### CloudTrail
+### CloudTrail <a id="CloudTrail"></a>
+
 - logs API activity for auditing.
 - By default, management events are logged and all retained for 90 days.
 - You can create a ClaudTrail trail and then your events are logged to S3 with indefinite retention.
 - Trails can be logged within a region or within all regions.
 
-### CloudWatch events
+### CloudWatch events <a id="CloudWatchEvents"></a>
 - can be triggered based on API calls in CloudTrail.
 - Events can also be streamed to CloudWatch logs.
 - types of events:
