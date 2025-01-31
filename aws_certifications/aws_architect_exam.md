@@ -11,7 +11,10 @@
   - [EC2 lifecycle](#Ec2_lifecycle)
   - [Nitro](#Nitro)
   - [EC2 pricing](#Ec2_pricing)
-- [ELB](#ELB)
+- [Auto Scaling](#AutoScaling)
+  - [AutoScaling Group](#AutoScalingGroup)
+  - [Health Checks](#HealthChecks)
+  - [Load Balancing](#LoadBalancing)
 - [Organizations](#Organizations)
 - [VPC](#VPC)
 - [S3](#S3)
@@ -414,9 +417,25 @@ To prevent this situation, you can enable the new “unlimited” mode in bursta
 
 System status check would identify AWS infrastructure related issues. Instance status check would also fail if a system status check fails. So, either one can be used
 
-## Elastic Load Balancing and Auto Scaling  <a id="ELB"></a>
+## Elastic Load Balancing and Auto Scaling <a id="AutoScaling"></a>
 
-Auto Scaling:
+Scaling types:
+
+| Scaling    | Type Description
+|------------|------------------------
+| Maintain   | Maintain a constant fleet size
+| Scheduled  | Time based – add, remove
+| Dynamic    | Metrics based – respond to changes to traffic
+| Predictive | Machine Learning based – adjust based on predicted traffic
+
+Services with Auto Scaling Support:
+- __EC2__ – Adjust EC2 instance capacity based on need
+- __EC2 Spot Fleets__ – optimize cost, replace instances that are interrupted due to price or capacity reasons
+- __Elastic Container Service__ – adjust tasks based on load, adjust instances in the cluster
+- __DynamoDB__ – Adjust provisioned read and write capacity
+- __Aurora__ – Adjust the number of read-replicas based on workload
+
+### Auto Scaling Group <a id="AutoScalingGroup"></a>
 - Auto Scaling __launches and terminates EC2 instance__ is automatically.
 - __Scaling is horizontal__, it scales out.
 - It provides elasticity and scalability
@@ -424,14 +443,6 @@ Auto Scaling:
 - You can __scale based on demand, performance or on a schedule__.
 - __Scaling policies__ will define how to respond to changes in-demand.
 - Auto Scaling groups define collections of EC2 instances that are scaled and managed together.
-
-Health checks:
-- __EC2 health checks__, which are the EC2 status checks
-- __ELB health checks__, which means it's going to use the ELB health checks in addition to the EC2 instance status checks.
-
-The __health check grace period__:
-- how long to wait before checking the health status of an instance after it's been launched into an Auto Scaling group.
-- Auto Scaling does not act on health checks until the grace period expires.
 
 Auto scaling monitoring:
 - __Group metrics__:
@@ -460,6 +471,18 @@ An __ELB distributes incoming traffic across__ multiple targets such as __EC2 in
 
 It provides fault tolerance for applications.
 
+### Health checks <a id="HealthChecks"></a>
+
+- __EC2 health checks__, which are the EC2 status checks
+- __ELB health checks__, which means it's going to use the ELB health checks in addition to the EC2 instance status checks.
+
+The __health check grace period__:
+- how long to wait before checking the health status of an instance after it's been launched into an Auto Scaling group.
+- Auto Scaling does not act on health checks until the grace period expires.
+
+
+### Load Balancing <a id="LoadBalancing"></a>
+
 ELBs can distribute incoming traffic into a __single AZ or multiple AZs__.
  
 Only __one subnet per AZ__ can be enabled for each ELB.
@@ -477,24 +500,24 @@ Internal only ELB:
 - the nodes have private IPs and
 - also routes to the private IPS of the instances.
 
-Application Load Balancer:
+#### Application Load Balancer:
 - use it with web applications with layer 7 routing - http and https,
 - microservices architectures such as Docker containers
 - Lambda targets.
 
-Network Load Balancer:
+#### Network Load Balancer:
 - operating at the TCP and UDP level – layer 4
 - offers ultra-low latency
 - static IP addresses.
 - can be used with VPC endpoint services.
 
-Gateway Load Balancer:
+#### Gateway Load Balancer:
 - This is layer 3.
 - listens for all IP packets across all ports.
 - GLP and virtual appliances exchange application traffic using the GENEVE protocol on port 6081.
 - Used with virtual appliances such as firewalls, intrusion detection systems, intrusion prevention systems, and deep packet inspection systems.
 
-Cross-zone load balancing:
+#### Cross-zone load balancing:
 - when cross-zone load balancing is enabled, each load balancer node will distribute traffic across the register targets in all enabled AZ.
 - When it's disabled, each load balancer node distributes traffic only across the registered targets in its availability zone.
 - With __Application Load Balancers, cross-zone load balancing is always enabled__.
