@@ -2,6 +2,14 @@
 
 - [IAM](#IAM)
 - [EC2](#EC2)
+  - [AMI](#AMI)
+  - [Instance Types](#InstanceTypes)
+  - [IP](#IP)
+  - [Placement Groups](#PlacementGroups)
+  - [NAT](#NAT)
+  - [EC2 lifecycle](#Ec2_lifecycle)
+  - [Nitro](#Nitro)
+  - [EC2 pricing](#Ec2_pricing)
 - [ELB](#ELB)
 - [Organizations](#Organizations)
 - [VPC](#VPC)
@@ -133,7 +141,7 @@ In this case, you can instruct the developer to create a set of access keys and 
 
 Create a permissions policy that uses a wildcard for the action element relating to EC2. And that would look like the (ec2:*) action.
 
-## Amazon Elastic Compute Cloud (EC2) ## EC2 <a id="EC2"></a>
+## Amazon Elastic Compute Cloud (EC2) <a id="EC2"></a>
 
 With EC2, you launch virtual server instances on the AWS cloud.
 
@@ -144,17 +152,6 @@ With EC2, you get full control at the operating system layer.
 Key pairs are then used to securely connect to EC2 instances.
 
 The storage is either Amazon EBS, which is persistent storage, or Instance Store, which is non-persistent storage.
-
-An Amazon Machine Image provides the information required to launch an instance.
-
-AMI includes:
-- a __template__ for the root volume of the instance,
-- __launch permissions__
-- a __block device mapping__, which specifies which volume is to attach to the instance.
-
-__AMIs are regional__, so you can only launch an AMI from the region in which it is created.
-
-You can __copy AMIs to other regions__ using the console command line or the API.
 
 __Instance metadata__ is the data about your instance that you can use to configure or manage the running instance. Instance metadata is available at this URL: http://169.254.169.254/latest/meta-data
 
@@ -167,6 +164,50 @@ Benefits of Amazon EC2 include:
 - __Reliable__: EC2 offers very high levels of availability. And instances can be rapidly commissioned and replace where needed.
 - __Secure__ It's fully integrated with Amazon VPC and the security features of AWS.
 - __Inexpensive__, so it can be very low cost and you only pay for what you use.
+
+### AMI <a id="AMI"></a>
+
+An Amazon Machine Image provides the information required to launch an instance.
+
+AMI includes:
+- a __template__ for the root volume of the instance,
+- __launch permissions__
+- a __block device mapping__, which specifies which volume is to attach to the instance.
+
+__AMIs are regional__, so you can only launch an AMI from the region in which it is created.
+
+You can __copy AMIs to other regions__ using the console command line or the API.
+
+### Instance types <a id="InstanceTypes"></a>
+![ Instance Types ](./images/ec2_instance_types.png)
+
+Burstable T-type instances:
+- Low to Moderate CPU utilization with occasional increase
+- Burstable Instance - CPU
+  - Baseline CPU Performance [5-40%]
+  - Instance earns a CPU Credit when usage is less than baseline
+  - Performance can burst up to 100% using CPU credits
+  - CPU is throttled to baseline performance
+- Unlimited Mode [Burstable Instance]
+  - no need to worry about throttling
+  - Pay for excess capacity consumed
+
+I n s t a n c e _t y p e. g e n e r a t i o n.s i z e
+
+c 5 . 2 x l a r g e = Compute Optimized, 5th generation, 2xlarge (8 vCPUs, 16 GB Memory
+
+Resize instances:
+- same type
+- .small -> .2xlarge
+- Stop-Change-Start
+- Check compatibility [OS, Storage, etc.]
+
+Process:
+- Map app to instance family
+- Pick an appropriate size [small, large, 2xlarge and so forth]
+- Run performance tests to right-size
+
+### IP addresses <a id="IP"></a>
 
 public IP address:
 - lost when you stop your instance
@@ -185,10 +226,13 @@ elastic IP address:
 - associated with private IP address on the instance
 - can move around between instances
 
-Placement groups:
+### Placement groups <a id="PlacementGroups"></a>
+
 - __Cluster placement group__ is designed to keep instances very close for low latency. Think about high performance computing, tightly coupled applications where you've got node to node communication
 - __Partition__ will spread your instances across logical partitions so that the groups in one partition don't share the same underlying hardware with other groups of instances. So you can use this for high availability. It's usually used with distributed and replicated workloads. For example, Hadoop, Cassandra and Kafka.
 - __Spread placement group__: This will place a small group of instances across distinct underlying hardware to reduce any kind of correlated failures.
+
+### NAT <a id="NAT"></a>
 
 NAT instances versus NAT gateways:
 - The __NAT instance__ is fully managed by you. It's really the old way of doing things.
@@ -200,7 +244,8 @@ NAT instances versus NAT gateways:
   - There are also no security groups with a NAT gateway, whereas there are with a NAT instance.
   - NAT gateway is deployed inside a subnet and it can scale only inside that subnet. For fault tolerance, it is recommended that you deploy one NAT gateway per availability zone
 
-EC2 instance lifecycle:
+### EC2 instance lifecycle <a id="Ec2_lifecycle"></a>
+
 - __Stopping__:
   - Stopping instances works only for EBS-backed instances,
   - no charge for a stopped instance.
@@ -231,6 +276,14 @@ EC2 instance lifecycle:
   - It applies if the instance becomes impaired due to underlying hardware or platform issues.
   - A recovered instance is identical to the original instance.
 
+You can modify the following attributes of an instance only when it is stopped:
+- Instance type.
+- User data.
+- Kernel.
+- RAM disk
+
+### Nitro <a id="Nitro"></a>
+
 The __Nitro__ system:
 - is the underlying platform for the __newer generation EC2 instances__.
 - __Breaks logical functions into specialized hardware__ with a hypervisor.
@@ -251,6 +304,8 @@ __Nitro enclaves__:
 - integrates with KMS.
 - __good for securing and protecting highly sensitive data like PII__, health care data, financial data, or intellectual property data.
 
+### EC2 pricing <a id="Ec2_pricing"></a>
+
 EC2 pricing options:
 - __on-demand__, which is the standard rate, there's no discount, there's no commitment. It's very good for any kind of short-term requirements or unpredictable workloads.
 - __reserved__ one or three year commitment, but you get a good discount.
@@ -259,24 +314,16 @@ EC2 pricing options:
 - __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there.
 - __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
 
-### Savings Plan
-With Compute Savings Plan, you can get a significant discount (up to 66%) on any compute services such as EC2, Lambda, and Fargate Containers.
-
-So, the compute savings plan applies to both server-based and serverless computing. 
-Reservation applies only to EC2 instances and does not cover serverless usage.
-
-### Amazon EC2
-
-Reserved instances:
+#### Reserved instances:
 - Provides a capacity reservation when used in a __specific AZ__,
 - __Can switch AZ within the same region__
 - Can change the instance size within the __same instance type__
 
-You can modify the following attributes of an instance only when it is stopped:
-- Instance type.
-- User data.
-- Kernel.
-- RAM disk
+#### Savings Plan
+With Compute Savings Plan, you can get a significant discount (up to 66%) on any compute services such as EC2, Lambda, and Fargate Containers.
+
+So, the compute savings plan applies to both server-based and serverless computing. 
+Reservation applies only to EC2 instances and does not cover serverless usage.
 
 
 ### Architecture Patterns
