@@ -5,6 +5,7 @@
   - [AMI](#AMI)
   - [Instance Types](#InstanceTypes)
   - [IP](#IP)
+  - [Block Storage](#BlockStorage)
   - [Placement Groups](#PlacementGroups)
   - [NAT](#NAT)
   - [EC2 lifecycle](#Ec2_lifecycle)
@@ -16,6 +17,8 @@
 - [S3](#S3)
 - [DNS](#DNS)
 - [Block and File Storage](#Block_File_Storage)
+  - [EBS](#EBS)
+  - [File Share](#FileShare)
 - [Containers](#Containers)
 - [Serverless](#Serverless)
 - [Database](#Database)
@@ -178,6 +181,11 @@ __AMIs are regional__, so you can only launch an AMI from the region in which it
 
 You can __copy AMIs to other regions__ using the console command line or the API.
 
+AMIs categories:
+- community AMIs,
+- marketplace AMIs,
+- your AMIs, the ones you create yourself.
+
 ### Instance types <a id="InstanceTypes"></a>
 ![ Instance Types ](./images/ec2_instance_types.png)
 
@@ -225,6 +233,20 @@ elastic IP address:
 - charged if not used
 - associated with private IP address on the instance
 - can move around between instances
+
+### Block Storage for EC2 <a id="BlockStorage"></a>
+
+#### Instance Store
+
+- Highest Performance
+- Data persists only for the lifetime of the instance
+- Reboot – Data Persists
+- Data is lost – when underlying hardware fails, instance stops, or instance terminates
+- __Random I/O Workload__ – SSD Preferred. Performance Measured in __IOPS__
+- __Sequential I/O Workload__ – Magnetic/HDD Preferred. Performance Measured in __Throughput (MiB/s)__
+
+#### EBS - see 'File Share' section
+
 
 ### Placement groups <a id="PlacementGroups"></a>
 
@@ -1145,7 +1167,7 @@ Create an AWS global accelerator and add the ALBs
 
 ## Block and File Storage <a id="Block_File_Storage"></a>
 
-EBS:
+### EBS <a id="EBS"></a>
 - __volume data persists independently of the life of the EC2 instance__.
 - EBS volumes do not need to be attached to an EC2 instance.
 - you __can attach multiple EBS volumes__ to an instance.
@@ -1153,6 +1175,13 @@ EBS:
 - EBS volumes __need to be in the same AZ as the instances__ you're attaching them to.
 - the __root EBS volumes are deleted on termination by default__.
 - Extra non-boot volumes are not deleted on termination by default.
+- Create Amazon Machine Image (AMI) from Snapshots to launch new EC2 instances
+  - Snapshot is async and works in the background
+
+EBS volume data is replicated across multiple servers in an AZ
+
+Volume sizes and types can be upgraded without downtime: increase volume size, adjust performance, or change the volume type. 
+However, you cannot decrease an EBS volume size.
 
 volume types:
 - SSD:
@@ -1164,7 +1193,7 @@ volume types:
   - extremely cheap in comparison to the SSD-backed volumes.
   - Key thing to note here, there's no Multi-Attach enabled and you cannot use these as boot volumes.
 
-Data Lifecycle Manager:
+#### Data Lifecycle Manager:
 - automates the creation, retention, and deletion of EBS snapshots and EBS-backed AMIs.
 - DLM helps with:
   - __protecting valuable data by enforcing a regular backup schedule__
@@ -1173,25 +1202,21 @@ Data Lifecycle Manager:
   - __reduces storage costs by deleting outdated backups__.
   - create disaster recovery backup policies that backup data to other accounts.
 
-EBS versus Instance Store:
+#### EBS versus Instance Store:
 - Instance Store volumes are high performance local disks physically attached to the host computer on which your instance is running.
 - They are ephemeral, so the data is non-persistent.
 - Instance stores are good for temporary storage of information that changes  frequently
 - Instance store volume root devices are created from AMI templates stored on S3
 - And Instance Store volumes cannot be detached and reattached.
 
-AMIs:
+#### AMIs:
 - these __provide the information required to launch an instance__.
 - AMI includes one or more EBS snapshots or for Instance Store-backed AMIs, a template for the root volume of the instance.
 - Launch permissions that control which accounts can use the AMI
 - a block device mapping specifying the volumes to attach to the instance.
 
-AMIs categories:
-- community AMIs,
-- marketplace AMIs,
-- your AMIs, the ones you create yourself.
+#### EBS snapshots
 
-EBS snapshots:
 - __capture a point in time state__ of an instance.
 - cost effective and easy backup strategy.
 - __can be used to migrate a system to a new availability zone or region__.
@@ -1199,7 +1224,7 @@ EBS snapshots:
 - Snapshots are __stored on S3__.
 - EBS volumes are __AZ specific__, but __snapshots are region specific because they're on S3__.
 
-RAID with EB
+#### RAID with EB
 - RAID is a Redundant Array of Independent Disks.
 - It's not provided by AWS. It's something you configure in your operating system.
 - __RAID 0__,
@@ -1211,7 +1236,7 @@ RAID with EB
   - If one disk fails, the other disk is still working.
   - data gets sent to two EBS volumes at the same time.
 
-EBS encryption:
+#### EBS encryption:
 - you can encrypt both the boot and data volumes of an EC2 instance
 - What is encrypted:
   - The data at rest inside the volume,
@@ -1221,7 +1246,25 @@ EBS encryption:
 - Encryption is supported by all EBS volume types.
 - all instance families support encryption as well.
 
-Amazon Elastic File System:
+### File Share <a id="FileShare"></a>
+
+| Service                  |   Purpose
+|--------------------------|-----------------
+| Elastic File System (EFS)| File share for Linux EC2 instances on AWS
+| FSx for Windows          | File share for Windows EC2 instances on AWS
+| FSx for Lustre           | File share Optimized for High Performance
+|                          | Computing – Linux EC2 instances
+|                          | Access S3 as a file share (like Storage Gateway)
+
+- Fully managed – automatically grow and shrink
+- High Durability and Availability – Replicated across multiple availability zones in a region
+- All these file shares can be used from On-Premises using AWS Direct Connect or VPN
+
+#### Elastic File System (EFS) 
+
+Amazon EFS is a fully managed service for hosting Network File System (NFS) filesystems in the cloud.
+
+- File Share for __Linux__ EC2 instances on AWS (NOT Windows).
 - fully managed file system solution accessed using the __NFS protocol__.
 - You get __elastic storage capacity__
 - you __pay only for what you use__.
@@ -1233,9 +1276,13 @@ Amazon Elastic File System:
 - can scale up to petabytes.
 - can __concurrently connect up to thousands of EC2 instances from multiple AZs within a region__.
 - You can choose general purpose or Max I/O Both SSD-backed.
-- Data always get stored across multiple AZs within a region
+- Data always get stored across __multiple AZs__ within a region
 - you get __read-after write consistency__.
 - You need to create mount targets and choose the AZs to include
+- You can mount an AWS EFS filesystem from on-premises systems ONLY if you are using __AWS Direct Connect or a VPN connection__
+- Lifecycle management moves files that have not been accessed for a period of time to the EFS Infrequent Access Storage class
+- Encryption in transit is enabled when mounting the file system. Enable encryption at rest in the EFS console or by using the AWS CLI or SDKs.
+- EFS is much more __expensive__ than EBS or S3
 
 Access control:
 - use IAM to control who can administer your file system.
@@ -1255,34 +1302,38 @@ Data Sync:
 - You can securely and efficiently copy files over the internet or a Direct Connect connection.
 - Copies file data and file system metadata such as ownership, timestamps, and access permissions.
 
-FSx
+#### FSx
+
 - provides a fully managed third-party file system.
 - provides you with two options to choose from:
   - __FSx for Windows File Server__, for Windows based apps 
     - FSx for Windows File Server provides a fully managed native Microsoft Windows File System.
-    - get full support for SMB, Windows NTFS, and Microsoft AD.
+    - get full support for __SMB__, Windows __NTFS__, and __Microsoft AD.__
     - supports Windows Native File System features, ACL, shadow copies, and user quotas, NTFS file systems
     - that can be accessed from up to thousands of computer instances using SMB.
     - replicates data within an AZ. And in terms of Multi-AZ,
     - the file systems include an active and standby file server in separate AZs.
   - __Amazon FSx for Lustre__ for compute intensive workloads.
-    - high-performance file system optimized for fast processing of workloads such as machine learning, high performance computing, video processing, financial modelling,
+    - __high-performance file system __optimized for fast processing of workloads such as machine learning, high performance computing, video processing, financial modelling,
     - It works natively with S3, which means you can transparently access your S3 objects as files.
     - S3 objects are presented as files in the file system, and you can write your results back to S3.
     - It also provides a POSIX compliant file system interface.
 
-Storage gateway – File gateway:
+#### Storage gateway – File gateway
+
 - This provides an __on-premises file server__.
 - You can store and retrieve files as objects in S3.
 - You can use it with __on-premises applications and EC2-based applications__ that need file storage in S3 for object-based workloads.
 - File gateway offers SMB or NFS-based access to data in S3 with local caching.
 
-Storage gateway - volume gateway:
+#### Storage gateway - volume gateway
+
 - This supports __block-based volumes__. So, it's an iSCSI protocol that you use to connect.
 - You've got cached volume mode where the entire data set is stored on S3, and a cache of the most frequently accessed data is on site.
--  Stored volume mode means that the entire data set is stored on site and asynchronously backed up to S3
+-  Stored volume mode means that the __entire data set is stored on site and asynchronously backed up to S3__
 
-Storage gateway - tape gateway:
+#### Storage gateway - tape gateway
+
 - used for back up with popular backup software.
 - Each gateway is pre-configured with a media changer and tape drives, all virtual, of course.
 - supported by NetBackup, Backup Exec, Veeam and so on.
@@ -1290,44 +1341,6 @@ Storage gateway - tape gateway:
 - Annotate gateway can have up to 1,500 virtual tapes with a maximum aggregate capacity of one petabytes.
 - All data transferred between the gateway and AWS storage is encrypted using SSL.
 - all data stored by Tape Gateway in S3 is encrypted with server-side encryption using Amazon S3 managed encryption keys, SSE-S3
-
-### Amazon EBS
-
-EBS volume data is replicated across multiple servers in an AZ
-
-Volume sizes and types can be upgraded without downtime: increase volume size, adjust performance, or change the volume type
-However, you cannot decrease an EBS volume size.
-
-
-### Amazon EFS
-
-Amazon EFS is a fully managed service for hosting Network File System (NFS) filesystems in the cloud.
-
-It is an implementation of a NFS file share and is accessed using the NFS protocol.
-
-Data is stored across multiple AZs within a region
-
-Provides elastic storage capacity and __pay for what you use__
-
-You can mount an AWS EFS filesystem from on-premises systems ONLY if you are using __AWS Direct Connect or a VPN connection__
-
-You can concurrently connect up to thousands of Amazon EC2 instances, from multiple AZs
-
-A file system can be accessed concurrently from __all AZs in the region__ where it is located.
-
-Lifecycle management moves files that have not been accessed for a period of time to the EFS Infrequent Access Storage class
-
-Amazon EFS is designed to burst to allow high throughput levels for periods of time
-
-Encryption in transit is enabled when mounting the file system
-
-Enable encryption at rest in the EFS console or by using the AWS CLI or SDKs.
-
-EFS is much more __expensive__ than EBS or S3
-
-EFS vs FSx:
-- EFS - managed NAS (Network File System) on EC2. It __does not support Windows systems__.
-- FSx - managed Windows Server that runs Windows Server Message Block (SMB)-based file services
 
 
 ### Architecture Patterns
