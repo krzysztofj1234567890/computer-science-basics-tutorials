@@ -15,6 +15,11 @@
   - [AutoScaling Group](#AutoScalingGroup)
   - [Health Checks](#HealthChecks)
   - [Load Balancing](#LoadBalancing)
+    - [Load Balancing Security](#LoadBalancingSecurity)
+    - [ALB](#ALB)
+    - [NLB](#NLB)
+    - [GLB](#GLB)
+    - [Cross-zone load balancing](#Cross-zone)
 - [Organizations](#Organizations)
 - [VPC](#VPC)
 - [S3](#S3)
@@ -500,24 +505,92 @@ Internal only ELB:
 - the nodes have private IPs and
 - also routes to the private IPS of the instances.
 
-#### Application Load Balancer:
-- use it with web applications with layer 7 routing - http and https,
+Connection Draining:
+- When deregistering instance, allow in-flight requests to complete
+- Default wait time is 5 minutes (300 seconds)
+- After wait time elapses, instance is deregistered
+
+Sticky Sessions: Route requests from a client to same target
+
+HTTP/2: Multiple requests sent on the same connection
+
+WebSockets:
+- Long running TCP Connection
+- Bi-directional
+- Server to Client Push notification support
+
+Access Logs:
+- Elastic Load Balancing provides access logs that capture detailed information about requests sent to your load balancer.
+- Each log contains information such as the time the request was received, the client's IP address, latencies, request paths, and server responses.
+- You can use these access logs to analyze traffic patterns and troubleshoot issues.
+
+#### Elastic Load Balancing – Security <a id="LoadBalancingSecurity"></a>
+
+- Offload SSL/TLS
+- Integrated Certificate Management
+- User Authentication – Cognito(Application Load Balancer)
+  - Internet Identity Providers
+  - SAML
+  - OpenID Connect
+
+#### Application Load Balancer <a id="ALB"></a>
+
+- use it with web applications with __layer 7__ routing - http and https,
 - microservices architectures such as Docker containers
-- Lambda targets.
+- Targets: __EC2, containers, Lambda, on-premises__
+- Support for hosting multiple websites (Server Name Indication)
+- User Authentication - __Cognito__
 
-#### Network Load Balancer:
-- operating at the TCP and UDP level – layer 4
-- offers ultra-low latency
-- static IP addresses.
-- can be used with VPC endpoint services.
+Routing:
+- Path based
+- Host HTTP header (support for multiple domains)
+- Any standard or custom HTTP header
+- Query string parameter based
+- Source IP based 
 
-#### Gateway Load Balancer:
+ALB – Security Group:
+- Allow inbound traffic from clients on listener port
+- Allow outbound traffic to instance security group on listener and health check ports
+
+ALB - ACL:
+- Allow inbound traffic from clients on listener port
+- Allow outbound traffic to client on ephemeral ports
+- Allow outbound traffic to instance VPC on listener and health check ports
+- Allow inbound traffic from instance VPC on ephemeral ports
+
+#### Network Load Balancer <a id="NLB"></a>
+
+- operating at the __TCP__ and __UDP__ level – __layer 4__
+- offers __ultra-low latency__
+- Scales to __millions of requests/sec__
+- static IP addresses. One Static IP (or Elastic IP) per Availability Zone
+- can be used with __VPC endpoint__ services.
+- Targets: __EC2, containers, on-premises__
+- Preserves Client IP (Source IP)
+- __WebSocket__ Support
+
+Private Link:
+- Network LB based Shared Service
+- Configure as PrivateLink Powered Service
+- Create VPC endpoint for your service in client VPC
+- All communication over AWS network
+
+Network Load Balancer does not support Security Group. 
+From network perspective, imagine instance interacting with the client directly
+
+NLB - ACL:
+- Allow inbound traffic from clients on listener port
+- Allow outbound traffic to client on ephemeral ports
+- Allow outbound traffic to instance VPC on listener and health check ports
+- Allow inbound traffic from instance VPC on ephemeral ports
+
+#### Gateway Load Balancer <a id="GLB"></a>
 - This is layer 3.
 - listens for all IP packets across all ports.
 - GLP and virtual appliances exchange application traffic using the GENEVE protocol on port 6081.
 - Used with virtual appliances such as firewalls, intrusion detection systems, intrusion prevention systems, and deep packet inspection systems.
 
-#### Cross-zone load balancing:
+#### Cross-zone load balancing <a id="Cross-zone"></a>
 - when cross-zone load balancing is enabled, each load balancer node will distribute traffic across the register targets in all enabled AZ.
 - When it's disabled, each load balancer node distributes traffic only across the registered targets in its availability zone.
 - With __Application Load Balancers, cross-zone load balancing is always enabled__.
