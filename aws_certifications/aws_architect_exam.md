@@ -31,7 +31,7 @@
 - [Serverless](#Serverless)
 - [Database](#Database)
   - [RDS](#RDS)
-    - [RAuroraDS](#Aurora)
+    - [Aurora](#Aurora)
   - [ElastiCache](#ElastiCache)
   - [DynamoDB](#DynamoDB)
   - [Redshift](#Redshift)
