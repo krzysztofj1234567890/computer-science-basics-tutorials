@@ -2168,60 +2168,61 @@ A record consists of a partition key, sequence number, and data blob (up to 1 MB
 
 Transient data store – default retention of 24 hours but can be configured for up to 7 days
 
-Kinesis Data Streams:
-- enables you to build custom applications that process or analyze streaming data for specialized needs.
-- enables real-time processing of streaming big data
-- A __shard is the base throughput unit__ of an Amazon Kinesis data stream.
-- A __stream__ is composed of one or more shards
-- __stores data__ for later processing by applications (__key difference with Firehose__ which delivers data directly to AWS services)
-- Producers continually push data to Kinesis Data Streams.
-- Consumers process the data in real time.
-- Consumers can store their results using an AWS service such as Amazon DynamoDB, Amazon Redshift, or Amazon S3.
-- Kinesis Streams __applications are consumers that run on EC2 instances__.
-- Kinesis Data Streams replicates synchronously across three AZs
-
-Kinesis Data Firehose:
-- easiest way to load streaming data into data stores and analytics tools.
-- Captures, transforms, and loads streaming data. It can also batch, compress, and encrypt.
-- Kinesis Data Streams can be used as the source(s) to Kinesis Data Firehose
-- No shards, totally automated
-
-Kinesis Data Analytics:
-- easiest way to process and analyze real-time, streaming data.
-- Can use standard SQL queries to process Kinesis data streams.
-- Provides real-time analysis.
-- A Kinesis Data Analytics application consists of three components:
-  - Input – the streaming source for your application.
-  - Application code – a series of SQL statements that process input and produce output.
-  - Output – one or more in-application streams to hold intermediate results.
-
 #### Kinesis Data Streams <a id="KinesisDataStreams"></a>
 
+Records are organized in partitions (shards).
+
+Throughput per shard 1 MB/sec (for ingestion) and 2 MB/sec (for reading).
+
+Increase throughput by adding additional shards
+
+Records with same partition key are added to same shard. 
+All records for a sensor are available in a single shard.
+Records are ordered by arrival time.
+
+- enables you to build custom applications that process or analyze streaming data for specialized needs.
 - enables real time processing of streaming big data.
 - can move data off data producers and then process that data.
-- Producers send data to Kinesis and it's stored in shards for 24 hours, and that's the default, up to seven days.
+- Producers send data to Kinesis and it's stored in shards for __24 hours__, and that's the default, up to seven days.
 - Consumers then take the data and process it, and they can save it to another service.
 - allows for the later processing by applications rather than with Firehose where it delivers the data directly to an AWS service.
 - Kinesis data streams is real time with around 200 milliseconds of delay.
 - The Client Library helps you consume and process data from the Kinesis Stream, and each shard is processed by exactly one KCL worker and has one corresponding record processor.
 - One worker can process any number of shards, so it's fine if the number of shards exceeds the number of instances.
+- A __shard is the base throughput unit__ of an Amazon Kinesis data stream.
+- A __stream__ is composed of one or more shards
+- __stores data__ for later processing by applications (__key difference with Firehose__ which delivers data directly to AWS services)
+- Producers continually push data to Kinesis Data Streams.
+- Kinesis Streams __applications are consumers that run on EC2 instances__.
+- Kinesis Data Streams replicates synchronously across three AZs
+- AWS now supports update-shard-count API – automatically adjusts the number of shards
 
 #### Kinesis Data Firehose <a id="KinesisFirehose"></a>
 
+- No need to worry about shards and streams
 - __captures, transforms, and load streaming data__.
 - __Producers send the data to a Firehose, there are no shards, it's completely automated__, so scalability is elastic unlike data streams where you have to add shards.
 - __Firehose data is sent to another service for storing and data can be optionally processed and transformed using Lambda__.
 - It enables near real time analytics.
 - it's near real time, so around 60 seconds of latency.
 - Firehose destinations include Redshift, ElasticSearch, Amazon S3, Splunk, Datadog, MongoDB, and New Relic, as well as an HTTP endpoint.
+- easiest way to load streaming data into data stores and analytics tools.
+- Captures, transforms, and loads streaming data. It can also batch, compress, and encrypt.
+- Kinesis Data Streams can be used as the source(s) to Kinesis Data Firehose
+- No shards, totally automated
 
 #### Kinesis data analytics <a id="KinesisDataAnalytics"></a>
 
+- easiest way to process and analyze real-time, streaming data.
 - you get __real time SQL processing for streaming data__.
 - It provides __analytics for data coming from data streams or data firehose__.
 - Destinations can be data streams, data firehose or lambda.
-- you can quickly author and run powerful SQL code against those streaming sources.
+- you can quickly author and run powerful __SQL__ code against those streaming sources.
 - It can ingest data from both streams and firehose.
+- A Kinesis Data Analytics application consists of three components:
+  - Input – the streaming source for your application.
+  - Application code – a series of SQL statements that process input and produce output.
+  - Output – one or more in-application streams to hold intermediate results.
 
 ### Amazon Athena <a id="Athena"></a>
 
@@ -2345,21 +2346,53 @@ load the data from the OLTP databases into a Redshift data warehouse for OLAP.
 ## Messaging <a id="Messaging"></a>
 
 Kinesis vs SQS vs SNS
+
 ![ Kinesis vs SQS vs SNS ](./images/kinesis_sns_sqs.png)
  
 SNS, SQS: Redundant copies of a message are stored across multiple AZs
 
+|                     | SQS                        | SNS, Event Bridge              | Kinesis Data Streams
+|---------------------|----------------------------|--------------------------------|-----------------------------
+| Poll or Push        | Polling                    | Push notification              | Polling
+| Message Processing  | Message is processed once  | broadcast to all sub. consumers| Many consumers can read ALL messages
+| Retention           | Unprocessed messages can   | Immediate Delivery with retry  | Default 1 day. Extended 1 year
+|                     | be kept for up to 14 days  |                                |
+| Processing Time     | Visibility Timeout dictates| Consumer can take as long as   | Consumers must process
+|                     | how long a consumer can    | needed (each consumer gets a   | messages by retention duration
+|                     | take to process a message. | copy of a message)             |
+| Strength            | Buffer messages            | Broadcast messages for         | Time ordered messages
+|                     |                            | time sensitive processing      | for real-time analytics
+
+
 ### SQS <a id="SQS"></a>
+
+Consumers poll the queue for any new messages.
+
+A message is processed once and removed.
+
+Messages are replicated in multiple AZ (handles AZ and device failures).
+
+Multiple producers and consumers can simultaneously use the queue
+
+Simple Queue Service (SQS)
+- Highly scalable, simple to use
+- Recommended for new applications on AWS
+
+Amazon MQ
+- Support for Apache ActiveMQ, RabbitMQ
+- Migrate existing applications to cloud
 
 SQS Queue Types
 ![ SQS Queue Types ](./images/queue_types.png)
 
+
 The MessageRetentionPeriod attribute in SQS allows you to set the message retention period, which is the length of time (in seconds) that Amazon SQS retains a message.
 
-__FIFO queue__:
-- require the __message group ID__ and __message deduplication ID__ parameters to be added to messages.
-- The message group ID: is a tag that indicates that a message belongs to a certain group.
-- The deduplication ID is used for deduplication of messages within a specific interval.
+Retention: Keep unprocessed messages for up to 14 days
+
+Encryption: At-rest encryption using server-side encryption. Use AWS managed Key or specify your customer master key. Metadata not encrypted.
+
+Maximum message size is 256 KB
 
 We then have a dead-letter queue. This is designed for handling message failure. It lets you set aside and isolate messages so that you can look at them later on and process them.
 It's not a queue type, it's a configuration of a queue.
@@ -2368,19 +2401,85 @@ Long polling versus short polling:
 - Long polling as a way to retrieve messages from SQS queues and it waits for messages to arrive. Long polling can lower costs. Long polling is enabled at the queue level or at the API level with the wait time seconds parameter. Long polling is in effect when the receive message wait time is a value greater than zero up to 20 seconds.
 - Short polling returns immediately even if the queue is empty. So that can turn out more expensive from an API cost perspective.
 
+#### Standard Queue
+
+- Multiple messages and multiple consumers
+- Messages are processed concurrently
+- Message arrival order and processing order is different in a standard queue
+
+Standard Queue - Lifecycle of a message:
+1. Consumer received the message and receipt handle
+2. Queue locked the message and started a timer (__Visibility Timeout__)
+3. Consumer processed the message before timeout expired
+4. Consumer deleted the message by providing the receipt handle
+
+Failure scenario:
+1. Consumer received the message along with receipt handle
+2. Queue locked the message and started a timer (Visibility Timeout)
+3. Consumer crashed
+4. Queue waited until message visibility timeout expired
+5. Message not deleted
+6. Queue unlocked the message and assigns to next consumer
+
+Visibility Timeout:
+- Visibility timeout used for handling failures
+- Default timeout is 30 seconds, maximum is 12 hours
+- Queue level configuration
+- Consumer can increase timeout for a specific message
+
+#### FIFO Queue
+
+__FIFO queue__:
+- strict ordering of messages
+- require the __message group ID__ and __message deduplication ID__ parameters to be added to messages.
+- The message group ID: is a tag that indicates that a message belongs to a certain group.
+- The deduplication ID is used for deduplication of messages within a specific interval.
+
+FIFO Queue - Lifecycle of a message:
+1. Consumer receives the message and receipt handle
+2. Queue locks the __message group__ and starts a timer for the message(__Visibility Timeout__)
+3. Consumer processes the message before timer expires
+4. Consumer deletes the message by providing the receipt handle
+5. Queue unlocks the message group
+6. Another consumer can now receive the message
+
+Failure Scenario:
+1. Consumer crashed
+2. FIFO Queue waits for visibility timeout to expire
+3. FIFO Queue unlocks the message group
+4. Assigns the first message to the next consumer
+
+Less throughput when compared to Standard queue
+- 300 messages per second
+- 3000 messages per second (with batching)
+
 ### SNS <a id="SNS"></a>
 
+Broadcast a message to many consumers.
+
+Push notification and Event Driven Architecture
+
+- When you publish a message to a topic, SNS sends the message to every subscribed queue.
 - is a highly available, durable, secure, fully managed publisher/subscriber messaging service.
 - it provides topics for high throughput, push-based, many-to-many messaging.
 - can fan out messages to a large number of subscriber endpoints. And those include SQS queues Lambda functions, HTTP or HTTPS webhooks, mobile push, and SMS, and also, of course, email.
 - Multiple recipients can be grouped using topics. And that's essentially an access point that allows the recipients to subscribe to get the same copy of a message.
-- One topic can support deliveries to multiple endpoint types
+- One topic can support deliveries to __multiple endpoint__ types
 - simple APIs and easy integration with applications is available with SNS.
 - you get flexible message delivery over multiple transport protocols.
+- Publishers and consumers __can dynamically change__
+- SNS decouples publishers and consumers
+- SNS has __automatic retry__ if subscriber is not online
+- __Filtering__: Use filtering to deliver messages to the correct subscriber
 
-SNS plus SQS fan out is where you subscribe one or more SQS queue to an SNS topic. And SQS manages the subscription and any necessary permissions.
+SNS plus SQS:
+- fan out is where you subscribe one or more SQS queue to an SNS topic. 
+- SQS Queue to hold the message until consumer is ready to consume
+- Handles scenario where consumer is down possibly for an extended period
 
-When you publish a message to a topic, SNS sends the message to every subscribed queue.
+SNS Topic Types:
+- Standard Topic: Out of order and duplicate messages possible
+- FIFO Topic: Preserves order of messages Message group and deduplication (similar to SQS FIFO)
 
 ### Step Functions <a id="StepFunctions"></a>
 
@@ -2398,6 +2497,11 @@ When you publish a message to a topic, SNS sends the message to every subscribed
 - an event is a signal that a systems state has changed.
 - it routes events to AWS service targets and API destinations via HTTP endpoints.
 - targets include Lambda, SNS, SQS, and API Gateway.
+- 24 hours retry event delivery
+- Recommended when you need to process events from AWS services (90+)
+- Well defined JSON structure for events
+- Schema registry
+- Generate code to process events
 
 ## Deployment and Management <a id="Depolyment"></a>
 
