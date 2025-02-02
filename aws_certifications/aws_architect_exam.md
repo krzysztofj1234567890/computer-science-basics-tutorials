@@ -29,6 +29,9 @@
   - [File Share](#FileShare)
 - [Containers](#Containers)
 - [Serverless](#Serverless)
+  - [Lambda](#Lambda)
+  - [API Gateway](#APIGateway)
+  - [Fargate](#Fargate)
 - [Database](#Database)
   - [RDS](#RDS)
     - [Aurora](#Aurora)
@@ -1635,7 +1638,12 @@ Serverless Services:
 - it provides automatic scaling and high availability.
 - can be very cheap to run serverless services.
 
-Lambda:
+Serverless services:
+
+![ Serverless services ](./images/serverless_services.png)
+
+### Lambda <a id="Lambda"></a>
+
 - Lambda runs code as functions.
 - Lambda executes the code only when needed and __scales automatically__.
 - You __pay only for the compute time you consume__ and you pay nothing when your code is not running.
@@ -1647,7 +1655,7 @@ Lambda:
 - An __event source is an AWS service application that produces events that trigger an AWS Lambda function__.
 - Event sources are mapped to Lambda functions.
 - __For stream-based services Lambda performs the polling e.g. DynamoDB and Kinesis__. So that means Lambda checks with the stream based service rather than the polling coming the other way.
-- Inbound network connections are blocked by AWS Lambda. However, outbound calls are allowed from Lambda. In this case, we can use an API Gateway to listen and receive inbound requests. The API Gateway would then invoke a Lambda function to process the request
+- __Inbound network connections are blocked by AWS Lambda__. However, outbound calls are allowed from Lambda. In this case, we can use an API Gateway to listen and receive inbound requests. The API Gateway would then invoke a Lambda function to process the request
 - Benefits of Lambda:
   - there's no service to manage.
   - continuous scaling,
@@ -1658,6 +1666,7 @@ Lambda:
   - real time file processing,
   - real time streaming processing,
   - building serverless backends for various different use cases.
+  - Pricing based on memory, and duration (GB-Seconds). Millisecond Metering
 
 There is an upper limit on number of __concurrent lambda function executions__ for your account in each region.
 
@@ -1666,6 +1675,10 @@ Lambda support __versioning__ and you can maintain one or more versions of your 
 Lambda also supports __Alias__ for each of your functions. 
 Lambda alias is a pointer to a specific lambda function version.
 Alias enables you to promote new lambda function versions to production and if you need to rollback a function, you can simply update the alias to point to the desired version
+
+__Cold start__: o process new request, Lambda must initialize new instances – slowness in response (Cold Start)
+
+For Latency sensitive applications, keep lambda instances always ready! Configured using “__Provisioned concurrency__” setting
 
 Different types of function invocation:
 - synchronous
@@ -1682,10 +1695,75 @@ Different types of function invocation:
   - Lambda does the polling,
   - Records get processed in order except for SQS Standard.
 
-Serverless services:
-![ Serverless services ](./images/serverless_services.png)
+Orchestrate Lambda:
+- Use Step Functions for long running workflows
+- Build your app using smaller Lambda functions
+- Orchestrate using Step Functions
 
-### API Gateway:
+Lambda Scaling:
+- Deploys 500 function instances for initial burst!
+- Some regions deploy up to 3000 instances
+- Additional 500 instances per minute until concurrency limit is reached
+- Application Requests Per Second: 
+  - Function takes 300 ms to process a request
+  - Per second = 3.3 requests [1000/300]
+  - With 500 Lambda instances, your app can support 3.3 X 500 = 1,600 requests per second
+  - Throttling error when requests exceed concurrency limit
+
+RDS Connection:
+- Large number of open connections to database
+- Open and Close at a high rate
+- Exhaust database resources
+- __Use RDS Proxy__: et’s you share database connections across multiple Lambda instances
+
+Lambda netework isolation:
+
+![ Lambda netework isolation ](./images/lambda_network_isolation.jpg)
+
+Synchronous Invocation:
+1. Caller waits for function execution to complete
+2. Any errors are returned to the caller – invalid permission, invalid data, throttling error and more
+3. Retries are handled by the caller
+4. Throttling errors – caller must retry using exponential backoff strategy (increase wait time between successive retries)
+
+Asynchronous Invocation:
+1. Caller gets a success acknowledgement (that request was added to queue!)
+2. Separate Lambda process reads the events and sends them to your function
+
+Error Handling in Asynchronous execution:
+1. Function error – Lambda retries two more times
+2. Throttling errors – Lambda will retry for up to six hours with exponential backoff
+3. Original caller is not aware of errors!
+4. Optional – Store failed events in a Dead-Letter Queue
+5. Optional – Store send success events to SQS, SNS, EventBridge
+
+Lambda@Edge:
+- Customize cached content without routing request to origin
+- Improve security by checking for expired or invalid JWT token and redirect to login page
+
+### Fargate <a id="Fargate"></a>
+
+Fargate Serverless Compute for Containers
+
+Specify CPU and Memory needed
+
+Hourly charge for CPU and Memory
+
+Scheduled Tasks – Pay only when the task is running
+
+Web App - Need to pay even when there is no traffic
+
+### API Gateway <a id="APIGateway"></a>
+
+All the APIs created with Amazon API Gateway expose HTTPS endpoints only (does not support unencrypted endpoints).
+
+An API can present a certificate to be authenticated by the back end
+
+CloudFront is used as the public endpoint for API Gateway
+
+With API Gateway, you can route requests to private resources in your VPC. Using HTTP APIs, you can
+build APIs for services behind private ALBs, private NLBs, and IP-based services registered in AWS Cloud Map, such as ECS tasks
+
 - fully managed service for publishing, maintaining, monitoring and securing APIs
 - An API endpoint type refers to the hostname of the API.
 - all of the APIs created with API Gateway expose HTTPS endpoints only.
@@ -1696,17 +1774,6 @@ Serverless services:
 - Throttling with API Gateway, where you're setting a limit on the steady state rate and the burst of request submissions against the APIs in your account.
 - By default, API Gateway limits to steady state requests to 10,000 requests per second and the maximum concurrent request is 5,000 across all APIs within the account. If you go over those limits, you get a 429 too many requests error message.
 - if those exceptions occur, then you'll need your client application to resubmit the failed requests in a way that doesn't exceed those rate limits again.
-
-### Amazon API Gateway
-
-All the APIs created with Amazon API Gateway expose HTTPS endpoints only (does not support unencrypted endpoints).
-
-An API can present a certificate to be authenticated by the back end
-
-CloudFront is used as the public endpoint for API Gateway
-
-With API Gateway, you can route requests to private resources in your VPC. Using HTTP APIs, you can
-build APIs for services behind private ALBs, private NLBs, and IP-based services registered in AWS Cloud Map, such as ECS tasks
 
 #### API Gateway endpoints
 
