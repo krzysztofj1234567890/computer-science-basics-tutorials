@@ -458,6 +458,19 @@ Services with Auto Scaling Support:
 - __DynamoDB__ – Adjust provisioned read and write capacity
 - __Aurora__ – Adjust the number of read-replicas based on workload
 
+Scaling Policies:
+- Dynamic
+  - Target tracking
+    - Specify a scaling metric and target utilization
+    - AWS creates alarm and adjusts server count to maintain target utilization
+  - Step scaling
+    - You need to create alarm and specify what action to take at each step
+  - Simple scaling
+    - You need to create alarm and specify what action to take
+    - After every scaling action, policy pauses for cooldown period to expire before taking another scaling action
+- Maintain
+- Scheduled
+
 ### Auto Scaling Group <a id="AutoScalingGroup"></a>
 - Auto Scaling __launches and terminates EC2 instance__ is automatically.
 - __Scaling is horizontal__, it scales out.
@@ -1713,12 +1726,17 @@ You can add caching to API calls by provisioning an Amazon API Gateway cache and
 
 API Gateway caches responses for a specific amount of time (time to live or TTL). The default TTL is 300 seconds
 
-#### API throttling
+#### API Gateway Scaling
 
 API Gateway sets a limit on a steady-state rate and a burst of request submissions against all APIs in your account.
 
 By default API Gateway limits the steady-state request rate to 10,000 requests per second.
 The maximum concurrent requests is 5,000 requests across all APIs within an AWS account
+
+Default scaling up to 10,000 requests/second
+• Throttle requests
+• Limit requests/second by API keys
+• Usage Plan based on API Keys
 
 #### Usage plans and API keys
 
@@ -2329,6 +2347,8 @@ load the data from the OLTP databases into a Redshift data warehouse for OLAP.
 Kinesis vs SQS vs SNS
 ![ Kinesis vs SQS vs SNS ](./images/kinesis_sns_sqs.png)
  
+SNS, SQS: Redundant copies of a message are stored across multiple AZs
+
 ### SQS <a id="SQS"></a>
 
 SQS Queue Types
