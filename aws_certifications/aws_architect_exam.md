@@ -20,6 +20,7 @@
     - [NLB](#NLB)
     - [GLB](#GLB)
     - [Cross-zone load balancing](#Cross-zone)
+    - [Global Accelerator](#GlobalAccelerator)
 - [Organizations](#Organizations)
 - [VPC](#VPC)
 - [S3](#S3)
@@ -623,6 +624,7 @@ NLB - ACL:
 - Allow inbound traffic from instance VPC on ephemeral ports
 
 #### Gateway Load Balancer <a id="GLB"></a>
+
 - This is layer 3.
 - listens for all IP packets across all ports.
 - GLP and virtual appliances exchange application traffic using the GENEVE protocol on port 6081.
@@ -633,6 +635,20 @@ NLB - ACL:
 - When it's disabled, each load balancer node distributes traffic only across the registered targets in its availability zone.
 - With __Application Load Balancers, cross-zone load balancing is always enabled__.
 - With __Network Load Balancers and Gateway Load Balancers, cross-zone load balancing is disabled by default__.
+
+### Global Accelerator <a id="GlobalAccelerator"></a>
+
+Cross-region load balancing
+
+- Global Accelerator decides how to route each application request
+- Responds instantaneously to changes in health and traffic conditions
+- Clients connect to Edge location
+- Request travels in AWS Global network (and not public internet)
+- Endpoints can be private (Global Accelerator creates a peering connection)
+- DDoS Protection
+- AWS Shield Standard and Advanced Protection
+
+![ Global Accelerator ](./images/global_accelerator.jpg)
 
 ### Architectural Patterns
 
@@ -956,7 +972,7 @@ You have to __create your buckets within a specific region__.
 There's __no hierarchy__ for objects within a bucket.
 
 S3 delivers __strong read-after-write consistency__.
-      
+
 S3 Buckets:
 - Files get stored in buckets
 - the bucket can be viewed as a container for the objects.
@@ -976,8 +992,21 @@ S3 objects:
 
 S3:__PutObjectLegalHold__ permissions privileges are limited to people with a business need
 
+Data Access Pattern:
+
+| S3 Storage Class  | Standard            | Infrequent Access       | Glacier Deep Archive
+|-------------------|---------------------|-------------------------|-------------------------
+| Access            | Immediate           | Immediate               | Several hours
+| Usage             | Frequently Accessed | Less frequently accessed| Rarely accessed
+| Monthly Cost 500GB| USD 11.50           | USD 6.25                | USD 0.50
+| Retrieval Fee     | N/A                 | Per GB                  | Per GB
+| Redundancy        | 3 AZ                | 3 AZ                    | 3 AZ
+
 Storage classes:
+
 ![ Storage classes ](./images/s3_storage_classes.png)
+
+![ Storage classes comparison ](./images/s3_comparison.jpg)
  
 __IAM / Bucket policies__:
 - IAM policies are identity-based policies.
@@ -1006,7 +1035,12 @@ __S3 Versioning__:
 - Versioning enabled buckets will enable you to recover objects from accidental deletion or overwrites.
 
 Lifecycle management:
+
 ![ Lifecycle management ](./images/s3_life_cycle_management.png)
+
+Archive Flow – Intelligent Tiering:
+
+![ Intelligent Tiering ](./images/intelligent_tiering.jpg)
  
 Multi-Factor Authentication Delete:
 - Adds an MFA requirement for bucket owners to the following operations:
