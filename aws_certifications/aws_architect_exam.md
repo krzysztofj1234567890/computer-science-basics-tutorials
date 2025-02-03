@@ -30,6 +30,8 @@
   - [EBS](#EBS)
   - [File Share](#FileShare)
 - [Containers](#Containers)
+  - [ECS](#ECS)
+  - [EKS](#EKS)
 - [Serverless](#Serverless)
   - [Lambda](#Lambda)
   - [API Gateway](#APIGateway)
@@ -1560,12 +1562,23 @@ Key features of the Elastic Container Service:
 - You get __Elastic Load Balancer integration__ so you can distribute traffic across containers using either an ALB or an NLB.
 - You get Amazon ECS anywhere. It enables the use of the ECS control plane to manage on-premises implementations.
 
-ECS components:
+### ECS components <a id="ECS"></a>
+
 - __Cluster__: It's a __logical grouping of EC2 instances__. you can create IAM policies for your clusters to allow or restrict users access to specific clusters.
 - A __container instance__: is an EC2 instance that runs the ECS agent.
 - __Container agent__: The container agent __runs on each infrastructure resource on an ECS cluster__. The container agent is included in the Amazon ECS optimized AMI. The container agent is Linux and Windows-based. And for non-Linux instances to be used on AWS, you must manually install the ECS container agent.
 - A __task definition__ is a __blueprint that describes how a Docker container should launch__, It's a text file in JSON format that describes one or more containers up to 10. Task definitions use Docker images to launch the actual containers. And you can specify the number of tasks to run.
 - __task__ itself is a __running container__ using settings from a task definition.
+  - Three ways to run:
+    - Batch
+      - Scheduled execution of tasks
+      - Invoked through EventBridge rules
+    - Service
+      - Suitable for continuously running tasks
+      - Example, global ecommerce site need web, app and data tiers running 24x7
+    - Run-task
+      - Manually start a task or configure run-task action in response to an event
+  - ECS __automatically replaces unhealthy tasks and instances__
 - A __service__ is used to define long running tasks, and you can control how many tasks you want to run. You can also use auto scaling and elastic load balancing.
 
 Launch types: determine the type of infrastructure on which your tasks and services are hosted:
@@ -1588,6 +1601,29 @@ ECS images:
 - Images are stored in a registry such as Docker Hub or the Elastic Container Registry.
 - ECR is a managed AWS Docker registry service that is secure, scalable, and reliable, and it's also private.
 
+Deployment Options:
+
+| Location        | Purpose
+|-----------------|----------------------------------------------------------
+| AWS Local Zones | AWS location closer to large population centers and industries
+|                 | Run latency sensitive applications in local zones
+| AWS Wavelength  | AWS managed edge infrastructure embedded within 5G communication providers
+|                 | Run latency sensitive mobile services
+| AWS Outposts    | AWS managed on-premises infrastructure
+|                 | Suitable when on-premises systems need low-latency access to AWS services
+| ECS Anywhere    | Run containers in customer-managed infrastructure
+|                 | On-premises or other cloud providers
+
+Deployment strategies - Upgrade production app with no downtime:
+- Rolling Deployment:
+  - Small number of new tasks are launched
+  - Wait until health check passes
+  - Remove old tasks
+  - Repeat until all old tasks are replaced with new
+- Blue/Green Deployment:
+  - Old and new version of software running side-by-side
+  - Rapidly respond to issues with new version
+
 Auto scaling for ECS:
 - service autoscaling:
   - adjusts the desired task count up or down using the application auto scaling service.
@@ -1596,7 +1632,37 @@ Auto scaling for ECS:
   - uses a capacity provided to scale the number of EC2 cluster instances using EC2 auto scaling.
   - the ASG can automatically scale using managed scaling and managed instance termination protection can be configured as well.
 
-Elastic Kubernetes Service, EKS
+"Container Instance Role" - Agent (EC2) uses this role to:
+- Communicate with ECS service
+  - EC2 Instance registration, deregistration
+  - Launch and terminate tasks
+  - Reports status of tasks and server to Cluster
+- Download images from private repository
+- Retrieve third-party repository credentials stored in Secrets Manager
+- Publish Container generated logs to CloudWatch Logs
+
+Data Volumes for Containers:
+- EFS File Share' and 'FSx for Windows File Share:
+  - All tasks (from a task definition) access the same storage
+- EBS Volumes: Private task level storage
+
+Networking Modes:
+- Host Mode: Container is directly connected to host networking
+- Bridge Mode (static port): Virtual network bridge between host and container. Remap Host port to container port
+- Bridge Mode (Dynamic port): Virtual network bridge between host and container. Docker assigns a random host port for container
+- AWSVPC Mode: Each Task is assigned a network interface and private IP. Containers can bind to static port
+
+Service Discovery:
+- Internal Elastic Load Balancer
+- Shared Internal Elastic Load Balancer: Single Load Balancer shared with many services
+- Cloud Map: Maintain service domain names in Cloud Map. ECS automatically updates entries
+- App Mesh: 
+  - Service discovery with ease of managed load balancer
+  - Envoy proxy handles load balancing
+  - Envoy Proxy can detect failures and retry failed requests
+
+### Elastic Kubernetes Service, EKS <a id="EKS"></a>
+
 - use this when you need to standardize container orchestration across multiple environments using a managed Kubernetes implementation.
 - can have a hybrid deployment where you manage Kubernetes clusters and applications across hybrid environments like AWS and on-premises.
 - Batch processing where you're using the Kubernetes Jobs API.
@@ -1773,6 +1839,11 @@ Hourly charge for CPU and Memory
 Scheduled Tasks – Pay only when the task is running
 
 Web App - Need to pay even when there is no traffic
+
+"Task Execution Role" - Fargate Agent uses this role to:
+- Download images from private repository
+- Retrieve third-party repository credentials stored in Secrets Manager
+- Publish Container generated Logs to CloudWatch Logs
 
 ### API Gateway <a id="APIGateway"></a>
 
