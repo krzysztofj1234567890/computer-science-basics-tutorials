@@ -24,6 +24,8 @@
 - [VPC](#VPC)
 - [S3](#S3)
 - [DNS](#DNS)
+  - [Route53](#Route53)
+  - [CloudFront](#CloudFront)
 - [Block and File Storage](#Block_File_Storage)
   - [EBS](#EBS)
   - [File Share](#FileShare)
@@ -1038,14 +1040,6 @@ Multipart upload:
 - can be used for objects from 5MB up to the maximum file size, which is 5TB.
 - it has to be used for any objects larger than 5GB.
 
-Transfer Acceleration:
-- improving the performance of transfers of files,
-- leverages the CloudFront edge locations.
-- Used to accelerate uploads of objects over long distances, so you're reducing latency.
-- Transfer Acceleration is as secure as a direct upload to S3,
-- you're charged only if there's a benefit in the transfer time.
-- You need to enable Transfer Acceleration on the S3 bucket. It cannot be disabled after that, but only suspended.
-
 S3 copy API:
 - you can copy objects up to five gigabytes.
 - it can be used to:
@@ -1084,6 +1078,56 @@ Performance optimizations:
 - You can retry requests for latency sensitive applications
 - you can combine S3 and EC2 in the same region for better performance.
 - you can use Amazon S3 Transfer Acceleration to minimize any latency caused by long distances.
+
+### Amazon S3 and Glacier
+
+A bucket owner can grant cross-account permissions to another AWS account (or users in an account) to upload objects.
+- The AWS account that uploads the objects owns them.
+- The bucket owner does not have permissions on objects that other accounts own, however:
+  - The bucket owner pays the charges.
+  - The bucket owner can deny access to any objects regardless of ownership
+
+You can use the AWS Policy Generator to create a bucket policy for your Amazon S3 bucket.
+
+Bucket and object permissions are independent of each other.
+
+### Transfer acceleration
+
+Amazon S3 Transfer Acceleration enables fast, easy, and secure transfers of files over long distances between your client and your Amazon S3 bucket.
+
+S3 Transfer Acceleration leverages Amazon CloudFrontʼs globally distributed AWS Edge Locations.
+
+Transfer acceleration is as secure as a direct upload to S3
+
+- improving the performance of transfers of files,
+- leverages the CloudFront edge locations.
+- Used to accelerate uploads of objects over long distances, so you're reducing latency.
+- Transfer Acceleration is as secure as a direct upload to S3,
+- you're charged only if there's a benefit in the transfer time.
+- You need to enable Transfer Acceleration on the S3 bucket. It cannot be disabled after that, but only suspended.
+
+Must use one of the following endpoints:
+- .s3-accelerate.amazonaws.com.
+- .s3-accelerate.dualstack.amazonaws.com (dual-stack option)
+
+__Cross Region Replication requires versioning__ to be enabled on the source and destination buckets.
+
+__Replication is 1:1__ (one source bucket, to one destination bucket).
+You can configure __separate S3 Lifecycle rules on the source and destination buckets__.
+
+### Static Websites
+
+You can use a custom domain name with S3 using a __Route 53 Alias record__.
+
+When using a custom domain name the __bucket name must be the same as the domain name__.
+
+__Does not support HTTPS/SSL__
+
+Only supports __GET and HEAD requests__ on objects.
+
+To enable website hosting on a bucket, specify:
+- An __Index document__ (default web page).
+- Error document (optional).
 
 ### Architecture Patterns
 
@@ -1136,13 +1180,15 @@ Remove permissions for anywone to directly access S3 bucket
 
 ## DNS, Caching and Performance Optimization <a id="DNS"></a>
 
-Route 53:
+### Route 53 <a id="Route53"></a>
+
 - Route 53 gives you:
   - __domain name registry__,
   - __DNS resolution__,
   - __health checking__ of resources.
 - It is __located along side edge locations__.
 - Route 53 becomes the authoritative DNS server for registered domains and will create a public hosted zone for you.
+- Amazon Route 53 automatically creates the Name Server (NS) and Start of Authority (SOA) records for the hosted zones.
 - private DNS, lets you have an authoritative DNS server within your VPCs without exposing your DNS records.
 - You can transfer existing domains to Route 53 if the top-level domain is supported.
 - You can also transfer domain from Route 53 to another registrar, but you have to contact AWS support.
@@ -1183,11 +1229,19 @@ Two types of DNS record:
   - An alias record can only point to CloudFront, Elastic Beanstalk, ELB, S3 buckets configured as static websites or to another record in the same hosted zone.
   - allows users to access a page or file at an alternative path. It's similar to having multiple front doors to one location
   - An ALIAS record can be used to point multiple domains to the same site, such as example.com, www.example.com, and blog.example.com all pointing to the same site
+  - Alias records work like a CNAME record in that you can map one DNS name (e.g. example.com) to another ‘targetʼ DNS name (e.g. elb1234.elb.amazonaws.com).
+  - An Alias record can be used for resolving apex / naked domain names (e.g. example.com rather than sub.example.com).
+  - A CNAME record canʼt be used for resolving apex / naked domain names.
 
 Routing policies:
 ![ Routing policies ](./images/route_53_routing_policies.png)
- 
-Amazon CloudFront:
+
+
+### Amazon CloudFront <a id="CloudFront"></a>
+
+- Cache copies of content close to your users
+-  CloudFront routes request to nearest edge location
+
 - CDN as we know for __caching content around the world__.
 - You __can define a maximum time to live__ and a default TTL for records.
 - TTL is defined at the behavior level and CloudFront.
@@ -1203,7 +1257,20 @@ Amazon CloudFront:
   - forward a whitelist of headers that you specify.
   - forward only the default headers and then it doesn't cache the objects based on values in the request headers.
 
-Signed URLs and cookies:
+#### Origin
+
+- Dynamic and Static Content
+- Restrict access - Signed URLs, Signed Cookies
+- Geo Restriction
+- Configurable Caching, Invalidation Option
+- Personalized – Query String Parameters, HTTP Cookies
+- Backup Origin (primary not healthy)
+- Security:
+  - Origin Access Identity – Limit access to S3 bucket only from CloudFront Identity
+  - When configured, CloudFront uses OAI credentials to sign S3 requests
+
+#### Signed URLs and cookies
+
 - With __signed URL__s:
   - these provide more control over access to content.
   - __You can specify the beginning and expiration date and time and IP addresses__ or ranges of IP addresses for users.
@@ -1212,7 +1279,12 @@ Signed URLs and cookies:
   - they can also be used when you want to provide access to __multiple restricted files__, that's a key difference.
   - A signed URL is for a single object, whereas if you want multiple objects to be included, then you should use signed cookies.
 
-Lambda@edge:
+#### Lambda@edge
+
+Lambda functions at edge locations.
+
+Customize application behavior – without touching origin systems
+
 - This is where you run Node.js and Python Lambda functions to customize the content that CloudFront delivers,
 - it __executes the functions closer to the view__ of a better performance.
 - You can run Lambda@edge at the following points:
@@ -1220,57 +1292,6 @@ Lambda@edge:
   - __after CloudFront receives the response__ from the origin, origin response,
   - __before CloudFront forwards the response__ to the viewer and that's called the viewer response.
 
-### Amazon Route 53
-
-Amazon Route 53 automatically creates the Name Server (NS) and Start of Authority (SOA) records for the hosted zones.
-
-The Alias record is a Route 53 specific record type. The Alias is pointed to the DNS name of the service.
-Alias records work like a CNAME record in that you can map one DNS name (e.g. example.com) to another ‘targetʼ DNS name (e.g. elb1234.elb.amazonaws.com).
-An Alias record can be used for resolving apex / naked domain names (e.g. example.com rather than sub.example.com).
-A CNAME record canʼt be used for resolving apex / naked domain names.
-
-### Amazon S3 and Glacier
-
-A bucket owner can grant cross-account permissions to another AWS account (or users in an account) to upload objects.
-- The AWS account that uploads the objects owns them.
-- The bucket owner does not have permissions on objects that other accounts own, however:
-  - The bucket owner pays the charges.
-  - The bucket owner can deny access to any objects regardless of ownership
-
-You can use the AWS Policy Generator to create a bucket policy for your Amazon S3 bucket.
-
-Bucket and object permissions are independent of each other.
-
-#### Transfer acceleration
-
-Amazon S3 Transfer Acceleration enables fast, easy, and secure transfers of files over long distances between your client and your Amazon S3 bucket.
-
-S3 Transfer Acceleration leverages Amazon CloudFrontʼs globally distributed AWS Edge Locations.
-
-Transfer acceleration is as secure as a direct upload to S3
-
-Must use one of the following endpoints:
-- .s3-accelerate.amazonaws.com.
-- .s3-accelerate.dualstack.amazonaws.com (dual-stack option)
-
-__Cross Region Replication requires versioning__ to be enabled on the source and destination buckets.
-
-__Replication is 1:1__ (one source bucket, to one destination bucket).
-You can configure __separate S3 Lifecycle rules on the source and destination buckets__.
-
-#### Static Websites
-
-You can use a custom domain name with S3 using a __Route 53 Alias record__.
-
-When using a custom domain name the __bucket name must be the same as the domain name__.
-
-__Does not support HTTPS/SSL__
-
-Only supports __GET and HEAD requests__ on objects.
-
-To enable website hosting on a bucket, specify:
-- An __Index document__ (default web page).
-- Error document (optional).
 
 
 ### Architecture Patterns
