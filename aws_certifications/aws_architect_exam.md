@@ -1883,6 +1883,7 @@ Different options:
 - ElastiCache is for temporary storage for small amounts of data. It's also in-memory.
 - EMR is used for running analytics workloads using Hadoop.
 
+![ Standard features ](./images/database_standard_features.jpg)
 
 ### RDS <a id="RDS"></a>
 
@@ -1897,9 +1898,8 @@ Different options:
 - Disaster recovery with the Multi-AZ option.
 
 Multi-AZ versus read replica
-![ Multi-AZ versus read replica ](./images/rds_multi-az-vs-replica.png)
 
-Automated backups and patching are applied in customer- defined maintenance windows.
+![ Multi-AZ versus read replica ](./images/rds_multi-az-vs-replica.png)
 
 Push-button scaling, replication, and redundancy
 
@@ -1910,34 +1910,56 @@ RDS supports SSL encryption between applications and RDS DB instances. RDS gener
 Enable db encryption without data loss: create snapshot -> encrypted snapshot of db -> encrypted rds db -> DMS to synchronize data
 
 For __multi-AZ__ high availability, RDS uses __synchronous__ replication between primary and standby systems.
-If standby is slow, transactions will take longer to complete.
+If standby is slow, transactions will take longer to complete. 
+After failover, DNS is updated to point to new primary
 
 __RDS Read Replica__ on the other hand uses __asynchronous__ replication and any slowness in Read Replica instance would simply cause data lag in the read - replica.
 Transactions in primary is not impacted
-
-
-RDS manual backups are snapshots:
-- they backup the __entire DB instance, not just individual databases__.
-- For __single AZ DB instances, there's a brief suspension in I/O__.
-- For __multi-AZ SQL, I/O activity is briefly suspended on the primary__.
-- For Multi-AZ, MariaDB, MySQL, Oracle, and Postgres, the snapshot gets taken from the standby.
-- Snapshots do not expire. There's no retention period.
 
 RDS Maintenance Windows:
 - Operating system and database patching can require taking that database offline,
 - those tasks take place during a maintenance window
 - by default, a weekly maintenance window is configured, but you can choose your own.
 
-RDS Security:
-- encryption at rest can be enabled, and that includes the database storage, backups, read replicas and snapshots.
+#### RDS Security
+
+- __encryption at rest__ can be enabled, and that includes the database storage, backups, read replicas and snapshots.
 - You can only enable it when you create the instance, not afterwards.
 - DB instances that are encrypted can't be modified to disable encryption,
 - it uses AES 256 encryption, which is transparent with minimal performance impacts.
 - Oracle and SQL, they also support transparent data encryption, which may have a performance impact.
-- KMS is used for managing encryption keys.
+- __KMS__ is used for managing encryption keys.
 - You can't have an encrypted read replica of an unencrypted DB instance or an unencrypted read replica of an encrypted DB instance.
 - Read replicas of encrypted primary instances are encrypted and the same KMS key is used if in the same region as the primary, or if it's in a different region, a different KMS key is used.
 - You can't restore an unencrypted backup or snapshot to an encrypted DB instance.
+
+Recomendations:
+- Deploy RDS in __Private Subnet__ (unless your requirement is a publicly accessible RDS instance)
+- __Configure RDS Security Group__ to allow access from Web Server or Application Server Security Groups
+- Assign a __subnet in all Availability Zones__ to the DB Subnet Group
+
+#### RDS backups are snapshots
+
+Automated backups and patching are applied in customer- defined maintenance windows.
+
+By default, Amazon RDS creates and saves automated backups of your DB instance securely in Amazon S3 for a user-specified retention period. 
+
+Automated Backups:
+- they backup the __entire DB instance, not just individual databases__.
+- backup occurs during a daily user-configurable 30 minute period known as the backup window
+- For __single AZ DB instances, there's a brief suspension in I/O__.
+- For __multi-AZ SQL, I/O activity is briefly suspended on the primary__.
+- backup your databases and transaction logs
+- You can restore your DB instance to any specific time during the backup retention period, creating a new DB instance
+- The first snapshot of a DB instance contains the data for the full database. Subsequent snapshots of the same database are incremental, which means that only the data that has changed after your most recent snapshot is saved.
+- In addition to the daily automated backup, RDS archives database change logs. This __enables recovery of the database to any point in time during__ the backup retention period, __up to the last five minutes__ of database usage
+
+In addition, you can create snapshots, which are user-initiated backups of your instance that are kept until you explicitly delete them. 
+
+Snapshots:
+- For Multi-AZ, MariaDB, MySQL, Oracle, and Postgres, the snapshot gets taken from the standby.
+- Snapshots do not expire. There's no retention period.
+- you can share a manual DB snapshot or DB cluster snapshot with other AWS accounts.
 
 #### RDS Scaling
 
@@ -1952,7 +1974,7 @@ Scaling compute will cause downtime.
 #### Multi-AZ and Read Replicas
 
 Multi-AZ:
-- Multi-AZ RDS creates a replica in another AZ and synchronously replicates to it (DR only)
+- Multi-AZ RDS creates a __standby replica__ in another AZ and synchronously replicates to it (DR only)
 - During failover RDS automatically updates configuration (including DNS endpoint) to use the second node.
 - It is recommended to implement DB connection retries in your application
 - The secondary DB in a multi-AZ configuration cannot be used as an independent read node (read or write).
@@ -1970,6 +1992,10 @@ Read Replicas:
 
 #### Aurora <a id="Aurora"></a>
 
+Separation of compute and storage
+
+Storage Subsystem that automatically maintains __6 copies__ of data across __3 availability zones__
+
 - This is an AWS database offering in the RDS family.
 - Aurora is a MySQL and Postgres compatible relational database built for the cloud.
 - Aurora is __up to 5 times faster than standard MySQL and 3 times faster than Postgres__.
@@ -1983,6 +2009,11 @@ Read Replicas:
   - Global database is a cross-region cluster with read scaling and it gives you fast replication and low latency reads. And you can remove the secondary and promote it if you need to.
   - __Multi-master scales out writes within a region__
   - __serverless__ is an on-demand auto scaling configuration for Aurora. Does not support read replicas or public IPs.
+
+Aurora endpoints:
+- Cluster endpoint: Points to Current Primary Instance
+- Reader endpoint: Points to Read Replicas
+- Instance endpoint: Points to Individual Aurora Instance
 
 ![ Aurora replica ](./images/aurora_replica.png)
 
@@ -2046,8 +2077,13 @@ On-demand, auto-scaling configuration for Amazon Aurora.
 
 Available for MySQL-compatible and PostgreSQL-compatible editions.
 
-You only pay for database storage and the database capacity and I/O your database consumes while it is active. Pay on a per-second basis for the database capacity you use
-when the database is active.
+You only pay for database storage and the database capacity and I/O your database consumes while it is active. Pay on a per-second basis for the database capacity you use when the database is active.
+
+Storage and Processing are separate – scale down to zero processing and pay only for storage
+
+Automatic Pause and Resume – Configurable period of inactivity after which DB Cluster is Paused
+
+Rapid scaling: uses a pool of warm resources
 
 #### Migrate database from datacenter to RDS using DMS
 
@@ -2126,6 +2162,10 @@ Multi-AZ failover:
   - Backup is point in time recovery down to the last second in the last 35 days
   - on-demand backup and restore as well.
   - Global Tables is a multi-region multi-master solution.
+- Point-in-Time Recovery – Automated Continuous Backup (35 days retention)
+- On-Demand Backup/Snapshot for long term retention
+- Automatic deletion of expired items – Time To Live
+- Limits - Item size cannot exceed 400 KB
 
 DynamoDB streams:
 - captures a time mode sequence of item level modifications in your table,
@@ -2162,6 +2202,32 @@ DynamoDB supports:
 Transactions provide atomicity, consistency, isolation, and durability (ACID) in DynamoDB.
 
 Enables reading and writing of __multiple items across multiple tables__ as an all or nothing operation
+
+Example:
+
+```
+    Collection<TransactWriteItem> actions = Arrays.asList(
+        new TransactWriteItem().withConditionCheck(checkCustomerValid),
+        new TransactWriteItem().withUpdate(markItemSold),
+        new TransactWriteItem().withPut(createOrder));
+
+    TransactWriteItemsRequest placeOrderTransaction = new TransactWriteItemsRequest()
+        .withTransactItems(actions)
+        .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL);
+
+    // Run the transaction and process the result.
+    try {
+        client.transactWriteItems(placeOrderTransaction);
+        System.out.println("Transaction Successful");
+
+    } catch (ResourceNotFoundException rnf) {
+        System.err.println("One of the table involved in the transaction is not found" + rnf.getMessage());
+    } catch (InternalServerErrorException ise) {
+        System.err.println("Internal Server Error" + ise.getMessage());
+    } catch (TransactionCanceledException tce) {
+        System.out.println("Transaction Canceled " + tce.getMessage());
+    }
+```
 
 #### Scan and Query API calls
 
@@ -2209,6 +2275,7 @@ If your application requires strongly consistent reads, then it must perform all
 strongly consistent reads across AWS regions.
 
 Conflicts can arise if applications update the same item in different Regions at about the same time. To help ensure eventual consistency, DynamoDB global tables use a “last writer wins” method to reconcile between concurrent updates.
+
 
 
 ### Redshift <a id="Redshift"></a>
