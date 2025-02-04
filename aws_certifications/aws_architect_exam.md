@@ -2811,6 +2811,13 @@ AWS Config:
 - You can also retrieve historical configurations of one or more resources,
 - you can receive a notification whenever a resource is created, modified or deleted.
 - You can view relationships between resources as well.
+- AWS Config – Managed Rule Checks
+  - Access key rotated periodically
+  - ALB HTTP to HTTPS redirection configured
+  - Unused EBS Volumes, unused Elastic IP
+  - Check if multi-az is configured for RDS
+  - Verify is S3 bucket has bucket-level encryption enabled
+  - Check if EC2 instance is managed by systems manager
 
 Secrets Manager:
 - This is another way that you can store secrets.
@@ -2974,6 +2981,8 @@ Two. Alarm is associated with one metric. So, we need one alarm per metric.
 
 ## Security in the Cloud <a id="Security"></a>
 
+### Active Directory <a id="AD"></a>
+
 Managed Microsoft AD:
 - This is a __fully managed AWS service__.
 - It's the best choice if you have __more than 500 users__ and or you need a trust relationship set up,
@@ -3004,6 +3013,8 @@ Simple AD:
   - Kerberos based SSO
   - supports joining Linux or Windows-baseded EC2 instances
 
+### Identity providers <a id="IdentityProviders"></a>
+
 Identity providers and federation :
 - IDP you can manage user identities outside of AWS and give these identities permissions to use resources in your account.
 - For example:
@@ -3020,16 +3031,8 @@ IAM Identity center:
 - You can create and manage user identities in IAM Identity Center
 - you can connect to existing identity stores such as Ad or Azure
 
-Amazon Cognito:
-- add user sign-up and sign-in and access control to your web and mobile apps.
-- A __user pool__ is a directory for managing sign-in and sign-up
-- users can be stored in a user pool or can sign in using social IDPs.
-- It supports SAML and OIDC compatible IDPs.
-- Cognito acts as an identity broker between the IDP and AWS.
-- __Identity pools__ are used to obtain temporary limited privilege credentials for AWS services using the STS service.
-- IAM role is assumed providing access to those services.
+### KMS <a id="KMS"></a>
 
-KMS:
 - enables you to create and manage cryptographic keys.
 - You can control your key usage across services and in applications.
 - It allows you to centrally manage and securely store your
@@ -3061,7 +3064,8 @@ Data Encryption Keys:
 
 ![ Kms keys ](./images/kms_keys.png)
 
-Cloud HSM
+### Cloud HSM <a id="HSM"></a>
+
 - cloud based hardware security module
 - You can generate and use your own encryption keys on the AWS cloud.
 - runs in your VPC
@@ -3074,17 +3078,21 @@ Cloud HSM
   - store the master key for oracle DB transparent data encryption
   - custom key store for KMS, so you can retain control of the HSM that protects the master keys.
 
-AWS Certificate Manager:
+### AWS Certificate Manager <a id="CertificateManager"></a>
+
 - create, store and renew SSL/TLS X 509 certificates that supports single domains, multiple domain names and wild cards
 - integrates with several services like elbs, cloudfront, Elastic beanstalk, Nitro enclaves and AWS cloud formation.
 - Public certificates are signed by the AWS public CA.
 - You can also create a private CA with ACM, then you can issue private certificates.
 - You can also import certificates from third party issuers as well.
 
-AWS web application firewall - WAF
+### AWS web application firewall - WAF <a id="WAF"></a>
+
 - This service lets you create rules to filter web traffic based on conditions such as IP addresses, http headers and body or custom URIs.
 - It makes it easy to create rules that block common web exploits like sequel injection and cross site scripting.
 -  Web Application Firewall allows you to enforce country-specific rules. You can block or allow traffic from specific countries.
+- Monitor requests to Application Load Balancer, CloudFront, API Gateway (and more)
+- Secure at the edge (with CloudFront, CloudFront query parameter whitelist)
 - Concepts:
   - __web ACLS__, are used to protect a set of resources
   - __rules__: that define the inspection criteria and actions to take if a web request meets your defined criteria
@@ -3102,22 +3110,37 @@ AWS web application firewall - WAF
     - sequel injection attacks,
     - string, match and
     - cross site scripting attacks.
+- Monitor requests to Application Load Balancer, CloudFront, API Gateway (and more)
+- Secure at the edge (with CloudFront, CloudFront query parameter whitelist)
 
 These are various different ways of identifying traffic that could be malicious in nature:
 
 ![ Malicious attack ](./images/malicious_assack.png)
 
-AWS shield:
+#### WAF – Managed Rule Groups
+
+Preconfigured set of rules managed by AWS and Marketplace Sellers:
+- OWASP Top 10
+- Common Vulnerabilities and Exposure (CVE)
+- AWS IP Reputation List – Block addresses associated with bots and other threats
+- AWS IP Anonymous List – Block requests from services that obfuscate caller identity (VPN, Proxies, Tor nodes)
+
+
+### AWS shield <a id="Shield"></a>
+
+- Protection against Layer 3 and 4 attacks
 - managed distributed denial of service (DDOS) protection service.
 - It safeguards web applications running on AWS with always on detection and automatic in line mitigations.
 - It helps to minimize application downtime and latency.
+- Protection against regional and global resources
+- Includes WAF
 - 2 tiers:
   - the standard which is no cost at all
   - advance which comes for a monthly fee and a one year commitment.
 
 ![ Secure Architecture ](./images/secure_architecture.png)
 
-### Amazon Cognito
+### Amazon Cognito <a id="Cognito"></a>
 
 AWS Cognito works with external identity providers that support SAML or OpenID Connect, social identity providers (such as Facebook, Twitter, Amazon)
 
@@ -3126,6 +3149,14 @@ Federation allows users to authenticate with a Web Identity Provider (e.g. Googl
 The user authenticates first with the Web ID provider and receives an authentication token, which is then exchanges for temporary AWS credentials allowing them to assume an IAM role allowing access to the required resources.
 
 Cognito is an Identity Broker which handles interaction between your applications and the Web ID provider
+
+- add user sign-up and sign-in and access control to your web and mobile apps.
+- A __user pool__ is a directory for managing sign-in and sign-up
+- users can be stored in a user pool or can sign in using social IDPs.
+- It supports SAML and OIDC compatible IDPs.
+- Cognito acts as an identity broker between the IDP and AWS.
+- __Identity pools__ are used to obtain temporary limited privilege credentials for AWS services using the STS service.
+- IAM role is assumed providing access to those services.
 
 User pools:
 - Cognito User Pools are user directories used to manage sign-up and sign-in functionality for mobile and web applications.
