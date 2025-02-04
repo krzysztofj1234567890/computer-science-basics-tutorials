@@ -64,6 +64,14 @@
   - [CloudTrail](#CloudTrail)
   - [CloudWatch Events](#CloudWatchEvents)
 - [Security](#Security)
+  - [AD](#AD)
+  - [Identity Providers](#IdentityProviders)
+  - [KMS](#KMS)
+  - [HSM](#HSM)
+  - [Certificate Manager](#CertificateManager)
+  - [WAF](#WAF)
+  - [Shield](#Shield)
+  - [Cognitio](#Cognitio)
 - [Migration](#Migration)
 
 ## IAM <a id="IAM"></a>
