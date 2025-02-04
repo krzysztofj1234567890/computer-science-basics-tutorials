@@ -73,6 +73,11 @@
   - [Shield](#Shield)
   - [Cognitio](#Cognitio)
 - [Migration](#Migration)
+  - [SMS](#SMS)
+  - [DMS](#DMS)
+  - [DataSync](#DataSync)
+  - [Snowball](#Snowball)
+  - [Data Transfer](#DataTransfer)
 
 ## IAM <a id="IAM"></a>
 
@@ -1276,6 +1281,8 @@ Two types of DNS record:
   - Alias records work like a CNAME record in that you can map one DNS name (e.g. example.com) to another ‘targetʼ DNS name (e.g. elb1234.elb.amazonaws.com).
   - An Alias record can be used for resolving apex / naked domain names (e.g. example.com rather than sub.example.com).
   - A CNAME record canʼt be used for resolving apex / naked domain names.
+  - Examples:
+    - Domain: www.mywebsite.com  -> Value: myelb.us-east-2.amazonaws.com
 
 Routing policies:
 ![ Routing policies ](./images/route_53_routing_policies.png)
@@ -3210,7 +3217,14 @@ Every year when automatic rotation is enabled.
 
 ## Migration and Transfer <a id="Migration"></a>
 
-Service Migration Service – SMS:
+Tools:
+- DataSync
+- Storage Gateway
+- Snowball
+- S3 sync, cp
+
+### Service Migration Service – SMS <a id="SMS"></a>
+
 - agentless service for migrating on-premises and cloud-based VMs to AWS.
 - Source platforms can be VMware, Hyper-V or Azure.
 - The Server Migration Service connector is installed on the source's platform.
@@ -3219,7 +3233,8 @@ Service Migration Service – SMS:
 - you can replicate your on-premises service to AWS for up to 90 days per server.
 - It provides automated live incremental server replication and AWS console support.
 
-Database Migration Service – DMS
+### Database Migration Service – DMS <a id="DMS"></a>
+
 - used for migrating databases from on-premises, Amazon EC2 or Amazon RDS.
 - supports homogeneous, so Oracle to Oracle, as well as heterogeneous, example, Oracle to Amazon Aurora.
 - Data is continuously replicated while the application is live, minimizing downtime.
@@ -3232,7 +3247,18 @@ Database Migration Service – DMS
 - consolidating multiple source DBs to a single target DB.
 - does continuous data replication so you can use it for DR, dev/test, or single source multi target or multi-source single target.
 
-DataSync:
+### DataSync <a id="DataSync"></a>
+
+A secure, online service that automatically moves data between on-premises storage and AWS services.
+
+It __uses AWS Direct Connect__ to move data between on-premises storage systems and AWS storage services
+
+Can copy data between Network File System (NFS), Server Message Block (SMB), and Hadoop Distributed File Systems (HDFS)
+
+Can also transfer data between AWS storage services
+
+Uses in-flight encryption and end-to-end data validation
+
 - software agent to connect to on-premises NAS storage systems.
 - The NAS can use NFS or SMB protocols, and it synchronizes data into AWS using a scheduled automated data transfer with TLS encryption.
 - Destinations can be S3, EFS, or FSx for Windows File Server.
@@ -3240,7 +3266,16 @@ DataSync:
 - Permissions and metadata are preserved.
 - you pay per gigabyte transferred.
 
-Snowball:
+Steps to move data using AWS DataSync:
+- Deploy and activate an AWS DataSync agent virtual machine
+- Gather configuration data from your data center
+- Validate network connectivity
+- Create an AWS DataSync task
+- Run the task to copy data to your Amazon S3 bucket
+
+
+### Snowball <a id="Snowball"></a>
+
 - are used for migrating large volumes of data to AWS.
 - The __Snowball Edge Compute Optimized__:
   - provides block and object storage and an optional GPU.
@@ -3262,40 +3297,15 @@ Snowball:
   - You can use the latest Mac or Linux Snowball client, batch small files together, perform multiple copy operations at one time, copy from multiple workstations, and transfer directories, not individual files.
 - Use cases for Snowball are cloud data migration, so migrating data to the cloud. Content distribution, sending data to clients or customers.
 
-### AWD Data Transfer
+### AWD Data Transfer <a id="DataTransfer"></a>
 
-#### Site-to-Site VPN
-
-For small to moderate amounts of data (< 100 GB) that need infrequent transfers
-
-#### AWS Direct Connect
-
-For large amounts of data (< 10 TB) that need frequent transfers and a consistent connection with low latency
-
-Direct Connect bypasses the public internet and provides a secure and dedicated connection to AWS.
-
-#### Snow family
-
-For very large amounts of data ( > 10s of TBs) and infrequent transfers
-
-#### DataSync
-
-A secure, online service that automatically moves data between on-premises storage and AWS services.
-
-It __uses AWS Direct Connect__ to move data between on-premises storage systems and AWS storage services
-
-Can copy data between Network File System (NFS), Server Message Block (SMB), and Hadoop Distributed File Systems (HDFS)
-
-Can also transfer data between AWS storage services
-
-Uses in-flight encryption and end-to-end data validation
-
-Steps to move data using AWS DataSync:
-- Deploy and activate an AWS DataSync agent virtual machine
-- Gather configuration data from your data center
-- Validate network connectivity
-- Create an AWS DataSync task
-- Run the task to copy data to your Amazon S3 bucket
+- Site-to-Site VPN
+  - For small to moderate amounts of data (< 100 GB) that need infrequent transfers
+- AWS Direct Connect
+  - For large amounts of data (< 10 TB) that need frequent transfers and a consistent connection with low latency
+  - Direct Connect bypasses the public internet and provides a secure and dedicated connection to AWS.
+- Snow family
+  - For very large amounts of data ( > 10s of TBs) and infrequent transfers
 
 
 ### Architectural Patterns
@@ -3326,3 +3336,16 @@ Use AWS Snowball to transfer data
 
 ####  AWS Transfer Family: Your environment has several existing clients that use SFTP, FTP, FTPS, and AS2 protocols for file transfer. Which service offers a fully managed solution to move data into and out of AWS Storage services using these protocols?
 
+#### Customer needs to migrate 50 TB of data from on-premises systems to AWS cloud Incremental data needs to be in sync until  cutover to cloud What cloud storage and data transfer service would you use for this?
+
+DataSync for initial transfer (if network is not a constraint) and for incremental loading
+
+#### Customer needs to migrate 50 TB from on-premises file shares to AWS cloud and make data available to on-premises applications. Customer is interested in reducing the storage footprint on-premises. What storage service and data transfer solution would you use?
+
+DataSync for initial transfer (if network is not a constraint)
+
+Storage Gateway  for incremental loading and for replacing on-premises storage (block, file share, tape)
+
+#### Customer has on-premises Linux and windows applications that use NFS, SMB file shares. Customer is migrating the application to cloud. What storage service and data transfer service would you use that minimizes changes to the application?
+
+DataSync for initial transfer (if network is not a constraint) and, for incremental transfer
