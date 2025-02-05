@@ -171,6 +171,51 @@ You must configure permissions to allow an IAM entity (user or role) to view or 
 - iam:DeleteAccountPasswordPolicy
 - iam:UpdateAccountPasswordPolicy
 
+Type of Identities:
+
+![ Type of Identities ](./images/Identity_types.jpg)
+
+Corporate Identity Federation:
+- SAML 2.0 (Security Assertion Mark Up Language) to exchange identity and security information between identity provider and application
+- AWS IAM Federation – enables users sign-in to their AWS account with existing corporate credentials
+- Non-SAML options – AWS Directory Service for Microsoft Active Directory
+- AWS Organizations – Use AWS Single Sign On (SSO) to scale to multiple AWS Accounts (centrally manage access)
+
+Cognito Identity Federation:
+- Users can sign-in to mobile and web apps using social identity providers like Facebook, google, amazon
+- Support for corporate identity federation using SAML 2.0
+- Open Standards Support - Oauth 2.0, SAML 2.0, OpenID Connect
+- Map users to roles and limit access to resources
+
+Example of Principal:
+
+| Principal             | Example
+|-----------------------|----------------------------------------------------
+| AWS account, root user| "Principal”:{"AWS":"arn:aws:iam::123456789012:root"}
+|                       | "Principal”:{"AWS":"123456789012"}
+| IAM Users             | "Principal":{"AWS":”arn:aws:iam::123456789012:user/alice"}
+| IAM Roles             | "Principal":{"AWS":"arn:aws:iam::123456789012:role/cross-acct"}
+| AWS Services          | "Principal":{"Service":"elasticmapreduce.amazonaws.com"}
+| Anonymous users       | "Principal": “*”
+| Federated Users       | "Principal":{"Federated":"www.amazon.com"}
+| Assumed-role sessions | Use the role session name to uniquely identify a session
+|                       | when the same role is assumed by different principals or for different reasons
+|                       | "Principal":{"AWS":"arn:aws:sts::123456789012:assumed-role/role-name/role-session-name"}
+
+Role Based Access Control (RBAC):
+- “Traditional authorization model used in IAM is called role-based access control. This is based on a person's job-role.” [in AWS context, role refers to IAM-role]
+- “In RBAC model, you implement different policies for different job functions.”
+- “As best policy, you grant the minimum permissions necessary for the job function. this is known as "granting least privilege".”
+- “The disadvantage of RBAC model is that when employees add new resources, you must update policies to allow access to those resources.”
+
+Attribute Based Access Control (ABAC):
+- “ABAC is an authorization strategy that defines permissions based on attributes (also known as Tags)”
+- “Tags can be attached to IAM Principals (users or roles) and to AWS resources”
+- “With ABAC, policies can be designed to allow operations when the principal's tag matches the resource tag.”
+- “ABAC is useful in environments that are growing rapidly and helps with situations where policy management becomes cumbersome”
+- “With ABAC, permissions scale - it is no longer necessary for administrator to update existing policies.”
+- “ABAC requires fewer policies”
+
 ### Architecture Patterns
 
 #### select group of users only should be allowed to change their IAM password
@@ -3119,6 +3164,19 @@ use AWS Config to check the encryption status of the buckets and use auto remedi
 Two. Alarm is associated with one metric. So, we need one alarm per metric.
 
 ## Security in the Cloud <a id="Security"></a>
+
+| Service                                   | Use Case
+|-------------------------------------------|-------------------------------------------
+| AWS Identity and Access Management (IAM)  | Securely manage access to services and resources
+| IAM Access Analyzer                       | Identify resources (such as S3 bucket, IAM Roles, KMS
+|                                           | Keys, Lambda functions, SQS Queue) that are shared with 
+|                                           | external accounts outside of your organization
+| AWS Single Sign-On (SSO)                  | Cloud Single-sign-on Service
+| Amazon Cognito                            | Identity management for your apps
+| AWS Directory Service                     | Managed Active Directory
+| AWS Resource Access Manager (RAM)         | Share AWS resources securely between accounts
+| AWS Organizations                         | Central governance and management across AWS accounts
+
 
 ### Active Directory <a id="AD"></a>
 
