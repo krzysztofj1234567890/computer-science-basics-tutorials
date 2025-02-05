@@ -5,6 +5,7 @@
   - [AMI](#AMI)
   - [Instance Types](#InstanceTypes)
   - [IP](#IP)
+  - [Log-in to Private instance](#LoginToEC2)
   - [Block Storage](#BlockStorage)
   - [Placement Groups](#PlacementGroups)
   - [NAT](#NAT)
@@ -286,6 +287,20 @@ elastic IP address:
 - associated with private IP address on the instance
 - can move around between instances
 
+### How to Log in to Private instance <a id="LoginToEC2"></a>
+
+Bastion Host:
+- For HA, reassign Elastic IP to new Bastion Host instance
+- Client can use existing Elastic IP to connect to new instance
+- Issues: extra servers to manage
+
+Systems Manager:
+- Automated patching of servers and Automation of routine administrative tasks
+- interactive remote shell for Linux and Windows, macOS
+- Agent required: AWS preinstalls in many instances
+- Simpler and Safer when compared to Bastion Host
+- Close SSH and RDP ports in Security Group
+
 ### Block Storage for EC2 <a id="BlockStorage"></a>
 
 #### Instance Store
@@ -317,6 +332,8 @@ NAT instances versus NAT gateways:
   - The only real limitations of the NAT gateway are things like you can't use it as a bastion host, but you should probably separate that into a different instance anyway.
   - There are also no security groups with a NAT gateway, whereas there are with a NAT instance.
   - NAT gateway is deployed inside a subnet and it can scale only inside that subnet. For fault tolerance, it is recommended that you deploy one NAT gateway per availability zone
+  - Deployed in Public Subnet in specific AZ
+  - High Availability – Deploy one per AZ
 
 ### EC2 instance lifecycle <a id="Ec2_lifecycle"></a>
 
@@ -460,6 +477,20 @@ To prevent this situation, you can enable the new “unlimited” mode in bursta
 ####  You have a fleet of hundreds of EC2 instances. If there are problems with AWS managed items like Physical host, network connectivity to host, and system power, how would you be able to track it?   
 
 System status check would identify AWS infrastructure related issues. Instance status check would also fail if a system status check fails. So, either one can be used
+
+#### ou need to allow remote SSH login to the private EC2 instances from the on-premises network.
+
+Using the Session Manager (part of the system manager service), authorized employees can log in to their EC2 instances using IAM credentials. 
+Session Manager does not use SSH or RDP ports. 
+Bastion Host is another option – however, this requires additional servers, and you need to keep the SSH port open
+- Configure a bastion host within your VPC that can be accessed from your on-premises network, then use that bastion host to connect to the private EC2 instances via SSH
+- AWS Session Manager allows remote SSH login to private EC2 instances from an on-premises network, as it establishes a secure tunnel through the AWS infrastructure without requiring any open inbound ports on the EC2 instance or a public IP address, making it ideal for accessing private instances within a VPC; you only need the SSM Agent installed on the EC2 instance and appropriate IAM permissions to connect
+
+#### When you recover an EC2 instance using CloudWatch Alarm, what happens to the instance?
+
+When an instance is recovered using CloudWatch Alarm Action, a recovered instance is identical to the original instance, including its: Instance ID Public, private, and Elastic IP addresses Instance metadata Placement group Attached EBS volumes Availability Zone
+
+
 
 ## Elastic Load Balancing and Auto Scaling <a id="AutoScaling"></a>
 
@@ -701,6 +732,12 @@ In this case, you could use a session state store such as DynamoDB or ElastiCach
 
 Use a Gateway Load Balancer in front of the virtual appliances.
 
+#### Your application is expected to receive a lot of traffic after a promotion event. This application has an Elastic Load Balancer for distributing requests to EC2 web servers. What specific steps do you take to ensure internet gateway scales with the traffic?
+
+No action needed. Internet gateway is a managed service and automatically scales, redundant and highly available
+
+
+
 ## AWS Organizations and Control Tower <a id="Organizations"></a>
 
 With __AWS Organizations, you can consolidate multiple AWS accounts__ into an Organization that you create and then centrally manage.
@@ -857,12 +894,27 @@ Connecting to a VPC:
   - Pros: supports static routes or BGP peering and routing.
   - Cons: is dependent on an Internet connection.
   - How: create an AWS managed VPN by creating a virtual private gateway, also known as a VWG on AWS and a customer gateway on the on-premises side.
+  - VPN Site-to-Site , HA AWS-OnPrem:
+    - Two Customer Gateway devices preferably in different data centers
+    - Two VPN connection from the same VGW but to different CGWs
+    - On-premises Connectivity is configured at VPC level
+  - VPN using Transit Gateway:
+    - Use Transit Gateway to terminate VPN Connection
+    - Share the same VPN connection with multiple VPCs
 - __Direct Connect__:
   - What: dedicated network connection over private lines straight into the AWS backbone.
   - When: requires a large network link into AWS. When you have a lot of resources and services being used by corporate users in your data center or your office.
   - Pros: predictable network performance and potential bandwidth cost reduction if you use the right volume of traffic. And you get up to 10 or 100 gigabits per second of provisioned connections. Supports BGP peering and routing.
   - Cons: may require additional telecom and hosting provider relationships and network setups. So, that can take a bit of time and cost to configure.
   - How: work with your data center networking provider to connect into the AWS locations and then you create virtual interfaces for accessing services on AWS.
+  - Bypass internet with a dedicated link between on-premises and AWS
+  - Cloud is an extension of your datacenter – access using private IP
+  - Consistent network performance and throughput
+  - For HA, use multiple DX Locations or use a backup VPN over the internet
+  - Complex setup:
+    - AWS has 100+ Direct Connect locations worldwide. Choose the one closest to your data center.
+    - Access resources in any of the AWS regions
+    - For Critical workloads, use two Direct Connect locations (location or device failure)
 - __Combine Direct Connect and a VPN connection__: In this case, you're actually using a VPN connection over your Direct Connect link. Why would you do that? Well, you get an encrypted tunnel over your Direct Connect connection. So, it's more secure in theory at least than Direct Connect alone.
 - __VPN CloudHub__
   - What: connect your locations in a hub and spoke manner using AWS's Virtual Private Gateway. So, it's VPN connections from multiple office locations or multiple data centers that you might have.
@@ -889,12 +941,15 @@ Connecting to a VPC:
   - Cons: no transitive peering supported.
   - How: VPC peering request created, accepted
 - __VPC Endpoints__:
-  - Interface Endpoint
+  - __Interface Endpoint__
     - What: it's an elastic network interface with a private IP.
-    - How: It uses DNS entries to redirect traffic.
+    - How: It uses DNS entries to redirect traffic. 
+    - Interface endpoint __creates a network interface with private IP__
     - Which services: many services including API Gateway CloudFormation and CloudWatch.
     - Security: security groups which you can assign as well, so you can apply your security groups to your interface.
-  - gateway endpoint:
+    - Interface endpoints are also known as __PrivateLink__
+    - For HA, create an interface endpoint in each AZ
+  - __Gateway Endpoint:__
     - What: this is a target for a specific route
     - How: uses prefix lists in the route table to redirect traffic.
     - And this is for Amazon S3 and DynamoDB only.
@@ -968,6 +1023,12 @@ Deploy an AWS transit gateway, attach the VPN connection from the on-premises an
 Use a single virtual private gateway (VGW) and two customer gateways (CGW). VGWs are highly available and can tolerate AZ failure
 
 #### What capability can you use for auditing inbound and outbound traffic in your VPC?
+
+#### How would you increase the availability of your Direct Connect link between on-premises and AWS Cloud?
+
+To avoid a single point of failure, you need to consider using two different direct connect locations for critical workloads. 
+This will protect you from device failures and direct connect location outages
+
 
 
 ## Amazon Simple Storage Service <a id="S3"></a>
@@ -1227,6 +1288,13 @@ Configure content to be accessible only using signed URLs or signed cookies
 Create CloudFront user nad grant read access to S3
 Remove permissions for anywone to directly access S3 bucket
 
+#### An object of size 10 KB is stored in S3 using Standard - IA storage class. How is the pricing computed for this object?
+
+Minimum charge computed for object in Standard-IA is based on 128KB size. 
+If object is less than 128KB, it is still charged for 128KB​. There is also a 30 day minimum charge.
+
+
+
 ## DNS, Caching and Performance Optimization <a id="DNS"></a>
 
 ### Route 53 <a id="Route53"></a>
@@ -1371,6 +1439,17 @@ Configure signed cookies and then update the application so it processes those c
 #### An application runs behind an application load balancer in multiple regions. You need to intelligently route traffic based on latency as well as availability.
 
 Create an AWS global accelerator and add the ALBs
+
+#### An application uses Geo Location Based Routing on Route 53. Route 53 receives a DNS Query and it is unable to detect requester’s Geo location. How will Route 53 respond in this case?
+
+Default location is returned if it is configured. Otherwise 'no answer' response is returned
+
+#### n application is deployed in multiple AWS regions and Route 53 is configured to route request to the region that offers lowest latency for the client. Due to an unplanned downtime, Application is not available in one of the regions. How will Route 53 handle this scenario?
+
+Health Check needs to be configured for Route 53 to become aware of application down scenarios. 
+It will then act on the routing configuration specified
+
+
 
 ## Block and File Storage <a id="Block_File_Storage"></a>
 
@@ -1601,6 +1680,18 @@ In the cached mode, your primary data is written to S3, while retaining your fre
 
 In the stored mode, your primary data is stored locally and your entire dataset is available for low-latency access while asynchronously backed up to AWS
 
+#### How can you change the encryption key associated with an EBS volume?
+There are couple of ways in which you change the encryption keys associated with an EBS volume: Change the key during snapshot copy process. 
+Another option is: from an EC2 instance, mount a new EBS volume with the desired key and copy data from old volume to new volume
+
+#### A company is evaluating use of AWS for backing up data in the cloud. One important consideration is that data needs to be available even when connection over the internet is down.
+
+The Volume Gateway runs in either a cached or stored mode. 
+In the cached mode, your primary data is written to S3, while retaining your frequently accessed data locally in a cache for low-latency access. 
+In the stored mode, your primary data is stored locally and your entire dataset is available for low-latency access while asynchronously backed up to AWS
+
+
+
 ## Docker Containers and ECS <a id="Containers"></a>
 
 Key features of the Elastic Container Service:
@@ -1762,6 +1853,7 @@ If you attach the lambda to a VPC, you'll loose internet access, which prevents 
 To access databases and other resources in your VPC, you need to configure Lambda function to run inside the context of a private subnet in your VPC.
 When this is done: your lambda function gets a private IP address and can reach resources in your VPC.
 In this mode, it can access internet services only if private subnet has a route to a NAT device
+
 
 
 ## Serverless Applications <a id="Serverless"></a>
@@ -1992,6 +2084,15 @@ Use Lambda functions along with step functions for coordinating and orchestratin
 #### Objects uploaded to an S3 bucket must be processed by Lambda.
 
 For this, you can create an event source notification to notify Lambda to process the new objects.
+
+#### Your application has a Lambda function that needs access to both internet services and a database hosted in private subnet of your VPC.  What steps are needed to accomplish this?
+Lambda functions, by default, are allowed access to internet resources. 
+To access databases and other resources in your VPC, you need to configure Lambda function to run inside the context of a private subnet in your VPC. 
+When this is done: your lambda function gets a private IP address and can reach resources in your VPC. 
+In this mode, it can access internet services only if private subnet has a route to a NAT device
+
+
+
 
 ## Database <a id="Database"></a>
 
@@ -2424,6 +2525,16 @@ Amazon RedShift always keeps three copies of your data:
 - A replica of compute nodes (within the cluster).
 - A backup copy on S3.
 
+### Architectural Patterns
+
+#### Each Read Capacity Unit provisioned in a DynamoDB table translates to
+
+A unit of Read Capacity enables you to perform one strongly consistent read per second or two eventually consistent reads per second. 
+Each read can transfer up to 4KB.
+Each Read Capacity Unit provisioned in a DynamoDB table translates to one strongly consistent read per second or two eventually consistent reads per second
+
+
+
 
 ## Analytics <a id="Analytics"></a>
 
@@ -2618,6 +2729,8 @@ use Kinesis data streams for the real time streaming and then Firehose to load t
 
 load the data from the OLTP databases into a Redshift data warehouse for OLAP.
 
+
+
 ## Messaging <a id="Messaging"></a>
 
 Kinesis vs SQS vs SNS
@@ -2777,6 +2890,17 @@ SNS Topic Types:
 - Well defined JSON structure for events
 - Schema registry
 - Generate code to process events
+
+### Architectural Patterns
+
+#### An application polls SQS Standard Queue to process pending messages. The following parameters are specified in the ReceiveMessage call to the queue: The maximum number of messages is set to 10, and the wait time is 10 seconds. There is only one message currently available in the queue. What will be the response for a ReceiveMessage call?
+
+Response to the ReceiveMessage request contains at least one of the available messages and up to the maximum number of messages specified in the ReceiveMessage action. 
+Long polling also protects you from receiving empty responses from standard queue when small number of messages are available. 
+This can happen with short polling due to distribute queue implementation. 
+With short polling you have to simply repeat the request to receive message.
+
+
 
 ## Deployment and Management <a id="Depolyment"></a>
 
