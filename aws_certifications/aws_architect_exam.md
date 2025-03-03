@@ -96,7 +96,8 @@ And with IAM, you can manage:
 - enable multifactor authentication
 - generate API keys for programmatic access to IAM.
 
-By default, all __new users are created with no access to any services__. They can only log into AWS, but they can't actually do anything.
+By default, all __new users are created with no access to any services__. 
+They can only log into AWS, but they can't actually do anything.
 
 Permissions must then be explicitly granted to allow a user to access an AWS service.
 
@@ -111,6 +112,11 @@ Authentication methods:
 - __access keys__ for programmatic access,
 - __server certificates__, which can be used for some services as well.
 
+Server certificates and certificate-based authentication:
+- provides an authentication experience where you __authenticate once__ and then can access aws resources without re-entering your credentials
+- CBA requires a private certificate authority (CA) to create private certificates to identify users.
+- Short-lived certificates are used with CBA to reduce the potential impact of a compromised credential.
+
 IAM users:
 - IAM user is an entity that represent a person or a service.
 - By default, they cannot access anything in the account.
@@ -120,14 +126,15 @@ IAM users:
 - You can have up to 5,000 users per AWS account.
 
 IAM groups:
-- IAM groups are collections of users and have policies attached to them.
+- IAM groups are __collections of users__ and have policies attached to them.
 - A group's not an identity in itself, so it can't be identified as a principal in a policy.
 - use groups to assign permissions to users.
 - Always follow the principal of least privilege when assigning permissions.
-- You can't nest groups
+- You __can't nest groups__
+- __Groups cannot be specified in the policy document__. Only users and roles
 
 IAM Roles:
-- Roles are created and then assumed by trusted entities.
+- Roles are created and then __assumed by trusted entities__.
 - They are a __way of delegating permissions to resources for users and services__.
 - __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
 
@@ -145,19 +152,19 @@ Types of IAM policy:
 - __session policies__ that are used with Assume Role API actions.
 
 IAM best practices:
-- lock away your account root user access keys,
+- __lock__ away your account __root user__ access keys,
 - create individual users,
-- use groups to assign permissions to users,
-- grant least privilege,
+- use __groups__ to assign __permissions to users__,
+- grant __least privilege__,
 - get started using permissions with AWS managed policies,
 - Use customer managed policies instead of inline policies.
-- Use access levels to review IAM permissions always bearing in mind that least privilege,
+- Use __access levels to review__ IAM permissions always bearing in mind that least privilege,
 - Configure a strong password policy for your users.
 - Enable multi-factor authentication.
 - Use roles for applications that run on EC2 instances,
-- use roles to delegate permissions.
+- use __roles__ to __delegate permissions__.
 - Do not share access keys. Always keep them to yourself and use them only for your accounts.
-- rotate all credentials regularly.
+- __rotate all credentials__ regularly.
 - remove any unnecessary credentials.
 - use policy conditions for extra security when you're writing your IAM policies.
 - monitor activity in your account to see what's actually happening.
@@ -241,6 +248,29 @@ In this case, you can instruct the developer to create a set of access keys and 
 #### A group of users require full access to all Amazon EC2 API actions.
 
 Create a permissions policy that uses a wildcard for the action element relating to EC2. And that would look like the (ec2:*) action.
+
+#### You would like to revoke programmatic access for an IAM user. What steps do you need to take?
+
+Remove access key credentials
+
+#### You would like to version control your policy changes in IAM so that you have ability to rollback changes. What features can you use to automatically track versions?
+
+Managed Policies are automatically version controlled and maintain previous five versions
+
+#### Can an IAM user belong to more than one IAM Group?
+
+Yes
+
+#### A startup has multiple AWS accounts. Employees play different job-roles and require appropriate access in each account. For example, they have limited privileges in the production account, whereas, in the development account, they have a wide range of privileges. What can be done to streamline access to accounts?
+
+The best option is to use AWS organizations to consolidate all accounts under a master account. 
+You can enable single sign-on to manage cross-account access. 
+IAM role is the second-best option; however, you need to configure and manage roles manually.
+
+
+
+
+
 
 ## Amazon Elastic Compute Cloud (EC2) <a id="EC2"></a>
 
@@ -535,6 +565,13 @@ Bastion Host is another option – however, this requires additional servers, an
 
 When an instance is recovered using CloudWatch Alarm Action, a recovered instance is identical to the original instance, including its: Instance ID Public, private, and Elastic IP addresses Instance metadata Placement group Attached EBS volumes Availability Zone
 
+#### Your requirement specifies a single volume with 50 TiB of storage. Which of the following options fulfills this requirement?
+
+Io2 Block Express is the next generation storage solution, delivering unparalleled block storage performance and supporting storage capacities of up to 64 TiB. 
+In contrast, all other EBS volume choices are limited to a maximum storage capacity of 16 TiB. 
+Historically, when extra storage was required, organizations often relied on attaching multiple EBS volumes to their EC2 instances. Alternatively, configurations like RAID 0 could be employed to combine multiple EBS volumes into a cohesive logical volume.
+
+
 
 
 ## Elastic Load Balancing and Auto Scaling <a id="AutoScaling"></a>
@@ -780,6 +817,47 @@ Use a Gateway Load Balancer in front of the virtual appliances.
 #### Your application is expected to receive a lot of traffic after a promotion event. This application has an Elastic Load Balancer for distributing requests to EC2 web servers. What specific steps do you take to ensure internet gateway scales with the traffic?
 
 No action needed. Internet gateway is a managed service and automatically scales, redundant and highly available
+
+#### If an instance fails the health check, Elastic Load Balancer would:
+
+Load Balancer stops new traffic to the instance - Load balancer monitors all registered instances for health. 
+If an instance fails the health check, the load balancer stops new traffic to the instance. 
+ELB continues to perform health checks, even on unhealthy instances. 
+If the instance becomes healthy again, ELB will start using the instance
+
+#### An organization's security policy requires client apps to communicate only with the whitelisted IP Addresses. You need to build a new service on AWS that would be used by client applications. Which of these architectural options would reliably allow whitelisting of the load balancer IP address at the client?
+
+Network Load Balancer assigns a static IP address per availability zone. 
+You can use this to configure your client application. 
+DNS lookup of Application and Classic Load Balancer Names would return a list of load balancer nodes that are valid at that time; however, this list can change depending on the load on the system. 
+So, for application and classic load balancers, you should always refer to it by DNS name.
+
+#### A customer has a hybrid infrastructure consisting of web servers in both on-premises and the AWS cloud. The client request must be distributed across AWS and on-premises servers. Which load balancing product can support this requirement?
+
+Both Application and Network Load Balancers allow you to add targets by IP address. 
+You can use this capability to register instances located on-premises and VPC to the same load balancer. 
+You need to register private IP of the server for a hybrid load balancer, and on-premises data center should have a VPN connection or a Direct Connect link to AWS (to communicate using private IP)
+
+#### You want to limit access to the load balancer from specific IP ranges. Where can you enforce this policy
+
+Security Groups, are supported by both Classic and Application load balancers. 
+You can use the load balancer security group to limit access to the load balancer from specified source IP blocks. 
+Network Load Balancer does not support Security Groups. 
+You can also restrict access using Network ACL of the load balancer subnets.
+
+#### Which auto scaling group configuration would ensure two running instances when an availability zone is lost? Assume that minimum, maximum, and desired instance count is set to the same value. Pick a choice that is optimized for cost.
+
+We don’t know ahead of time which availability zone will fail. 
+When desired instance count is set to 3, and the number of availability zones is set to 3, Auto scaling will deploy one instance in each availability zone.
+When an AZ is lost, we would still have two running instances
+
+#### An application consists of an elastic load balancer, a fleet of web servers, and a Relational Database in the multi-AZ configuration. Auto Scaling group dynamically scales the number of web servers based on traffic. Auto Scaling Group uses a load balancer health check. The app team has implemented an in-depth health check that passes only when connectivity to the database is confirmed. The primary database failed, and RDS initiated a failover. How will Auto Scaling respond to this situation?
+
+Auto Scaling would terminate failing web server instances and launch replacement ones. 
+In-depth Health checks like these can produce unintended side effects when combined with Auto Scaling. 
+With Auto Scaling in the picture, your health check should check only the health of the server and application components. 
+An in-depth health check on other dependent services requires careful assessment
+
 
 
 
@@ -1191,12 +1269,12 @@ Event notifications:
 Multipart upload:
 - uploads objects in parts, independently, in parallel and in any order
 - It's performed using the Multipart upload API
-- recommended for objects above 100 MB.
-- can be used for objects from 5MB up to the maximum file size, which is 5TB.
+- recommended for objects __above 100 MB__.
+- can be used for objects from 5MB up to the maximum file size, which is __5TB__.
 - it has to be used for any objects larger than 5GB.
 
 S3 copy API:
-- you can copy objects up to five gigabytes.
+- you can copy objects __up to 5GB__.
 - it can be used to:
   - generate additional copies of objects,
   - rename objects,
@@ -1338,6 +1416,9 @@ Remove permissions for anywone to directly access S3 bucket
 Minimum charge computed for object in Standard-IA is based on 128KB size. 
 If object is less than 128KB, it is still charged for 128KB​. There is also a 30 day minimum charge.
 
+#### Account A grants S3 bucket access to Account B. An IAM user belonging to Account B needs access to that bucket. What steps need to be performed for this to work?
+
+Account B can delegate access to its users.
 
 
 ## DNS, Caching and Performance Optimization <a id="DNS"></a>
@@ -1734,6 +1815,15 @@ Another option is: from an EC2 instance, mount a new EBS volume with the desired
 The Volume Gateway runs in either a cached or stored mode. 
 In the cached mode, your primary data is written to S3, while retaining your frequently accessed data locally in a cache for low-latency access. 
 In the stored mode, your primary data is stored locally and your entire dataset is available for low-latency access while asynchronously backed up to AWS
+
+#### An organization has a pool of EC2 Linux and Windows instances running in region us-east-2. A multimedia production workload uses Linux instances for some of the tasks followed by a set of operations in Windows instances. The media files needs to be shared across Linux and Windows instances.
+
+__FSx for windows__ is a file share for __windows__ instances and also now __supports Linux and MacOS__.
+EFS is a file share for Linux instances.
+FSx for Lustre is a high performance file share and it currently supports only Linux instances. 
+FSx for Lustre also supports a link to S3 bucket where the objects can accessed and stored using file system commands
+
+
 
 
 
@@ -2945,6 +3035,53 @@ Long polling also protects you from receiving empty responses from standard queu
 This can happen with short polling due to distribute queue implementation. 
 With short polling you have to simply repeat the request to receive message.
 
+#### An application needs to process new objects added to S3.  The average time taken to process an object is 24 hours.  The solution also needs to handle the fault in consumers and restart the job in a different consumer. What messaging service can you use for this requirement?
+
+Use Kinesis Data stream to store the new object details. 
+Since the average processing time is 24 hours, we cannot use an SQS queue. 
+The maximum visibility timeout for a message is 12 hours; so, a message cannot take longer than 12 hours to process. 
+We also need to handle consumer faults. 
+So, the message needs to be available until the object is fully processed. 
+While SNS can push the message to the consumer, it does not handle the scenario of a consumer crashing immediately after receiving the message.
+
+#### An enterprise uses a SaaS application to manage the ticketing process. When a ticket is created in the SaaS application, it must trigger a workflow on your AWS account.  What messaging service would you use for this requirement?
+
+Amazon EventBridge provides native integrations with a number of SaaS platforms, giving you the ability to build rich event-driven applications without writing custom code
+
+#### An enterprise uses an SQS queue for support tickets (Account A). An application running in a different account (Account B) needs to publish a message to the queue. How would you manage access to the queue?
+
+For cross-account access to work, both the resource owner and application owner needs to permit the access. 
+Queue owner can grant access using resource-based policy and then application owner needs to delegate the permission to the application (using IAM role policy permission). 
+Another option is to create an IAM role in queue owner account and add Account B as the trusted entity. 
+Account B can now delegate AssumeRole permission to the application. 
+PrivateLink is used for keeping the communication inside the AWS network. It does not address the permission issue asked in this question.
+
+#### An SNS Topic needs to fanout message to a Lambda function and Kinesis Firehose. However, messages are not delivered to the subscribers. How will you troubleshoot this issue?
+
+Topic logs all delivery failures to Delivery Status Log. 
+As part of shared responsibility, the customer has to enable delivery status logging for supported subscriber protocols. 
+Dead Letter Queue is useful to hold undelivered messages. 
+However, to determine the root cause of message delivery failure, we need to look into delivery status logs. 
+CloudWatch will report metrics, but metric alone is not sufficient to pinpoint the failure root-cause.
+
+#### An application publishes records to a Kinesis Firehose. The Firehose then delivers the messages to Elasticsearch. How will you manage access for this scenario?
+
+Kinesis does not support resource-based policies. 
+You can grant permission to the application using an identity-based policy (assigned to IAM Role, User, or Groups). 
+Firehose relies on IAM Role to deliver messages to the destination.
+
+#### A ticketing system needs to route tickets based on the priority to an appropriate queue. Which solution would you use to implement a priority queue?
+
+SNS and EventBridge support flexible routing using filtering capability to deliver messages only to relevant subscribers.
+Using priority as a filter criteria, topic will deliver the message to the correct queue.
+The FIFO queue decides which message is processed by the consumer.
+Even though tickets are grouped by priority, it is up to FIFO to decide which ticket is processed next.
+Kinesis data stream with one shard for each priority level might work. 
+However, we don't know which priority is in which shard. 
+Consumer application has to poll all the shards and map them to the processing priority
+
+
+
 
 
 ## Deployment and Management <a id="Depolyment"></a>
@@ -3163,6 +3300,26 @@ use AWS Config to check the encryption status of the buckets and use auto remedi
 
 Two. Alarm is associated with one metric. So, we need one alarm per metric.
 
+#### How do you reset the alarm in the "in-alarm" state?
+
+The alarm will reset when the underlying issue that triggered the alarm is resolved. 
+
+For example, if there are is alarm based on CPU utilization, in-response to the alarm, an application may add EC2 instances to handle the workload. When CPU utilization reduces, the alarm will automatically go back to "OK" state
+
+Alarm: Increase the alarm evaluation interval to detect persistent problems and to ignore the temporary issues. 
+The application is handling transient spikes without requiring additional EC2 instances. 
+To capture the persistent issues, increase the alarm evaluation interval so that the alarm is triggered only when the data point is outside the threshold for consecutive periods. 
+If you lower the limit or the evaluation interval, the alarm will trigger more often. Another possible solution is to increase the threshold for triggering the alarm.
+Alarms can stop the instance - but they cannot start an instance.
+
+#### An organization uses Bastion Host (an EC2 instance) for the developers to connect to other AWS resources. You would like to maximize the availability of Bastion Host and automatically recover from issues related to Physical Host. What mechanism can you use to accomplish this?
+
+With System Status Check Alarm, you can configure the instance to recover from underlying AWS issues automatically. Recover option is only available with System Status Check alarms.
+
+
+
+
+
 ## Security in the Cloud <a id="Security"></a>
 
 | Service                                   | Use Case
@@ -3260,6 +3417,12 @@ Data Encryption Keys:
 - you must use and manage the data keys outside of KMS.
 
 ![ Kms keys ](./images/kms_keys.png)
+
+KMS key types and how are they rotataed:
+- __KMS – AWS Managed Keys__ are rotated: __automatically 1/year__
+- __KMS - Customer Managed Keys__ with KMS key-material origin are rotated: __automatically every year if you enable rotation__
+- __KMS – External Key Origin keys__ are rotated: __Never__. Automatic key rotation is not supported when you use External Key Origin
+- __KMS – Custom key stores (CloudHSM)__ keys are rotated: __Never__. Automatic key rotation is not supported when you use CloudHSM
 
 ### Cloud HSM <a id="HSM"></a>
 
