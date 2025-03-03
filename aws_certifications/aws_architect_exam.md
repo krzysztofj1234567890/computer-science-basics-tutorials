@@ -1362,6 +1362,33 @@ To enable website hosting on a bucket, specify:
 - An __Index document__ (default web page).
 - Error document (optional).
 
+### S3 Object Lock
+
+S3’s Object Lock feature allows you to enforce the “Write Once Read Many” (WORM) paradigm. 
+In this paradigm, an object version cannot be modified or deleted; however, it is available for reading.
+
+S3 Object Lock protects your data from accidental and malicious deletion Object Lock needs to be enabled at Bucket Level. 
+This feature also automatically enables versioning.
+
+Why can’t you enforce the WORM paradigm using IAM policies?
+The issue with IAM policies are:
+- The root user has full access and can remove objects
+- Identity and Resource-based policies may not be sufficient to comply with legal hold notice
+- It may not be easy to enforce operationally
+
+There are three ways in which you can use Object Lock:
+- __Legal Hold__.
+  You can place an object version on legal hold (__s3:PutObjectLegalHold__).
+  When a legal hold is in place, the object version cannot be deleted.
+  Lifecycle policies cannot delete an object version with a legal hold.
+  This feature lets you keep an object version for as __long as needed__
+  Once the legal hold is removed, the object version can be deleted.
+- __Retention Period__
+  We can also protect an object version from deletion or modification by __specifying a retention period__
+  In __Governance Mode__, anyone with __S3:BypassGovernanceRetention__ permission can override retention configuration and delete the object version
+  In __Compliance Mode__, the __Object version cannot be deleted by anyone__ (including the root user) until the retention period expires.
+
+
 ### Architecture Patterns
 
 #### A  company is concerned about accidental deletion of Amazon S3 objects.
@@ -1419,6 +1446,42 @@ If object is less than 128KB, it is still charged for 128KB​. There is also a 
 #### Account A grants S3 bucket access to Account B. An IAM user belonging to Account B needs access to that bucket. What steps need to be performed for this to work?
 
 Account B can delegate access to its users.
+
+#### A social media application needs to store 1000s of objects. The average size of each object is 20 KB size, and it needs to be immediately accessible when needed. The older objects are accessed less frequently. What storage would be suitable for this requirement at the lowest cost?
+
+Object size is 20 KB and needs to be immediately accessible. 
+Standard-IA, One Zone-IA, Glacier Instant Retrieval all have a 128 KB minimum charge. 
+Standard provides the required performance at the lowest cost for this example
+
+#### A team is currently using the S3 Standard class for all their storage. The data in the bucket are used by different groups in the organization, and there is no clear visibility on the percentage of data accessed. What tool can you use to generate reports on the usage of data automatically?
+
+__Storage Class Analysis__ can continuously monitor your bucket and track how your objects are accessed over time. 
+This tool generates detailed reports on the percentage of data retrieved and by age groups. 
+You can use this report to manage lifecycle policies. 
+
+#### A game developer is planning to use S3 to store important game statistics for each user. The traffic could reach 1000s of GET and PUT requests per second with millions of users. Which of these key naming conventions would scale to support the traffic?
+
+S3 is a distributed cluster of storage nodes that automatically scales to support the traffic. 
+S3 uses the object key to select the node. 
+When several objects share the same key prefix, there is a high likelihood of these objects landing in a small set of nodes. 
+Among these choices, __/userID/gametitle/stats.txt ensures there is a large number of unique prefixes__.
+
+#### Your department got a legal hold notice from the company's legal department to preserve all the evidence and documents in the S3 bucket. The data should be protected from modification and deletion for three years. All buckets currently have lifecycle policies that automatically purge data at varying intervals. What would you do?
+
+Configure a retention period of three years in __Compliance Mode__ for each object. 
+This will ensure current object versions are protected from modification and deletion. 
+
+Governance mode is not the right choice as administrators, and other users with S3:* permission on the bucket would be able to remove the object version. A legal hold may be possible; however, people with s3:PutObjectLegalHold permission can disable the legal hold and then delete the object
+
+#### What feature can you use to protect the data in S3 Data Lake if someone accidentally makes the S3 Bucket public?
+
+With __S3 Server Side Encryption using Customer Master Key__, the user needs permission to access the bucket or object and the customer master key. 
+So, even when the bucket is made public, only the users who have access to the customer master key can access the object. 
+
+With default keys, S3 automatically decrypts data for anyone who has permission to access the bucket
+
+
+
 
 
 ## DNS, Caching and Performance Optimization <a id="DNS"></a>
@@ -1574,6 +1637,67 @@ Default location is returned if it is configured. Otherwise 'no answer' response
 
 Health Check needs to be configured for Route 53 to become aware of application down scenarios. 
 It will then act on the routing configuration specified
+
+#### Your app is using a third party API for some of the functionality. Requests from your app to the API needs to be digitally signed using keys issued by the third party. You are planning to use CloudFront to reach the global audience for the app, and you would like to call the third party API from CloudFront Edge location directly.  What approach would you use?
+
+With Lambda@Edge, you can run your application logic at Edge locations. 
+You can configure CloudFront to invoke the Lambda@Edge function to digitally sign the requests for third party API. 
+Deploying third-party integration components of your app in multiple regions is not required as it increases complexity and cost.
+
+#### You would like to point your zone apex to your elastic load balancer. Which record type would you use?
+
+Use Alias record. To point Zone Apex Record (example.com is zone apex. www.example.com is a subdomain) to another AWS supported endpoint, you need to use the Alias record
+
+#### You want to configure all your email servers in Route 53. Which record type would you use?
+
+MX Record is used for specifying mail servers in your domain
+
+#### Your application must be accessible only from certain countries.  What routing policy would you use?
+
+Route 53 Geolocation based routing can route based on Continent, Country and for some regions at State level
+
+#### An application uses Geolocation Based Routing on Route 53. Route 53 is unable to pinpoint the originating location of a request. In this case, what will be Route 53's response?
+
+Route 53 uses the caller IP address to determine the location. 
+On some occasions, Route 53 may not be able to determine the precise location of the user. 
+For these scenarios, you can configure a default record that handles both queries from IP addresses that are not mapped to any location and queries that come from locations that you haven’t created geolocation records for
+
+#### Can you share the same Private DNS Hosted Zone entries with multiple VPCs across different regions?
+
+Yes. You can enable multiple VPCs across the same or different regions in a Private Hosted Zone
+
+#### The latency of a CloudFront application is inconsistent for global users. Some requests are extremely fast, while others are very slow. What could be the cause of this issue?
+
+Requests are going to the origin. 
+During a cache-miss, CloudFront route the request to the origin. 
+Request response time, in this case, depends on how far the origin is from the user and how long an origin takes to respond. 
+CloudFront does not support region-specific origins. 
+With anycast routing, the request is routed to the nearest edge location. 
+When Geo-restrictions are enabled, CloudFront will simply block requests from countries that are not allowed access.
+
+#### The requests for a web application need to be routed to the webserver close to the user. Which of these options would you use?
+
+Use Route 53 latency-based routing. 
+With Route 53, you can configure region-specific endpoints. 
+Route 53 will respond with the nearest endpoint address for a DNS query
+
+#### A request needs to be routed to the nearest healthy endpoint. The application needs to respond very quickly to changing health conditions of endpoints.  Which of these options would you use?
+
+The __global accelerator__ automatically routes requests to the nearest endpoint. 
+Since the routing decision is made for each request, it can instantly respond to changes in the health conditions of endpoints. 
+Route 53 will also work. However, it is based on DNS based endpoint resolution. 
+DNS records are cached for the duration specified in the TTL parameter. 
+So, a client may attempt to connect an unhealthy, but closest endpoint until new DNS records are fetched.
+
+#### A company wants to minimize disruption during software upgrades. Which of these options would you use?
+
+With __Global Accelerator__, you can control traffic flow to your regional endpoints. 
+You can easily perform region-by-region upgrades by reducing traffic-dial to 0 for a region. 
+Weight parameter is useful for distributing traffic in-proportion that you specify across multiple endpoints in a single region. 
+This is useful for blue-green deployment. There is no need to remove regions from a Global accelerator. 
+Route 53 failover routing is used for active-passive failover and Weighted routing is used for routing traffic to resources in proportions that you specify.DNS solution is slow to respond
+
+
 
 
 
@@ -1989,6 +2113,25 @@ To access databases and other resources in your VPC, you need to configure Lambd
 When this is done: your lambda function gets a private IP address and can reach resources in your VPC.
 In this mode, it can access internet services only if private subnet has a route to a NAT device
 
+#### What option do you have to monitor the performance characteristics of distributed applications? You need the ability to pinpoint components that are slow or have a high error rate.
+
+AWS X-Ray helps developers analyze and debug production, distributed applications, such as those built using a microservices architecture. 
+With X-Ray, you can understand how your application and its underlying services perform to identify and troubleshoot the root cause of performance issues and errors
+
+#### The container images are hosted on a third-party private repository. The image must be privately shared with applications running on an ECS cluster. How would you configure security to allow image access for authorized applications?
+
+Store access credentials in Secrets Manager and configure Task Execution Role with permission to access Secrets Manager. 
+The __task execution role__ is assigned to a specific task definition and is used by ECS Container Agent to download images and run the container. 
+The __Container Instance Role__ would also work; however, the permissions are assigned to the EC2 instance, and all Tasks running on that instance would get elevated privileges. 
+The __task role__ is used for granting permissions to your application code to access other AWS services (like S3, DynamoDB, SQS, and so forth)
+
+#### A distributed application uses many containers to process the pending work. The containers are short-lived, and after completing the work, they stop running. The container logs must be stored in CloudWatch logs to troubleshoot any issues. How would you send the logs to CloudWatch logs?
+
+Docker containers use log drivers to collect containers' standard output and standard error streams and forward the log to the configured destination. 
+The awslogs driver publishes the captured logs to the CloudWatch log group. 
+This is a straightforward setup to consolidate logs from containers
+
+
 
 
 ## Serverless Applications <a id="Serverless"></a>
@@ -2225,6 +2368,19 @@ Lambda functions, by default, are allowed access to internet resources.
 To access databases and other resources in your VPC, you need to configure Lambda function to run inside the context of a private subnet in your VPC. 
 When this is done: your lambda function gets a private IP address and can reach resources in your VPC. 
 In this mode, it can access internet services only if private subnet has a route to a NAT device
+
+#### You are writing a mini-web server that would listen on the configured port to process requests from users. The code you have is straightforward, and you observe that it can fit nicely as a lambda function. Which of these options would you pick?
+
+AWS Lambda blocks inbound network connections. 
+You would need to use a service like API Gateway to receive the requests and configure API Gateway to invoke the appropriate Lambda function
+
+#### A Lambda function is triggered whenever objects are added to the S3 bucket. Function needs to read the object and store the meta-data about the object in a DynamoDB table. What permissions are needed for this scenario?
+
+S3 needs permission to invoke Lambda function; Lambda function needs permission to read S3 Objects and to put items in the DynamoDB table
+
+#### An S3 bucket is configured to invoke the Lambda function whenever a new object is added to the bucket. The Lambda function transforms the object and uploads the transformed object to the same bucket. Would you approve of this solution?
+
+No. This solution can unintentionally create an infinite loop and accumulate massive charges to your account.
 
 
 
@@ -3559,6 +3715,47 @@ use an AD connector that uses
 #### How often is the KMS-CMK rotated? 
 
 Every year when automatic rotation is enabled.
+
+#### A web application uses Network Load Balancer (NLB) to route traffic to the compute instances. Which of these configurations would offer comprehensive protection against Layer 7 attacks?
+
+With AWS __WAF__, you can subscribe to ready-to-use managed rule groups provided by AWS and marketplace sellers. 
+With this option, you get comprehensive protection against known application layer (Layer 7) vulnerabilities and exploits. 
+AWS WAF does not support NLB. 
+One option is to configure CloudFront distribution with NLB as the origin and associate AWS WAF to the CloudFront distribution
+
+#### A financial company needs to limit access to the web application only for users from specific regions where they have a presence.  Which of these options would enable you to that?
+
+AWS __WAF__ has the option to __allow or block based on the request originating countries__. 
+With this option, AWS automatically manages the IP to country mapping and keeps the information up-to-date. 
+You can also use Amazon’s Anonymous IP Address managed rule group to block requests from services that hide caller identity (VPNs, Proxies, Tor nodes). 
+All other options require you to maintain IP Blocks – which is a lot of overhead to keep track and maintain.
+
+#### A web-based SaaS provider offers a solution for auto service centers and dealerships. To protect against attackers, the SaaS provider whitelists all CIDR IP blocks belonging to subscribed auto dealers. The number of CIDR entries is in several hundred.  Which of these options provide would you use for this scenario?
+
+With __WAF IP Address sets__, you have a scalable solution for whitelisting or blacklisting. 
+This solution __supports 1000s of IP address blocks__. 
+The WAF IP Address sets and Regex Pattern Sets are reusable across different Web ACLs. 
+
+Security Group has a limit of a few hundred entries, and Network ACL has a limit of a few 10s of entries.
+
+#### Which of these solutions provide extensive visibility into layer 3, 4, and 7 attacks on your AWS resources?
+
+With AWS __Shield Advanced__, you get access to real-time metrics and reports for extensive visibility into attacks on your AWS resources. 
+You can also configure CloudWatch alarms to notify you of an attack in progress. 
+WAF provides full visibility into rules and requests that match your rules using CloudWatch metrics. 
+These metrics are useful for tracking the application layer (Layer 7) attacks that were blocked by your rules
+
+#### An organization wants to rotate database credentials automatically. The credentials must be stored in a secure data store. Which of these services provides built-in credential rotation support for this requirement?
+
+With __Secrets manager__, you can easily __rotate__, manage, and retrieve secrets. 
+Secrets Manager __encrypts the secrets using KMS keys__ that you specify. 
+
+Systems Manager Parameter Store supports the storage of encrypted passwords; however, by default, they store unencrypted. 
+Parameter Store does not have an automated mechanism for credential rotation
+
+
+
+
 
 ## Migration and Transfer <a id="Migration"></a>
 
