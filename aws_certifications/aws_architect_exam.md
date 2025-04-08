@@ -571,6 +571,33 @@ Io2 Block Express is the next generation storage solution, delivering unparallel
 In contrast, all other EBS volume choices are limited to a maximum storage capacity of 16 TiB. 
 Historically, when extra storage was required, organizations often relied on attaching multiple EBS volumes to their EC2 instances. Alternatively, configurations like RAID 0 could be employed to combine multiple EBS volumes into a cohesive logical volume.
 
+#### Your security team follows the principle of immutable instances. With this approach, the servers are never patched; instead, the existing servers are replaced with new servers with correct software patches. To speed up the deployment, the security team periodically releases new AMI with all the security patches for known vulnerabilities. The infrastructure is managed using Auto Scaling. How would you replace existing vulnerable instances?
+
+Create a new version of the launch template to use the new AMI, update Auto Scaling Group to use this new version of the template, and then refresh instances
+
+The launch template is immutable, and you need to create a new version with the correct AMI and then configure Auto Scaling Group to use this new version of the launch template. With instance refresh, you can perform a rolling replacement of instances.
+
+#### How does Auto scaling handle spot interruptions?
+
+Auto Scaling automatically handles spot interruptions, deregisters the instance from the load balancer, and initiates steps to launch a replacement instance
+
+In addition, EC2 service publishes a capacity-rebalance early warning event when a spot pool is likely to get interrupted. In this case, Auto Scaling can take proactive action to launch a new replacement instance from another spot pool with less likelihood of interruption
+
+#### As part of application configuration step in an EC2 instance, the configuration script needs user data specified when launching the EC2 instance.  What mechanism can the script use to get this data?
+
+Use Metadata query service http://169.254.169.254/latest/user-data
+
+#### An application requires 100 GB of persistent volume storage. The application is expected to perform 600 IOPS. Which of these options meet the requirements cost-effectively?
+
+General Purpose Volume with 200 GB of storage
+
+General purpose volume offers a baseline performance of 3 IOPS per GB. With 200 GB of storage, the baseline performance is 600 IOPS,
+
+Instance store SSD is not the right choice as the question asks for a persistent storage
+
+
+
+
 
 
 
@@ -857,6 +884,28 @@ Auto Scaling would terminate failing web server instances and launch replacement
 In-depth Health checks like these can produce unintended side effects when combined with Auto Scaling. 
 With Auto Scaling in the picture, your health check should check only the health of the server and application components. 
 An in-depth health check on other dependent services requires careful assessment
+
+#### Which of these options maintains a scaled-down infrastructure in another region and requires only scaling after a disaster?
+
+- Warm Standby maintains a continuously replicated copy of data, and a scaled-down infrastructure is always running for the rest of the components. Warm Standby can meet more stringent RTO/RPO in minutes.
+- Backup and Restore only maintains a backup in another region. After a disaster, we need to restore the data and bring the entire infrastructure up in the second region, so the RTO/RPO is in hours.
+- Pilot light maintains a continuously replicated copy of the data in another region; however, the rest of the infrastructure needs to be brought up after the disaster. So, the RTO/RPO is in 10s of minutes.
+- Multi-site Active/Active is a zero-downtime solution with infrastructure in multiple regions. The application request is routed to any of the regions. This option can meet real-time RTO/RPO requirements.
+
+#### You would like to automatically replace instances that are not healthy due to underlying infrastructure or common guest OS related issues. In order to do so with AutoScaling, you need to
+
+Autoscaling automatically does this for you
+
+#### team wants to use a mix of on-demand and spot instances of various instance types. How would you implement this proposal with Auto Scaling?
+
+Use Auto Scaling Launch Template and specify the on-demand and spot portion of the capacity that the auto scaling group needs to maintain
+
+You can specify a percentage distribution of on-demand and spot instances. To maximize the chances of fulfilling spot requests, you can specify a range of values for vCPU and memory configuration. Auto Scaling will identify a list of instance families that meet the criteria.
+
+
+
+
+
 
 
 
@@ -1152,6 +1201,19 @@ Use a single virtual private gateway (VGW) and two customer gateways (CGW). VGWs
 To avoid a single point of failure, you need to consider using two different direct connect locations for critical workloads. 
 This will protect you from device failures and direct connect location outages
 
+#### When a NAT Gateway is deployed in a VPC, it:
+
+- Resides in a public subnet
+- Scales inside one availability zone
+
+#### You are hired to help with migrating a customer's solution to the AWS Cloud.  Customer wants to perform a phased migration strategy and they would like to first run couple of webservers on AWS that points to existing on-premises database. Application requests should routed across webservers in AWS as well as webservers located on-premises.  Which load balancing product can be used for this requirement?
+
+Both Application and Network Load Balancers allow you to add targets by IP address. You can use this capability to register instances located on-premises and VPC to the same load balancer
+
+
+
+
+
 
 
 ## Amazon Simple Storage Service <a id="S3"></a>
@@ -1354,13 +1416,21 @@ You can use a custom domain name with S3 using a __Route 53 Alias record__.
 
 When using a custom domain name the __bucket name must be the same as the domain name__.
 
-__Does not support HTTPS/SSL__
-
 Only supports __GET and HEAD requests__ on objects.
 
 To enable website hosting on a bucket, specify:
-- An __Index document__ (default web page).
-- Error document (optional).
+- Bucked should be marked __'static website'__
+- Bucket - __public read access__ for bucket and all docs
+- __disable block public access settings__
+- Bucket __permissions__: add an object access control list (ACL) that grants __everyone read access__.
+- Define An __index.html__ document (default web page) and optionally error.html document.
+- define __DNS entry__
+  - __register custom domain name__
+  - create 2 buckets:
+    - __Domain bucket__ – __example.com__. Configure your root domain bucket for website hosting
+    - __Subdomain bucket__ – __www.example.com__. Configure your subdomain bucket for website redirect
+  - Add __alias records__ for your domain and subdomain
+- __only http__ (no s). if you want https: use cloudFront
 
 ### S3 Object Lock
 
@@ -1387,6 +1457,7 @@ There are three ways in which you can use Object Lock:
   We can also protect an object version from deletion or modification by __specifying a retention period__
   In __Governance Mode__, anyone with __S3:BypassGovernanceRetention__ permission can override retention configuration and delete the object version
   In __Compliance Mode__, the __Object version cannot be deleted by anyone__ (including the root user) until the retention period expires.
+
 
 
 ### Architecture Patterns
@@ -1480,6 +1551,43 @@ So, even when the bucket is made public, only the users who have access to the c
 
 With default keys, S3 automatically decrypts data for anyone who has permission to access the bucket
 
+####  Your legal department has asked your team to ensure that project documents are not deleted or tampered with.  They have further asked for a three year retention window.  Your team is currently using Glacier for storing the project documents.  What option would you pick to enforce this policy?
+
+Configure a retention period of three years in Compliance Mode for each object. This will ensure current object versions are protected from modification and deletion.
+
+Governance mode is not the right choice as administrators, and other users with S3:* permission on the bucket would be able to remove the object version.
+
+A legal hold may be possible; however, people with s3:PutObjectLegalHold permission can disable the legal hold and then delete the object
+
+#### A company is using S3 to store employee files. Employees are requesting files and documents stored in S3 to be presented as a local network drive.  How can you do this?
+
+In the File Gateway mode of the Storage Gateway, you can present an S3 bucket as a network file share to your on-premises systems. Any changes (addition, deletion, updates) that you make to the files are automatically replicated in the S3 bucket.
+
+#### Multiple applications in different accounts within an enterprise upload data to a central S3 bucket. What security configuration would you use for the bucket?
+
+Disable ACL-based permissions management for the bucket and ensure uploads are allowed only for authorized accounts in the organization
+
+ACL is a legacy way of managing permissions and is problematic with cross-account upload scenarios. A bucket owner cannot read the object in the bucket unless the uploading account grants permissions using ACL. When you disable Object ACL, the bucket owner automatically owns all the objects in the bucket, and permission can be effectively managed using identity-based and resource-based policies
+
+#### You have enabled cross region replication for your S3 bucket.   When you delete an object in the source bucket, what is the behavior observed in replicated bucket?
+
+Delete Marker is not replicated
+
+#### Your company uses S3 for storing a variety of documents and files. Your users ask for a feature similar to a trash can or recycle bin. This feature should allow the users to restore any deleted files or objects within 30 days. The deleted files older than 30 days must be removed automatically. How would you accomplish this?
+
+You can use versioning to keep the older version of the objects and life cycle policies can be defined to remove the older version after 30 days
+
+#### For disaster recovery, a customer needs to replicate the content of an existing S3 bucket to another bucket in a different region. Which option would meet the requirements?
+
+Answer:
+- S3 Batch Operations is a serverless solution that can inventory and transfer existing objects. For ongoing incremental transfer of changes to existing objects and newly created objects, we can use S3 Replication
+Not correct:
+- When you enable S3 Replication, it does not transfer already existing objects. Only new changes are replicated
+
+
+
+
+
 
 
 
@@ -1547,8 +1655,13 @@ Routing policies:
 
 ### Amazon CloudFront <a id="CloudFront"></a>
 
+To use CloudFront to distribute your website content, create a distribution and specify settings for it.
+When you create a distribution, CloudFront assigns a domain name to the distribution, such as d111111abcdef8.cloudfront.net. 
+You can use this domain name in the URLs for your content.
+Instead of using this provided domain name, you can use an alternate domain name (also known as a CNAME).
+
 - Cache copies of content close to your users
--  CloudFront routes request to nearest edge location
+- CloudFront routes request to nearest edge location
 
 - CDN as we know for __caching content around the world__.
 - You __can define a maximum time to live__ and a default TTL for records.
@@ -1564,6 +1677,27 @@ Routing policies:
   - forward all headers to your origin, which means the objects are not cached.
   - forward a whitelist of headers that you specify.
   - forward only the default headers and then it doesn't cache the objects based on values in the request headers.
+
+To secure Amazon CloudFront:
+- enable HTTPS,
+- restrict access with signed URLs/cookies,
+- AWS WAF,
+- implement field-level encryption,
+- consider geographic restrictions,
+- leverage CloudFront's security policies
+
+While CloudFront primarily uses ports 80 (HTTP) and 443 (HTTPS), you can configure it to communicate with your origin server on other ports (1024-65535).
+
+However, CloudFront itself only listens on 80 and 443, and clients connecting to CloudFront must use these standard ports
+
+CloudFront is not a service supported by DNS-Route-53 health checks and it does not return health checks.
+
+With CloudFront’s Origin Failover capability, you can setup two origins for your distributions - primary and secondary, such that your content is served from your secondary origin.
+If CloudFront detects that your primary origin is unavailable
+
+__S3 Transfer Acceleration__ leverages Amazon CloudFrontʼs globally distributed AWS Edge Locations
+
+CloudFront __does not support region-specific origins__.
 
 #### Origin
 
@@ -1697,6 +1831,48 @@ Weight parameter is useful for distributing traffic in-proportion that you speci
 This is useful for blue-green deployment. There is no need to remove regions from a Global accelerator. 
 Route 53 failover routing is used for active-passive failover and Weighted routing is used for routing traffic to resources in proportions that you specify.DNS solution is slow to respond
 
+#### When distributing Private Content with CloudFront, how do you make sure users do not bypass security measures and go directly to custom origin servers and S3 location?
+
+You need to:
+- Lockdown S3 with CloudFront Origin Access Identity (OAI) and remove permissions for others
+- Configure CloudFront to forward custom headers to your publicly accessible origin server. Verify Custom header and value in your application
+
+CloudFront Origin needs to have a public endpoint. To prevent others from calling your Origin endpoints directly, you need to configure the endpoint to verify if the request is coming from CloudFront.
+
+A common pattern is configuring CloudFront to embed a specific header and value (either static value or dynamic values using Lambda@edge). You can verify the header content in your origin server to allow or deny access.
+
+You can configure CloudFront to embed specific code to a custom header and cross-check the header value in Origin Server.
+
+For S3, CloudFront uses Origin Access Identity (OAI) to access your S3 bucket. In the S3 bucket policy, you need to limit access only to this identity
+
+#### A media company has documents, videos, images and other paid content that is currently hosted in their own datacenter. Content is personalized based on signed-on user. Users are located world wide and they are complaining about timeouts and poor performance. What options do you have to address this situation? (Choose Two)
+
+CloudFront allows you to cache the content closest to your customer using AWS global Edge network. CloudFront Origin can be S3, applications hosted in AWS, and external applications hosted on-premises. CloudFront also supports dynamic content that is personalized based on signed-on user
+
+#### My application uses CloudFront distribution to reach a global audience. The application uses HTTPS to accept payment information (credit card, debit card, bank information) for subscriptions. This payment information must be accessible only for specific billing components in the application and be protected from unauthorized access in other components.
+
+Do this:
+- Enable TLS/SSL encryption from CloudFront to your Origin Load Balancer and then from Load Balancer to your Webservers
+- Enable Field level encryption in CloudFront to protect sensitive data
+
+Since the application handles sensitive data, you must ensure SSL/TLS is turned on all the way to the web servers. 
+
+If you terminate SSL at the load balancer, communication between the load balancer and the web server is unencrypted, leading to sensitive data access by components other than billing. 
+
+CloudFront supports Field Level Encryption to protect sensitive data. With this capability, you can configure CloudFront to encrypt fields using the specified encryption keys. You would then configure the billing component to use the matching keys so that it can decrypt the sensitive data.
+
+#### A popular SaaS application is hosted using an Application Load Balancer (ALB). A big corporate customer of this application is requesting that the application endpoints have a static IP address so that they can configure the firewall to allow traffic to the endpoint. The SaaS application technical team is heavily using ALB's routing features, and it is a non-trivial task to move to a different load balancer type. Which one of these options is most operationally efficient to meet the requirement?
+
+Configure a Global Accelerator in front of an application load balancer.
+
+Global Accelerator endpoint has two static IP addresses. Customer can configure their firewall and application to communicate with the Global Accelerator IP address. The requests are automatically forwarded to Application Load Balancer by Global accelerator. The global accelerator has several benefits like using the AWS edge network to route the request to the nearest endpoint, static IP address, traffic dial to easily shape traffic flow, responding instantaneously to changes in health and traffic conditions, etc.
+
+#### Route 53 geo-location vs geo-proximity:
+
+- Geolocation Routing, you can route traffic based on the requester's location. You can configure route 53 records based on Country and Continent. In the case of the USA, you can even configure it by State.
+- Geoproximity Routing – Similar to Geolocation, if you have resources in multiple regions, you can route traffic to the nearest location and, optionally, shift traffic from resources in one location to another. This allows for more complex traffic shaping; however, Geoproximity requires the use of Traffic Flow, and it involves additional monthly costs (USD 50/month)
+
+
 
 
 
@@ -1798,7 +1974,7 @@ volume types:
 
 #### Elastic File System (EFS) 
 
-Amazon EFS is a fully managed service for hosting Network File System (NFS) filesystems in the cloud.
+Amazon EFS is a fully managed service for hosting Network File System (__NFS__) filesystems in the cloud.
 
 - File Share for __Linux__ EC2 instances on AWS (NOT Windows).
 - fully managed file system solution accessed using the __NFS protocol__.
@@ -1838,9 +2014,16 @@ Data Sync:
 - You can securely and efficiently copy files over the internet or a Direct Connect connection.
 - Copies file data and file system metadata such as ownership, timestamps, and access permissions.
 
+Replication:
+- You can replicate your EFS file system in an __AWS Region__.
+- If you enable replication Amazon EFS __automatically and transparently replicates the data and metadata__ on the source file system to a destination file system.
+- Data is transferred based on the __Last synced time__ for the replication.
+- To __back up__ EFS data to __S3__, you can use the AWS CLI 'sync'__ command or use AWS Backup for a more managed approach
+
 #### FSx
 
 - provides a fully managed third-party file system.
+- supports __SMB__, __NTFS__ and also __Linux__ and __MacOS__
 - provides you with two options to choose from:
   - __FSx for Windows File Server__, for Windows based apps 
     - FSx for Windows File Server provides a fully managed native Microsoft Windows File System.
@@ -1855,18 +2038,25 @@ Data Sync:
     - S3 objects are presented as files in the file system, and you can write your results back to S3.
     - It also provides a POSIX compliant file system interface.
 
+Replication:
+- FSx __automatically replicates data__ within the __same AZ__
+- You can deploy FSx with a __Multi-AZ architecture__, where data is replicated to a __second AZ__
+- To __back up__ data from FSx to __S3__, you can leverage __AWS Backup__ or you can create a Data Repository Association (DRA) to link your FSx file system to an S3 bucket
+- In case of a failure, FSx __automatically fails over__ to a standby file server, ensuring minimal downtime and continued operation
+    
+
 #### Storage gateway – File gateway
 
 - This provides an __on-premises file server__.
-- You can store and retrieve files as objects in S3.
+- You can store and retrieve files as objects in __S3__.
 - You can use it with __on-premises applications and EC2-based applications__ that need file storage in S3 for object-based workloads.
 - File gateway offers SMB or NFS-based access to data in S3 with local caching.
 
 #### Storage gateway - volume gateway
 
 - This supports __block-based volumes__. So, it's an iSCSI protocol that you use to connect.
-- You've got cached volume mode where the entire data set is stored on S3, and a cache of the most frequently accessed data is on site.
--  Stored volume mode means that the __entire data set is stored on site and asynchronously backed up to S3__
+- __cached volume mode__ where the entire data set is stored on S3, and a cache of the most frequently accessed data is on site.
+- __stored volume mode__ means that the __entire data set is stored on site and asynchronously backed up to S3__
 
 #### Storage gateway - tape gateway
 
@@ -1946,6 +2136,13 @@ __FSx for windows__ is a file share for __windows__ instances and also now __sup
 EFS is a file share for Linux instances.
 FSx for Lustre is a high performance file share and it currently supports only Linux instances. 
 FSx for Lustre also supports a link to S3 bucket where the objects can accessed and stored using file system commands
+
+#### Your customer is a small business that works with lot of images .  These images need to be backed up in a secure offsite location.  Images are accessed very often initially and then rarely accessed after few days.  However, when needed, it needs to be accessible as quickly as possible.  How can you use AWS Cloud Storage for this?
+
+Use AWS Storage Gateway deployed as a File Gateway
+
+File Gateway configuration can locally cache frequently used data and for data that is not in cache, it can retrieve from AWS. It automatically and securely backsup file to S3. Volume gateway is used as block storage and not suitable for this requirement.
+
 
 
 
@@ -2130,6 +2327,25 @@ The __task role__ is used for granting permissions to your application code to a
 Docker containers use log drivers to collect containers' standard output and standard error streams and forward the log to the configured destination. 
 The awslogs driver publishes the captured logs to the CloudWatch log group. 
 This is a straightforward setup to consolidate logs from containers
+
+#### A containerized application sees sustained high CPU and memory utilization. Which of these launch types may optimize the cost?
+
+ECS Cluster with EC2 instance launch type
+
+#### A microservice deployment uses an Elastic Load Balancer to facilitate service-to-service communication. The caller sends the request to a load balancer endpoint, and the load balancer routes the request to healthy containers running in an ECS cluster. However, the drawback of this approach is that every micro service requires a load balancer, which increases the deployment cost. Which options would lower the cost and ensure the requests are forwarded only to healthy containers?
+
+We can minimize the number of load balancers using Application Load Balancer path-based routing capability. Here, we create one target group for each microservice and assign a unique path. Depending on the path used by the caller, the request is routed to the appropriate microservice. Another option is using App Mesh. With App Mesh, an envoy sidecar is deployed along with each container. App Mesh publishes services and their tasks to Envoy. Envoy performs a health check of tasks and routes the request to a healthy target. With App Mesh, we don't need an elastic load balancer.
+
+#### You have a docker container that is listening on Port 80. It is part of an ECS Task and managed using ECS. An Elastic Load Balancer routes the requests to the container. You want flexibility to launch multiple instances of this Task in a single EC2 Instance. What Elastic Load Balancer can you use for this?
+
+Application Load Balancer with Dynamic Port Mapping
+
+Dynamic Port mapping allows automatic mapping of unused EC2 instance port to container. When container is registered with ALB, it automatically tracks the instance and port combination. This will allow you to run multiple tasks belonging to same task definition in a single EC2 instance
+
+
+
+
+
 
 
 
@@ -2381,6 +2597,25 @@ S3 needs permission to invoke Lambda function; Lambda function needs permission 
 #### An S3 bucket is configured to invoke the Lambda function whenever a new object is added to the bucket. The Lambda function transforms the object and uploads the transformed object to the same bucket. Would you approve of this solution?
 
 No. This solution can unintentionally create an infinite loop and accumulate massive charges to your account.
+
+#### Your Lambda function needs access to a private web end point available in your VPC.  What steps do you need to enable such an access?
+
+Configure Lambda to run inside a private subnet of your VPC. Lambda function can only access private resources inside your VPC when you configure it to run inside your VPC. You need to specify the VPC, private subnets, and Security group as part of the Lambda configuration
+
+#### Your application services are used by several third parties. To ensure quality of service for all customers and to prevent a single customer from consuming all the resources, you want to enforce limits on maximum requests per second that can be made by a single customer.
+
+API Gateway can act as a single point for your third parties to integrate with your services. API Gateway allows to throttle requests at specific method level and manage individual API Keys. It also allows you to cache the responses so that API Gateway can directly answer certain method calls without invoking your backend services for every request. You can configure your API methods to require authorization can support IAM based control, third party identity providers, custom authorizers and so forth.
+
+#### Your Lambda function subscribes to an SNS topic, and the Lambda function is invoked asynchronously when a message arrives for that topic. When there is an error while processing a message, you want to ensure that the message is available for your team to troubleshoot. What configuration can you use for this?
+
+Configure Dead Letter Queue for Lambda function
+
+Using Dead Letter configuration, you can direct Lambda to send unprocessed events to SQS queue or SNS topic. This can be used for troubleshooting events that were unsuccessful. While you can catch errors in a Lambda function and push the events to SQS queue, Lambda does it automatically for you using Dead Letter config. SNS Topic itself does not have dead letter configuration. SQS has a dead letter option to move messages that were not processed after specified number of retries
+
+
+
+
+
 
 
 
@@ -2824,6 +3059,44 @@ A unit of Read Capacity enables you to perform one strongly consistent read per 
 Each read can transfer up to 4KB.
 Each Read Capacity Unit provisioned in a DynamoDB table translates to one strongly consistent read per second or two eventually consistent reads per second
 
+#### An organization has several RDS databases, DynamoDB tables, and EFS file shares. The data needs to be backed up automatically, and a copy must be maintained in the disaster recovery region. Which solution would you use?
+
+Use AWS Backup to set up backup policies, automate the process, and maintain a copy in the DR site
+
+We can centrally manage the backup policies and automate the process using the AWS Backup service. In addition, AWS Backup can also maintain a copy of the backup in a disaster recovery region.
+
+AWS Backup is a fully-managed service that makes it easy to centralize and automate data protection across AWS services, in the cloud, and on premises. Using this service, you can configure backup policies and monitor activity for your AWS resources in one place.
+
+#### You have configured an Aurora database with five read replicas.  What is the recommended mechanism for clients to connect to read replicas?
+
+Use Aurora database reader endpoint.
+
+If there is more than one Aurora Replica, the reader endpoint directs each connection request to one of the Aurora Replicas.
+
+#### Your RDS instance was upgraded to most current major and minor database version. Legal requirement calls for a 10 year retention of your database backups and some of the backup were created on database versions that are no longer supported by RDS. What will happen when you restore an unsupported database version?
+
+Older version when restored from snapshot will be automatically upgraded to currently supported database engine version
+
+#### In a multi-AZ RDS Deployment, automatic failover will not happen under this condition
+
+Primary Instance Deadlock and Query Timeouts
+
+#### Your DynamoDB application stores and retrieves Items that are 8KB in size. The application reads 10 items per second in eventually consistent mode The application also writes 10 items per second. How much capacity would you need to provision?
+
+10 Read Capacity Units and 80 Write capacity units
+
+- A read capacity unit represents one strongly consistent read per second, or two eventually consistent reads per second, for an item up to 4 KB in size.  Item size is rounded to the next 4KB boundary.  
+- A write capacity unit represents one write per second, for an item up to 1 KB in size.  Item size is rounded to the next 1KB boundary.
+
+####  A DynamoDB table is provisioned with 20 Read Units and 20 Write Units. If items are 4KB in size, what is the net throughput that can be achieved?
+
+A read capacity unit represents one strongly consistent read per second, or two eventually consistent reads per second, for an item up to 4 KB in size. Item size is rounded to the next 4KB boundary. For example: if item size is 4.5KB, DynamoDB would round it to 8KB for Read Capacity Unit calculation. A write capacity unit represents one write per second, for an item up to 1 KB in size. Item size is rounded to the next 1KB boundary. For example: if item size is 4.5KB, DynamoDB would round it to 5KB for Write Capacity Unit calculation
+
+
+
+
+
+
 
 
 
@@ -3236,6 +3509,10 @@ Kinesis data stream with one shard for each priority level might work.
 However, we don't know which priority is in which shard. 
 Consumer application has to poll all the shards and map them to the processing priority
 
+#### You are using Simple Queue Service to hold messages, and the consumer application processes the messages on a best effort basis. If the consumer application is down for extended periods, what is the maximum message retention period in the Simple Queue Service (SQS) before a message is automatically removed?
+
+The MessageRetentionPeriod attribute in SQS allows you to set the message retention period, which is the length of time (in seconds) that Amazon SQS retains a message. You can set this value from 60 seconds (1 minute) to 1,209,600 seconds (14 days). Messages that exceed the retention period are automatically deleted by SQS.
+
 
 
 
@@ -3339,6 +3616,29 @@ use a change set so that you can view what's going to happen before you actually
 #### A manager wishes to monitor and enforce configuration compliance for AWS resources, including S3 buckets and security groups.
 
 use AWS Config to create rules to monitor compliance and use auto-remediation to enforce the compliance.
+
+#### The corporate policy requires credential rotation every 90 days. While the users were promptly changing their passwords on time, an audit of access key age showed that keys were not rotated for several months. How can you enforce this policy and take corrective action?
+
+Use AWS Config to automatically disable keys that are older than the specified max access key age
+AWS Config has a managed rule to check if active access keys are rotated within the number of days specified in the maxAccessKeyAge parameter.
+
+Trusted Advisor can alert about access keys that are older than 90 days. The max-age parameter in Trusted Advisor is not configurable. You can automate the remediation by monitoring EventBridge and triggering an action in response to the event.
+
+Inspector is used for host-level vulnerability assessment
+
+Amazon Detective is an interactive tool to investigate security findings and identify the root cause of potential security issues or suspicious activities. Detective can analyze trillions of events from multiple data sources such as Amazon Virtual Private Cloud (Amazon VPC) Flow Logs, AWS CloudTrail logs, Amazon Elastic Kubernetes Service (Amazon EKS) audit logs, and Amazon GuardDuty findings, and automatically creates a unified, interactive view of your resources, users, and the interactions between them over time.
+
+#### The database credentials for an application are stored as a secure string parameter in the Systems Manager Parameter Store. The application uses IAM role with Get Parameter permission to access the database credentials. However, during testing, the application could not connect to the database. The developer verified and confirmed that the credential stored in parameter store are valid. What could be causing the connectivity problem?
+
+Ensure IAM role has permission to access the KMS Keys used for secure string encryption
+SecureString parameter uses KMS keys for encryption. Ensure the Application IAM Role has permission to use the keys and access the parameter.
+
+
+
+
+
+
+
 
 ## Observability = Monitoring, Logging and Auditing <a id="Observability"></a>
 
@@ -3471,6 +3771,30 @@ Alarms can stop the instance - but they cannot start an instance.
 #### An organization uses Bastion Host (an EC2 instance) for the developers to connect to other AWS resources. You would like to maximize the availability of Bastion Host and automatically recover from issues related to Physical Host. What mechanism can you use to accomplish this?
 
 With System Status Check Alarm, you can configure the instance to recover from underlying AWS issues automatically. Recover option is only available with System Status Check alarms.
+
+#### I want to track all user and API activities in my account. What service should I use for this?
+
+CloudTrail captures all user activity and API usage. When you enable a trail, CloudTrail publishes CloudWatch Events that you can use to enable automation workflow based on specific events. Guard Duty reports only suspicious events. VPC Flow log captures network traffic flow in your VPC. Macie is used for protecting sensitive data in S3
+
+#### You have a pool of EC2 instances to manage application requests. Application has a metric that tracks pending requests and you would like to configure Autoscaling to add or remove instances based on this application metric. How can you accomplish this?
+
+CloudWatch supports custom metrics and application can take advantage of this capability to push relevant metrics to CloudWatch. Once it is available in CloudWatch, you can use rest of the capabilities provided by CloudWatch to monitor based on that metric
+
+#### Your application is generating several false alarms. The alarm is currently based on the CPU utilization metric. Upon investigation, you found that the false alarms can be reduced if you consider the pending items in the SQS Queue. How would you ensure the alarm goes into ALARM state only when both the CPU utilization and SQS Queue length metrics breach the threshold?
+
+With CloudWatch, you can create two types of alarms: metric and composite. 
+
+A metric alarm watches a single metric, and when the metric breaches the threshold, the alarm changes to an "ALARM" state. 
+
+A composite alarm is a new capability that considers the state of multiple alarms. The outcome of a composite alarm depends on the rule expression you define. For example, let's say you have a metric alarm to monitor CPU utilization and another to monitor SQS Queue Length. 
+
+You can create a composite alarm when you need to perform a certain action only when both CPU and SQS Queue Length alarms are in the ALARM state. Rule expression allows you to combine these underlying metric alarms or other composite alarms and create a new Alarm based on the state of these existing alarms.
+
+#### You application runs in two different regions and you would like aggregate instance utilization metrics across regions. What is the mechanism that can be used for aggregating CloudWatch data across regions?
+
+Use a script to pull data from different regions, and push it to CloudWatch Logs for analysis
+You can perform aggregation only with a region.
+
 
 
 
@@ -3629,6 +3953,13 @@ KMS key types and how are they rotataed:
 - Monitor requests to Application Load Balancer, CloudFront, API Gateway (and more)
 - Secure at the edge (with CloudFront, CloudFront query parameter whitelist)
 
+Web Application Firewall allows for access limitation by IP address. 
+It's important to highlight that __WAF integration is exclusive__ to:
+- Application Load Balancer, 
+- CloudFront distribution, and 
+- API Gateway. 
+- You cannot use CIDRs
+
 These are various different ways of identifying traffic that could be malicious in nature:
 
 ![ Malicious attack ](./images/malicious_assack.png)
@@ -3753,6 +4084,44 @@ Secrets Manager __encrypts the secrets using KMS keys__ that you specify.
 Systems Manager Parameter Store supports the storage of encrypted passwords; however, by default, they store unencrypted. 
 Parameter Store does not have an automated mechanism for credential rotation
 
+#### I need a tool that automatically scans CloudTrail Logs, VPC Flow Logs, and DNS logs and identifies suspicious events that are not part of normal baseline activities in my account. Which service should I use?
+
+Guard Duty is a managed threat detection service. It learns by reviewing the CloudTrail events, VPC Flow Log, and DNS logs to build a baseline of normal activities. It checks network activity, data access patterns, account behavior. Any abnormal and suspicious activities are flagged and reported by Guard Duty. You can use CloudWatch Events and Lamda for automated remediation.
+
+#### Our application requires several third-party and open-source software libraries. How do I automatically check for vulnerabilities in these libraries? The solution should also check for any newly reported vulnerabilities. What capability can I use for this?
+
+Inspector can analyze your instance and application libraries for known vulnerability reported in the CVE database, CIS host hardening standards, network reachability assessment, and processes reachable over the exposed ports.
+
+#### Developers require a new version of the framework installed on the servers. I need to make sure all development servers have the latest version installed. What service should I use for this?
+
+With the Systems Manager’s Patch Manager capability, you can define baseline patch levels, and patch manager automatically patches the instances.
+
+#### Web Application Firewall allows for access limitation by IP address. However, it's important to highlight that WAF integration is exclusive to Application Load Balancer, CloudFront distribution, and API Gateway.
+Any of these:
+- Enable Advanced Shield on Network Load Balancer
+- Protect CloudFront using AWS WAF: A common strategy is to use CloudFront in front of NLB and protect CloudFront with WAF
+
+Cannot use:
+- GuardDuty is an intrusion detection system that can detect suspicious activities
+- AWS Inspector identifies software vulnerabilities in your EC2 instances and container images. Inspector does not block attacks.
+
+#### An online retailer is looking for an automated solution to alert about fraudulent transactions, fake and spam accounts. Which solution would you recommend?
+
+Amazon Fraud Detector can detect online frauds with machine learning. For example, this service can flag suspicious online payments, detect new account fraud and incorporate additional verification steps, account takeover detection, and so forth
+
+#### Apache Log4j vulnerability, which allows remote code execution and the ability to download and run arbitrary code on your servers. Let’s assume an issue like this vulnerability is reported and you want to assess the impact to your environment consisting of 1000s of servers and containers. What tools would you use to identify vulnerable systems and apply the fix?
+
+Use:
+- Inspector can scan hosts and container images and report Security exposures and vulnerabilities. This tool assigns a risk score to prioritize your remediation.
+- Systems Manager Patch Manager, you can automatically patch the vulnerable systems at scale. For patching container image, you may need additional CI/CD pipeline and tools to build a new image.
+The following will not help:
+- GuardDuty is an intrusion detection system that alerts about malicious activities in your environment.
+- Control Tower provides a blueprint that follows AWS security and compliance best practices and sets up a multi-account environment for you, called a Landing Zone.
+- Amazon Macie scans your S3 buckets and flags them if it contains sensitive data. Macie can also alert you when policies or settings in S3 buckets are changed in a way that reduces the security
+
+
+
+
 
 
 
@@ -3767,6 +4136,8 @@ Tools:
 
 ### Service Migration Service – SMS <a id="SMS"></a>
 
+ VMware, Hyper-V or Azure -> SMS connector -> Server volumes -> AMIs -> EC2
+
 - agentless service for migrating on-premises and cloud-based VMs to AWS.
 - Source platforms can be VMware, Hyper-V or Azure.
 - The Server Migration Service connector is installed on the source's platform.
@@ -3776,6 +4147,12 @@ Tools:
 - It provides automated live incremental server replication and AWS console support.
 
 ### Database Migration Service – DMS <a id="DMS"></a>
+
+Database Migration Service: to transfer data between __on-premises databases and cloud-based__ RDS
+
+Supports __homogeneous__, so Oracle to Oracle, as well as __heterogeneous__. 
+You can move to the managed data to Amazon Redshift, NoSQL platforms like Amazon DynamoDB, or low-cost storage platforms like Amazon Simple Storage Service (Amazon S3).
+Application is live, minimizing downtime.
 
 - used for migrating databases from on-premises, Amazon EC2 or Amazon RDS.
 - supports homogeneous, so Oracle to Oracle, as well as heterogeneous, example, Oracle to Amazon Aurora.
@@ -3790,6 +4167,9 @@ Tools:
 - does continuous data replication so you can use it for DR, dev/test, or single source multi target or multi-source single target.
 
 ### DataSync <a id="DataSync"></a>
+
+Moves data (agent) between on-premises storage and AWS service.
+Copy data FROM: NFS, SMB, HDFS, between AWS storage services TO: S3, EFS, or FSx for Windows File Server.
 
 A secure, online service that automatically moves data between on-premises storage and AWS services.
 
@@ -3838,6 +4218,15 @@ Steps to move data using AWS DataSync:
 - There are a few ways to optimize the performance of Snowball transfers:
   - You can use the latest Mac or Linux Snowball client, batch small files together, perform multiple copy operations at one time, copy from multiple workstations, and transfer directories, not individual files.
 - Use cases for Snowball are cloud data migration, so migrating data to the cloud. Content distribution, sending data to clients or customers.
+
+Optimal data migration per data size comparison:
+- Snowball: > 10TB
+  - Snowball: 80TB
+  - Snowball Edge: 100TB, block and object storage
+  - SnowCone: device used for edge computing storage and data transfer
+  - SnowMobile: 100PB
+- Site-to-Site VPN < 100GB
+- Direct Connect < 10TB
 
 ### AWD Data Transfer <a id="DataTransfer"></a>
 
@@ -3891,3 +4280,61 @@ Storage Gateway  for incremental loading and for replacing on-premises storage (
 #### Customer has on-premises Linux and windows applications that use NFS, SMB file shares. Customer is migrating the application to cloud. What storage service and data transfer service would you use that minimizes changes to the application?
 
 DataSync for initial transfer (if network is not a constraint) and, for incremental transfer
+
+#### Customer needs to migrate 50 TB of data from on-premises systems to AWS cloud. Incremental data needs to be in sync until cutover to the cloud. What cloud storage and data transfer service would you use for this?
+
+Storage Gateway
+
+#### Your environment has several existing clients that use SFTP, FTP, FTPS, and AS2 protocols for file transfer. Which service offers a fully managed solution to move data into and out of AWS Storage services using these protocols?
+
+AWS Transfer family
+
+AWS Transfer Family is a secure transfer service that enables you to transfer files into and out of AWS storage services.
+
+AWS Transfer Family offers fully managed support for the transfer of files over SFTP, AS2, FTPS, FTP, and web browser-based transfers
+
+AWS Transfer Family supports transferring data from or to the following AWS storage services:
+- Amazon Simple Storage Service (Amazon S3) storage.
+- Amazon Elastic File System (Amazon EFS)
+- Network File System (NFS) file systems
+
+#### You are consolidating data from multiple SaaS partners like Salesforce, SAP, and Zendesk. Which service would you use for this?
+
+AWS AppFlow.
+
+AppFlow is a no-code solution to automate data flow by securely integrating third-party applications and AWS services and securely transferring data from SaaS applications like Salesforce, SAP, Zendesk, Slack, and ServiceNow.
+
+AppSync is used for building applications with serverless GraphQL and Pub/Sub APIs.
+
+Amazon AppFlow is a fully-managed integration service that enables you to securely exchange data between software as a service (SaaS) applications, such as Salesforce, and AWS services, such as Amazon Simple Storage Service (Amazon S3) and Amazon Redshift.
+
+For example, you can ingest contact records from Salesforce to Amazon Redshift or pull support tickets from Zendesk to an Amazon S3 bucket
+
+#### You plan to migrate over 100 TB of data from your data warehouse system to the Amazon Redshift database. The network bandwidth from on-premises to the internet for this data migration is 250 Mbps. What option would you use to transfer data to AWS quickly?
+
+Snowball
+
+With a 250 Mbps link, it will take 40 days to transfer 100 TB data. Whereas, snowball turn around time is less than 1 week
+
+#### Customer has on-premises Linux and windows applications that use NFS, SMB file shares. Customer is planning a lift and shift migration to cloud. What storage service would you use that minimizes changes to the application
+
+FSx for Windows or EFS
+
+#### The Fruit company needs to analyze data generated by sensors of their autonomous car. The dataset size in 100s of TBs and stored in S3 standard storage. To analyze all this data, data science team needs a high-performance cluster with over 1000 servers with very low latency and very high throughput network connectivity. The servers also need low latency data access. How should they design the system?
+
+Use
+- Use FSx for Lustre linked to an S3 bucket
+  FSx for Lustre is a high-performance file share that offers low latency data access. This is optimized for high performance computing and fast processing. FSx for Lustre can operate as a standalone file share or you can link it to S3 bucket and present the content of S3 bucket as a file share. Any changes you make to the file system is automatically updated to S3. Similarly, the linked file system is automatically updated as objects are changed in S3.
+- Create cluster using Cluster Placement Group
+With EC2’s Cluster Placement Group, the instances are packed closely together in a single availability zone. These instances may share the same rack and networking infrastructure to achieve low latency.
+Another option is the Partition Placement Group. This option minimizes the impact to your application due correlated hardware failure.
+
+#### The customer needs to migrate 50 TB of data from on-premises file shares to S3 Any new changes in on-premises (incremental data) need to be in sync with S3 until cutover to the cloud. What data transfer service would you use for this?
+
+- Data Sync: Data Sync is an AWS tool optimized for moving large amounts of data.
+  You can use this to transfer from on-premises to AWS Storage services (S3, EFS, FSx for Windows).
+  Data Sync supports both one-time migration and scheduled incremental transfer. Data Sync automatically tracks changes to perform incremental transfers efficiently
+- Snowball Edge Storage Optimized.
+  remember this information: 100 Mbps network link can transfer 1 TB/day
+  transferring 50 TB can take 50 days using a 100 Mbps link.
+  Snowball Edge: end-to-end time to transfer is approximately one-week
