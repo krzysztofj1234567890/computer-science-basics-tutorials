@@ -5,7 +5,7 @@
 
 ### Foundation Model
 
-Trained on very large data set of unlabeled different types of data.
+Trained on __very large data__ set of unlabeled different types of data.
 
 Very expensive to train (resources, time, money)
 
@@ -13,21 +13,21 @@ Examples: gpt40
 
 ### LLM
 
-LLM = large language models. Designed to generate human-like text.
+LLM = __large language models__. Designed to generate human-like text.
 
 Trained on large corpus of text data (books, articles etc.), billions of parameters, 
 
 Can perform language related tasks: translation, summarization, question answering, content creation.
 
-Prompt: to query LLM< you send a prompt. It can be text and pictures etc.
+Prompt: to query LLM you send a prompt. It can be text and pictures etc.
 
 Output of a prompt is not deterministic and it can be many different data types (text, image etc.)
 
 ### RAG
 
-- Allows a Foundation Model to reference a data source outside of its training data
+- Allows a Foundation Model to reference a __data source outside of its training data__
 - Retrieval - because we retrieve the data outside foundational model
-- Augmented - because augment the prompt with data that has been retrieved from vector database
+- Augmented - because __augment the prompt with data that has been retrieved__ from vector database
 
 ### Tokenization
 
@@ -49,6 +49,391 @@ Converting raw text into a sequence of tokens
 - Vectors have a high dimensionality to capture many features for one input token, such as semantic meaning, syntactic role, sentiment
 - Embedding models can power search applications
 - Words that have semantic relationships (i.e. are similar) will have similar embeddings (vector) and then we can do similarity search
+
+## AI and ML
+
+![ What is AI ](./images/what_is_ai.gif)
+
+AI examples: expert systems or ML
+
+![ AI Components ](./images/ai_components.gif)
+
+Taxonomy:
+
+![ Taxonomy ](./images/ai_taxonomy.gif)
+
+### Machine Learning (ML)
+
+- ML is a type of AI for building __methods that allow machines to learn__
+- Data is leveraged to improve computer performance on a set of task
+- __Make predictions based on data__ used to train the model: regression, classification, decision trees or Neural Networks
+
+ML Terms:
+- __GPT__ (Generative Pre-trained Transformer) – __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
+  - transformers
+    - LLM
+    - Diffusion (images)
+    - Multi-Modal
+  - __GAN__ (Generative Adversarial Network) – models used to generate __synthetic data such as images, videos__ or sounds that resemble the training data. Helpful for data augmentation
+- __BERT__ (Bidirectional Encoder Representations from Transformers) – similar intent to GPT, but reads the text in two directions
+- __RNN__ (Recurrent Neural Network) – meant for sequential data such as __time-series__ or text, useful in speech recognition, time-series prediction
+- ResNet (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
+- __SVM__ (Support Vector Machine) – ML algorithm for __classification and regression__
+- __WaveNet__ – model to generate __raw audio waveform__, used in Speech Synthesis
+- XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
+
+#### Supervised Learning (ML)
+
+__Regression__:
+- Used to predict a numeric value based on input data
+- The output variable is continuous, meaning it can take any value within a range
+- Examples: Predicting House Prices, Stock Price Prediction, Weather Forecasting
+
+__Classification__:
+- Used to predict the categorical label of input data
+- The output variable is discrete, which means it falls into a specific category or class
+
+![ Supervised Learning](./images/supervised_learning.gif)
+
+##### Training vs. Validation vs. Test Set:
+- __Training Set__
+  - Used to train the model
+  - Percentage: typically, 60-80% of the dataset
+- __Validation Set__
+  - Used to tune model parameters and validate performance
+  - Percentage: typically, 10-20% of the dataset
+- __Test Set__
+  - Used to evaluate the final model performance
+  - Percentage: typically, 10-20% of the dataset
+
+#### Feature Engineering:
+- The process of using domain knowledge to select and __transform raw data into meaningful features__
+- Helps enhancing the performance of machine learning models
+- Techniques
+  - __Feature Extraction__ – extracting useful information from raw data, such as deriving age from date of birth
+  - __Feature Selection__ – selecting a subset of relevant features, like choosing important predictors in a regression model
+  - __Feature Transformation__ – transforming data for better model performance, such as normalizing numerical data
+- Example: Predicting house prices based on features like size, location, and number of rooms
+  - Feature Creation – deriving new features like 'price per square foot'
+  - Feature Selection – identifying and retaining important features such as location or number of bedrooms
+  - Feature Transformation – normalizing features to ensure they are on a similar scale
+
+Feature Engineering on Unstructured Data:
+- Example: sentiment analysis of customer reviews
+- Feature Engineering Tasks
+  - Text Data – converting text into numerical features using techniques like TF-IDF or word embeddings
+  - Image Data – extracting features such as edges or textures using techniques like convolutional neural networks (CNNs)
+
+#### UnSupervised Learning (ML)
+
+The goal is to __discover inherent patterns__, structures, or relationships __within the input data__.
+The machine must uncover and create the groups itself, but __humans still put labels__ on the output groups.
+Common techniques include __Clustering__, Association Rule Learning , and Anomaly Detection.
+
+Examples:
+- Clustering Technique: group similar data points together into clusters based on their features
+- Association Rule Learning: supermarket wants to understand which products are frequently bought together
+- Anomaly Detection: detect fraudulent credit card transactions
+
+__Semi-supervised Learning:__ 
+- Use a small amount of labeled data and a large amount of unlabeled data to train systems
+- the partially trained algorithm itself labels the unlabeled data
+- model is then re-trained on the resulting data mix without being explicitly programmed
+
+#### Self-Supervised Learning
+
+Steps:
+- Have a __model generate pseudo-labels__ for its own data without having humans label any data first
+- Then, __using the pseudo labels, solve problems traditionally solved by Supervised Learning__
+- Widely used in NLP (to create the BERT and GPT models for example) and in image recognition tasks
+
+Example:
+- Create 'pre-text tasks' to have the model solve simple tasks and learn patterns in the dataset
+- Pretext tasks are not 'useful', but will teach our model to create a 'representation' of our dataset
+- Predict any part of the input from any other part:
+  - Amazon Web ??? -> Services
+  - provides on-demand cloud ??? -> computing
+  - APIs to individuals, ???, and governmants -> companies
+- After solving the pre-text tasks, we have a model trained that can solve our end goal: 'downstream tasks'
+
+#### Reinforcement Learning (RL)
+
+A type of Machine Learning where an agent learns to make decisions by performing actions in an environment to maximize cumulative rewards
+
+Key Concepts:
+- Agent – the learner or decision-maker
+- Environment – the external system the agent interacts with
+- Action – the choices made by the agent
+- Reward – the feedback from the environment based on the agent’s actions
+- State – the current situation of the environment
+- Policy – the strategy the agent uses to determine actions based on the state
+
+Learning process:
+- The Agent observes the current State of the Environment
+- It selects an Action based on its Policy
+- The environment transitions to a new State and provides a Reward
+- The Agent updates its Policy to improve future decisions
+- Goal: Maximize cumulative reward over time
+
+Example: training a robot to navigate a maze
+
+Use cases:
+- Gaming – teaching AI to play complex games (e.g., Chess, Go)
+- Robotics – navigating and manipulating objects in dynamic environments
+- Finance – portfolio management and trading strategies
+
+
+### Deep Learning
+
+- Process __more complex patterns__ in the data than traditional ML
+- Requires large amount of input data and GPUs
+- __Computer Vision__ – image classification, object detection, image segmentation
+- Natural Language Processing (__NLP__) – text classification, sentiment analysis, machine translation, language generation
+    - __Intent analysis:__ You could use it to analyze feedback or call center recordings.
+      - Figure out using NLP, what are the m__ain issues that people are calling in about__ when they call my customer service reps?
+      - Use NLP to figure out automatically whether or not people are happy or not and what the main issues are that they're facing.
+
+### Generative AI (Gen-AI)
+
+- Multi-purpose foundation models backed by __neural networks__
+- They can be fine-tuned if necessary to better fit our use-cases: text generation, text summarization, chatbot, image generation
+- They Leverage Transformer model (__LLM__) - for text
+  - Able to process a sentence as a whole instead of word by word
+  - Faster and more efficient text processing
+  - gives relative importance to specific words in a sentence (more coherent sentences)
+  - models that can understand and generate human-like text
+  - Trained on vast amounts of text data from the internet, books, and other sources
+  - Example: Google BERT, OpenAI ChatGPT
+- __Diffusion models__ - for images
+- __Multi-modal Models__ (ex: GPT-4o)
+  - Does NOT rely on a single type of input (text, or images, or audio only)
+  - Does NOT create a single type of output
+  - Example: a multi-modal can take a mix of audio, image and text and output a mix of video, text
+  - "Generate a video of making the picture of the cat speak the audio that is included"
+- Example: generate new content
+
+#### RLHF = Reinforcement Learning from Human Feedback
+
+Use human feedback to help ML models to self-learn more efficiently.
+
+RLHF incorporates human feedback in the reward function, to be more aligned with human goals and needs
+- start with a set of human-generated prompts and responses
+- fine-tune an existing model with internal knowledge
+- the model’s responses are compared to human’s responses
+  - the model creates responses for the human-generated prompts
+  - Responses are mathematically compared to human-generated answers
+- Build a separate reward model
+  - Humans can indicate which response they prefer from the same prompt
+  - The reward model can now estimate how a human would prefer a prompt response
+- Optimize the language model with the reward-based model
+  - Use the reward model as a reward function for RL
+
+RLHF is used throughout GenAI applications including LLM Models
+
+
+### Use cases
+
+- Expert system (is AI but not ML): if...then rules
+- Regression and classification - is ML but not Deep Learning. It can recognize a blue ball from yellow ball (classification)
+- Computer vision, Facial recognition, Natural language processing - Deep Learning. We have seen similar facts and we can recognize features of something we have never seen.
+- Generate book - Gen-AI
+
+### Training Data
+
+- Labeled vs. Unlabeled Data
+  - Labeled Data:
+    - Data includes both input features and corresponding output labels
+    - Example: dataset with images of animals where each image is labeled with the corresponding animal type (e.g., cat, dog)
+    - Use case: Supervised Learning, where the model is trained to map inputs to known outputs
+  - Unlabeled Data:
+    - Data includes only input features without any output labels
+    - Example: a collection of images without any associated labels
+    - Use case: Unsupervised Learning, where the model tries to find patterns or structures in the data
+- Structured vs. Unstructured Data
+  - Structured Data:
+    - Data is organized in a structured format, often in rows and column
+    - Tabular Data: Data is arranged in a table with rows representing records and columns representing features
+    - Time Series Data Data points collected or recorded at successive points in time
+  - Unstructured Data
+    - Data that doesn't follow a specific structure and is often text-heavy or multimedia content
+    - Text Data: Unstructured text such as articles, social media posts, or customer reviews
+    - Image Data: Data in the form of images, which can vary widely in format and content
+
+### Model Performance
+
+#### Model Fit:
+- __Overfitting__
+  - Performs well on the training data
+  - Doesn’t perform well on evaluation data
+- __Underfitting__
+  - Model performs poorly on training data
+  - Could be a problem of having a model too simple or poor data features
+- __Balanced__: Neither overfitting or underfitting. This is what you want
+
+__What to do if overfitting__?
+- Overfitting is when the model gives good predictions for training data but not for the new data
+- By overfitting, we mean that the model is __good at making predictions on the data it was trained on__, but not on new data that it hasn't seen before.
+So the model has been overfitted to its training data, and it loses some of its predictive capacity
+- It occurs due to:
+  - Training data size is too small and does not represent all possible input values
+  - The model trains too long on a single sample set of data
+  - Model complexity is high and learns from the __noise__ within the training data
+- How can you __prevent overfitting__?
+  - __Increase the training data size__
+  - Early stopping the training of the model
+  - __Data augmentation__ (to increase diversity in the dataset)
+  - __Adjust hyperparameters__
+- __K-fold cross validation__: protects against overfitting
+  - Split your data into K randomly-assigned segments
+  - Reserve one segment as your test data
+  - Train on each of the remaining K-1 segments and measure their performance against the test set
+  - Take the average of the K-1 r-squared scores
+  - Example: You have 100 data points, and you choose K = 5:
+    - The dataset is split into 5 equal parts (20 points each)
+    - The model is trained and validated 5 times:
+      - Train on folds 2–5, validate on fold 1
+      - Train on folds 1, 3–5, validate on fold 2
+      - Train on folds 1–4, validate on fold 5
+    - You then average the validation results (e.g., accuracy, RMSE, F1 score) to get a more stable estimate of model performance.
+
+
+#### Bias
+
+Difference or error between predicted and actual value
+- Occurs due to the wrong choice in the ML process
+- __High Bias__
+  - The model doesn’t closely match the training data
+  - Example: linear regression function on a non-linear dataset
+  - Considered as underfitting
+- __Reducing the Bias__
+  - __Use a more complex model__
+  - __Increase the number of features__
+
+#### Variance
+
+How much the performance of a model changes if trained on a different dataset which has a similar distribution
+- __High Variance__
+  - Model is __very sensitive to changes in the training data__
+  - This is the case when overfitting: performs well on training data, but poorly on unseen test data
+- __Reducing the Variance__
+  - __Feature selection__ (less, __more important features__)
+  - Split into training and test data sets multiple times
+
+![ bias and variance ](./images/abias_and_variance.gif)
+
+Error = Bias^2 + Variance
+
+You want to minimize the error
+
+![ bias and variance 2 ](./images/bias_and_variance_2.gif)
+
+
+### Model Evaluation Metrics
+
+#### Evaluate binary classification
+
+![ evaluate binary classification ](./images/evaluate_binary_classification.gif)
+
+Confusion Matrix: Best way to evaluate the performance of a model that does classifications
+
+Metrics:
+- Precision – Best (1.0) when false positives few
+- Recall – Best (1.0) when false negatives are few
+- F1 Score – Best when you want a balance between precision and recall, especially in imbalanced datasets
+- Accuracy – Best (1.0) for balanced datasets
+
+#### AUC-ROC Area under the curve-receiver operator curve
+
+![ auc roc ](./images/auc_roc.gif)
+
+#### Model Evaluation – Regressions Metrics
+
+![ Regression Metrics ](./images/regression_metrics.gif)
+
+MAE, MAPE, RMSE, R² (R Squared) are used for evaluating models that predict a __continuous value__ (i.e., regressions)
+
+MAE, MAPE, RMSE – measure the error: how “accurate” the model is
+
+R² (R Squared) – measures the variance. If R² is 0.8, this means that 80% of the changes in test scores can be explained
+
+### Machine Learning – Inferencing
+
+Inferencing is when a model is making prediction on new data
+- __Real Time__: make decisions quickly as data arrives. Speed over accuracy. Chatbots
+- __Batch__: Large amount of data at once. Speed is not a concern, and accuracy is.
+- __Inferencing at the Edge__: less computing power, close to the data:
+  - Small Language Model (SLM) on the edge device, Offline capability,
+  - Large Language Model (LLM) on a remote server
+
+### Phases of ML project
+
+![ Phases of ML project ](./images/phases_of_ml_project.gif)
+
+__Define business goals__
+- Stakeholders define the value, budget and success criteria
+- Defining KPI (Key Performance Indicators) is critical
+
+__ML problem framing__
+- Convert the business problem and into a machine learning problem
+- Determine if ML is appropriate
+
+__Data Collection and preparation__
+- Convert the data into a usable format
+- Data collection and integration (make it centrally accessible)
+- Data preprocessing and data visualization (understandable format)
+
+__Feature engineering __
+- create, transform and extract variables from data
+
+__Model development and training__
+- Model training, tuning, and evaluation
+- Iterative process
+- Additional feature engineering and tune model hyperparameters
+
+__Model Evaluation__
+- Look at data and features to improve the model
+- Adjust the model training hyperparameters
+
+__Deployment__
+- If results are good, the model is deployed and ready to make inferences
+- Select a deployment model (real-time, serverless, asynchronous, batch, on-premises…)
+
+__Monitoring__
+- Deploy a system to check the desired level of performance
+- Early detection and mitigation
+- Debug issues and understand the model’s behavior
+- Model is continuously improved and refined as new data become available
+  - Requirements may change
+  - Iteration is important to keep the model accurate and relevant over time
+
+### Hyperparameter Tuning
+
+Hyperparameter:
+- Settings that define the model structure and learning algorithm and process
+- Set before training begins
+- Important hyperparameters:
+  - Learning rate
+    - How large or small the steps are when updating the model's weights during training
+    - High learning rate can lead to faster convergence but risks overshooting the optimal solution, while a low learning rate may result in more precise but slower convergence.
+  - Batch size
+    - Number of training examples used to update the model weights in one iteration
+    - Smaller batches can lead to more stable learning but require more time to compute, while larger batches are faster but may lead to less stable updates.
+  - Number of Epochs
+    - Refers to how many times the model will iterate over the entire training dataset.
+    - Too few epochs can lead to underfitting, while too many may cause overfitting
+  - Regularization
+    - Adjusting the balance between simple and complex model
+    - Increase regularization to reduce overfitting
+
+Hyperparameter tuning:
+- Finding the best hyperparameters values to optimize the model performance
+- Improves model accuracy, reduces overfitting, and enhances generalization
+
+How to do it?
+- Grid search, random search
+- Using services such as SageMaker Automatic Model Tuning (AMT)
+
+
 
 ## Amazon Bedrock and Generative AI
 
@@ -436,352 +821,6 @@ Part of Amazon Q Business
 - GenAI app-building playground (powered by Amazon Bedrock)
 - Allows you to experiment creating GenAI apps with various FMs (no coding or AWS account required)
 
-## AI and ML
-
-![ What is AI ](./images/what_is_ai.gif)
-
-![ AI Components ](./images/ai_components.gif)
-
-### Machine Learning (ML)
-
-- ML is a type of AI for building methods that allow machines to learn
-- Data is leveraged to improve computer performance on a set of task
-- Make predictions based on data used to train the model: regression, classification
-
-ML Terms:
-- GPT (Generative Pre-trained Transformer) – generate human text or computer code based on input prompts
-- BERT (Bidirectional Encoder Representations from Transformers) – similar intent to GPT, but reads the text in two directions
-- RNN (Recurrent Neural Network) – meant for sequential data such as time-series or text, useful in speech recognition, time-series prediction
-- ResNet (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
-- SVM (Support Vector Machine) – ML algorithm for classification and regression
-- WaveNet – model to generate raw audio waveform, used in Speech Synthesis
-- GAN (Generative Adversarial Network) – models used to generate synthetic data such as images, videos or sounds that resemble the training data. Helpful for data augmentation
-- XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
-
-#### Supervised Learning (ML)
-
-Regression:
-- Used to predict a numeric value based on input data
-- The output variable is continuous, meaning it can take any value within a range
-- Examples: Predicting House Prices, Stock Price Prediction, Weather Forecasting
-
-Classification:
-- Used to predict the categorical label of input data
-- The output variable is discrete, which means it falls into a specific category or class
-
-![ Supervised Learning](./images/supervised_learning.gif)
-
-Training vs. Validation vs. Test Set:
-- Training Set
-  - Used to train the model
-  - Percentage: typically, 60-80% of the dataset
-- Validation Set
-  - Used to tune model parameters and validate performance
-  - Percentage: typically, 10-20% of the dataset
-- Test Set
-  - Used to evaluate the final model performance
-  - Percentage: typically, 10-20% of the dataset
-
-Feature Engineering:
-- The process of using domain knowledge to select and transform raw data into meaningful features
-- Helps enhancing the performance of machine learning models
-- Techniques
-  - Feature Extraction – extracting useful information from raw data, such as deriving age from date of birth
-  - Feature Selection – selecting a subset of relevant features, like choosing important predictors in a regression model
-  - Feature Transformation – transforming data for better model performance, such as normalizing numerical data
-- Example: Predicting house prices based on features like size, location, and number of rooms
-  - Feature Creation – deriving new features like 'price per square foot'
-  - Feature Selection – identifying and retaining important features such as location or number of bedrooms
-  - Feature Transformation – normalizing features to ensure they are on a similar scale
-
-Feature Engineering on Unstructured Data:
-- Example: sentiment analysis of customer reviews
-- Feature Engineering Tasks
-  - Text Data – converting text into numerical features using techniques like TF-IDF or word embeddings
-  - Image Data – extracting features such as edges or textures using techniques like convolutional neural networks (CNNs)
-
-#### UnSupervised Learning (ML)
-
-The goal is to discover inherent patterns, structures, or relationships within the input data.
-The machine must uncover and create the groups itself, but humans still put labels on the output groups.
-Common techniques include Clustering, Association Rule Learning , and Anomaly Detection.
-
-Examples:
-- Clustering Technique: group similar data points together into clusters based on their features
-- Association Rule Learning: supermarket wants to understand which products are frequently bought together
-- Anomaly Detection: detect fraudulent credit card transactions
-
-Semi-supervised Learning: 
-- Use a small amount of labeled data and a large amount of unlabeled data to train systems
-- the partially trained algorithm itself labels the unlabeled data
-- model is then re-trained on the resulting data mix without being explicitly programmed
-
-#### Self-Supervised Learning
-
-Steps:
-- Have a model generate pseudo-labels for its own data without having humans label any data first
-- Then, using the pseudo labels, solve problems traditionally solved by Supervised Learning
-- Widely used in NLP (to create the BERT and GPT models for example) and in image recognition tasks
-
-Example:
-- Create 'pre-text tasks' to have the model solve simple tasks and learn patterns in the dataset
-- Pretext tasks are not 'useful', but will teach our model to create a 'representation' of our dataset
-- Predict any part of the input from any other part:
-  - Amazon Web ??? -> Services
-  - provides on-demand cloud ??? -> computing
-  - APIs to individuals, ???, and governmants -> companies
-- After solving the pre-text tasks, we have a model trained that can solve our end goal: 'downstream tasks'
-
-#### Reinforcement Learning (RL)
-
-A type of Machine Learning where an agent learns to make decisions by performing actions in an environment to maximize cumulative rewards
-
-Key Concepts:
-- Agent – the learner or decision-maker
-- Environment – the external system the agent interacts with
-- Action – the choices made by the agent
-- Reward – the feedback from the environment based on the agent’s actions
-- State – the current situation of the environment
-- Policy – the strategy the agent uses to determine actions based on the state
-
-Learning process:
-- The Agent observes the current State of the Environment
-- It selects an Action based on its Policy
-- The environment transitions to a new State and provides a Reward
-- The Agent updates its Policy to improve future decisions
-- Goal: Maximize cumulative reward over time
-
-Example: training a robot to navigate a maze
-
-Use cases:
-- Gaming – teaching AI to play complex games (e.g., Chess, Go)
-- Robotics – navigating and manipulating objects in dynamic environments
-- Finance – portfolio management and trading strategies
-
-
-
-### Deep Learning
-
-- Process more complex patterns in the data than traditional ML
-- Requires large amount of input data and GPUs
-- Computer Vision – image classification, object detection, image segmentation
-- Natural Language Processing (NLP) – text classification, sentiment analysis, machine translation, language generation
-
-### Generative AI (Gen-AI)
-
-- Multi-purpose foundation models backed by neural networks
-- They can be fine-tuned if necessary to better fit our use-cases: text generation, text summarization, chatbot, image generation
-- They Leverage Transformer model (LLM) - for text
-  - Able to process a sentence as a whole instead of word by word
-  - Faster and more efficient text processing
-  - gives relative importance to specific words in a sentence (more coherent sentences
-  - models that can understand and generate human-like text
-  - Trained on vast amounts of text data from the internet, books, and other sources
-  - Example: Google BERT, OpenAI ChatGPT
-- Diffusion models - for images
-- Multi-modal Models (ex: GPT-4o)
-  - Does NOT rely on a single type of input (text, or images, or audio only)
-  - Does NOT create a single type of output
-  - Example: a multi-modal can take a mix of audio, image and text and output a mix of video, text
-  - "Generate a video of making the picture of the cat speak the audio that is included"
-- Example: generate new content
-
-#### RLHF = Reinforcement Learning from Human Feedback
-
-Use human feedback to help ML models to self-learn more efficiently.
-
-RLHF incorporates human feedback in the reward function, to be more aligned with human goals and needs
-- start with a set of human-generated prompts and responses
-- fine-tune an existing model with internal knowledge
-- the model’s responses are compared to human’s responses
-  - the model creates responses for the human-generated prompts
-  - Responses are mathematically compared to human-generated answers
-- Build a separate reward model
-  - Humans can indicate which response they prefer from the same prompt
-  - The reward model can now estimate how a human would prefer a prompt response
-- Optimize the language model with the reward-based model
-  - Use the reward model as a reward function for RL
-
-RLHF is used throughout GenAI applications including LLM Models
-
-
-### Use cases
-
-- Expert system (is AI but not ML): if...then rules
-- Regression and classification - is ML but not Deep Learning. It can recognize a blue ball from yellow ball (classification)
-- Computer vision, Facial recognition, Natural language processing - Deep Learning. We have seen similar facts and we can recognize features of something we have never seen.
-- Generate book - Gen-AI
-
-### Training Data
-
-- Labeled vs. Unlabeled Data
-  - Labeled Data:
-    - Data includes both input features and corresponding output labels
-    - Example: dataset with images of animals where each image is labeled with the corresponding animal type (e.g., cat, dog)
-    - Use case: Supervised Learning, where the model is trained to map inputs to known outputs
-  - Unlabeled Data:
-    - Data includes only input features without any output labels
-    - Example: a collection of images without any associated labels
-    - Use case: Unsupervised Learning, where the model tries to find patterns or structures in the data
-- Structured vs. Unstructured Data
-  - Structured Data:
-    - Data is organized in a structured format, often in rows and column
-    - Tabular Data: Data is arranged in a table with rows representing records and columns representing features
-    - Time Series Data Data points collected or recorded at successive points in time
-  - Unstructured Data
-    - Data that doesn't follow a specific structure and is often text-heavy or multimedia content
-    - Text Data: Unstructured text such as articles, social media posts, or customer reviews
-    - Image Data: Data in the form of images, which can vary widely in format and content
-
-### Model Performance
-
-Model Fit:
-- Overfitting
-  - Performs well on the training data
-  - Doesn’t perform well on evaluation data
-- Underfitting
-  - Model performs poorly on training data
-  - Could be a problem of having a model too simple or poor data features
-- Balanced: Neither overfitting or underfitting. This is what you want
-
-What to do if overfitting?
-- Overfitting is when the model gives good predictions for training data but not for the new data
-- It occurs due to:
-  - Training data size is too small and does not represent all possible input values
-  - The model trains too long on a single sample set of data
-  - Model complexity is high and learns from the __noise__ within the training data
-- How can you prevent overfitting?
-  - Increase the training data size
-  - Early stopping the training of the model
-  - Data augmentation (to increase diversity in the dataset)
-  - Adjust hyperparameters
-
-Bias: difference or error between predicted and actual value
-- Occurs due to the wrong choice in the ML process
-- High Bias
-  - The model doesn’t closely match the training data
-  - Example: linear regression function on a non-linear dataset
-  - Considered as underfitting
-- Reducing the Bias
-  - Use a more complex model
-  - Increase the number of features
-
-Variance: How much the performance of a model changes if trained on a different dataset which has a similar distribution
-- High Variance
-  - Model is very sensitive to changes in the training data
-  - This is the case when overfitting: performs well on training data, but poorly on unseen test data
-- Reducing the Variance
-  - Feature selection (less, more important features)
-  - Split into training and test data sets multiple times
-
-![ bias and variance ](./images/abias_and_variance.gif)
-
-![ bias and variance 2 ](./images/bias_and_variance_2.gif)
-
-### Model Evaluation Metrics
-
-#### Evaluate binary classification
-
-![ evaluate binary classification ](./images/evaluate_binary_classification.gif)
-
-Confusion Matrix: Best way to evaluate the performance of a model that does classifications
-
-Metrics:
-- Precision – Best (1.0) when false positives few
-- Recall – Best (1.0) when false negatives are few
-- F1 Score – Best when you want a balance between precision and recall, especially in imbalanced datasets
-- Accuracy – Best (1.0) for balanced datasets
-
-#### AUC-ROC Area under the curve-receiver operator curve
-
-![ auc roc ](./images/auc_roc.gif)
-
-#### Model Evaluation – Regressions Metrics
-
-![ Regression Metrics ](./images/regression_metrics.gif)
-
-MAE, MAPE, RMSE, R² (R Squared) are used for evaluating models that predict a __continuous value__ (i.e., regressions)
-
-MAE, MAPE, RMSE – measure the error: how “accurate” the model is
-
-R² (R Squared) – measures the variance. If R² is 0.8, this means that 80% of the changes in test scores can be explained
-
-### Machine Learning – Inferencing
-
-Inferencing is when a model is making prediction on new data
-- Real Time: make decisions quickly as data arrives. Speed over accuracy. Chatbots
-- Batch: Large amount of data at once. Speed is not a concern, and accuracy is.
-- Inferencing at the Edge: less computing power, close to the data:
-  - Small Language Model (SLM) on the edge device, Offline capability,
-  - Large Language Model (LLM) on a remote server
-
-### Phases of ML project
-
-![ Phases of ML project ](./images/phases_of_ml_project.gif)
-
-Define business goals
-- Stakeholders define the value, budget and success criteria
-- Defining KPI (Key Performance Indicators) is critical
-
-ML problem framing
-- Convert the business problem and into a machine learning problem
-- Determine if ML is appropriate
-
-Data Collection and preparation
-- Convert the data into a usable format
-- Data collection and integration (make it centrally accessible)
-- Data preprocessing and data visualization (understandable format)
-
-Feature engineering 
-- create, transform and extract variables from data
-
-Model development and training
-- Model training, tuning, and evaluation
-- Iterative process
-- Additional feature engineering and tune model hyperparameters
-
-Model Evaluation
-- Look at data and features to improve the model
-- Adjust the model training hyperparameters
-
-Deployment
-- If results are good, the model is deployed and ready to make inferences
-- Select a deployment model (real-time, serverless, asynchronous, batch, on-premises…)
-
-Monitoring
-- Deploy a system to check the desired level of performance
-- Early detection and mitigation
-- Debug issues and understand the model’s behavior
-- Model is continuously improved and refined as new data become available
-  - Requirements may change
-  - Iteration is important to keep the model accurate and relevant over time
-
-### Hyperparameter Tuning
-
-Hyperparameter:
-- Settings that define the model structure and learning algorithm and process
-- Set before training begins
-- Important hyperparameters:
-  - Learning rate
-    - How large or small the steps are when updating the model's weights during training
-    - High learning rate can lead to faster convergence but risks overshooting the optimal solution, while a low learning rate may result in more precise but slower convergence.
-  - Batch size
-    - Number of training examples used to update the model weights in one iteration
-    - Smaller batches can lead to more stable learning but require more time to compute, while larger batches are faster but may lead to less stable updates.
-  - Number of Epochs
-    - Refers to how many times the model will iterate over the entire training dataset.
-    - Too few epochs can lead to underfitting, while too many may cause overfitting
-  - Regularization
-    - Adjusting the balance between simple and complex model
-    - Increase regularization to reduce overfitting
-
-Hyperparameter tuning:
-- Finding the best hyperparameters values to optimize the model performance
-- Improves model accuracy, reduces overfitting, and enhances generalization
-
-How to do it?
-- Grid search, random search
-- Using services such as SageMaker Automatic Model Tuning (AMT)
 
 
 ## AWS Managed AI Services
