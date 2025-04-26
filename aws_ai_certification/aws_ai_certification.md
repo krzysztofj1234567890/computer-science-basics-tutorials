@@ -1,9 +1,36 @@
 # AWS Certified AI Practitioner
 
+- [Concepts](#Concepts)
+  - [Foundation Model](#FoundationModel)
+  - [LLM](#LLM)
+  - [RAG](#RAG)
+  - [Tokenization](#Tokenization)
+  - [Context Window](#ContextWindow)
+  - [Embeddings](#Embeddings)
+- [AI and ML](#AIML)
+  - [Artificial Inteligence](#AI)
+  - [ML](#ML)
+  - [Deep Learning](#DeepLearning)
+  - [Generative AI](#GenAI)
+  - [Use Cases](#UseCases)
+  - [Training Data](#TrainingData)
+  - [Model Performance](#ModelPerformance)
+  - [Model Evaluation Metrics](#ModelMetrics)
+  - [Machine Learning – Inferencing](#Inferencing)
+  - [Phases of ML project](#PhasesOfML)
+  - [Hyperparameter Tuning](#HyperparameterTuning)
+- [Amazon Bedrock](#Bedrock)
+- [Prompt Engineering](#PromptEngineering)
+- [Amazon Q](#AmazonQ)
+- [AWS Managed AI Services](#ManagedAIServices)
+- [SageMaker](#SageMaker)
+- [AI Challenges and Responsibilities](#AIChallengesResponsibilities)
+- [AWS Security Services](#SecurityServices)
+- [References](#References)
 
-## Concepts
+## Concepts <a id="Concepts"></a>
 
-### Foundation Model
+### Foundation Model <a id="FoundationModel"></a>
 
 Trained on __very large data__ set of unlabeled different types of data.
 
@@ -11,7 +38,7 @@ Very expensive to train (resources, time, money)
 
 Examples: gpt40
 
-### LLM
+### LLM <a id="LLM"></a>
 
 LLM = __large language models__. Designed to generate human-like text.
 
@@ -23,19 +50,19 @@ Prompt: to query LLM you send a prompt. It can be text and pictures etc.
 
 Output of a prompt is not deterministic and it can be many different data types (text, image etc.)
 
-### RAG
+### RAG <a id="RAG"></a>
 
 - Allows a Foundation Model to reference a __data source outside of its training data__
 - Retrieval - because we retrieve the data outside foundational model
 - Augmented - because __augment the prompt with data that has been retrieved__ from vector database
 
-### Tokenization
+### Tokenization <a id="Tokenization"></a>
 
 Converting raw text into a sequence of tokens
 - Word-based tokenization: text is split into individual words
 - Subword tokenization: some words can be split too
 
-### Context Window
+### Context Window <a id="ContextWindow"></a>
 
 - The number of tokens an LLM can consider when generating text
 - The larger the context window, the more information and coherence
@@ -43,14 +70,16 @@ Converting raw text into a sequence of tokens
 
 ![ Context Window Comparison ](./images/context_window_comparison.gif)
 
-### Embeddings
+### Embeddings <a id="Embeddings"></a>
 
 - Create vectors (array of numerical values) out of text, images or audio
 - Vectors have a high dimensionality to capture many features for one input token, such as semantic meaning, syntactic role, sentiment
 - Embedding models can power search applications
 - Words that have semantic relationships (i.e. are similar) will have similar embeddings (vector) and then we can do similarity search
 
-## AI and ML
+## AI and ML <a id="AIML"></a>
+
+### Artificial Inteligence <a id="AI"></a>
 
 ![ What is AI ](./images/what_is_ai.gif)
 
@@ -62,25 +91,12 @@ Taxonomy:
 
 ![ Taxonomy ](./images/ai_taxonomy.gif)
 
-### Machine Learning (ML)
+### Machine Learning (ML) <a id="ML"></a>
 
 - ML is a type of AI for building __methods that allow machines to learn__
 - Data is leveraged to improve computer performance on a set of task
 - __Make predictions based on data__ used to train the model: regression, classification, decision trees or Neural Networks
 
-ML Terms:
-- __GPT__ (Generative Pre-trained Transformer) – __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
-  - transformers
-    - LLM
-    - Diffusion (images)
-    - Multi-Modal
-  - __GAN__ (Generative Adversarial Network) – models used to generate __synthetic data such as images, videos__ or sounds that resemble the training data. Helpful for data augmentation
-- __BERT__ (Bidirectional Encoder Representations from Transformers) – similar intent to GPT, but reads the text in two directions
-- __RNN__ (Recurrent Neural Network) – meant for sequential data such as __time-series__ or text, useful in speech recognition, time-series prediction
-- ResNet (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
-- __SVM__ (Support Vector Machine) – ML algorithm for __classification and regression__
-- __WaveNet__ – model to generate __raw audio waveform__, used in Speech Synthesis
-- XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
 
 #### Supervised Learning (ML)
 
@@ -129,6 +145,8 @@ Feature Engineering on Unstructured Data:
 The goal is to __discover inherent patterns__, structures, or relationships __within the input data__.
 The machine must uncover and create the groups itself, but __humans still put labels__ on the output groups.
 Common techniques include __Clustering__, Association Rule Learning , and Anomaly Detection.
+
+Unsupervised learning involves iterating until some objective function is minimized.
 
 Examples:
 - Clustering Technique: group similar data points together into clusters based on their features
@@ -183,7 +201,7 @@ Use cases:
 - Finance – portfolio management and trading strategies
 
 
-### Deep Learning
+### Deep Learning <a id="DeepLearning"></a>
 
 - Process __more complex patterns__ in the data than traditional ML
 - Requires large amount of input data and GPUs
@@ -193,7 +211,49 @@ Use cases:
       - Figure out using NLP, what are the m__ain issues that people are calling in about__ when they call my customer service reps?
       - Use NLP to figure out automatically whether or not people are happy or not and what the main issues are that they're facing.
 
-### Generative AI (Gen-AI)
+Types of Neural Networks:
+- Convolutional Neural Networks (__CNN__):
+  - Usually used for __image recognition__ (find features within images), machine translation
+  - Used when you have __data that does not nicely align into columns__
+  - __Can find features__ that are not in a specific spot
+  - Works like eye:
+    - take source image or data
+    - break is into smaller chunks called convolutions
+    - assemble convolutions and look for patterns
+- __ResNet__ (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
+- Recurrent Neural Networks (__RNN__):
+  - Used for __sequences of data__ (like __time series__, or machine translations (words) or music(notes))
+  - __Output of the neuron goes back into the same neuron__ (feedback loop)
+  - A sequence of words is encoded into neural network and later this neural network can be decoded into words in anothe language (translation).
+  - The 'neural network' represents the 'meaning' that can be translated into many languages.
+- __Transformer__ Architecture:
+  - __RNN + self attention__ (=tention/relationship between words)
+  - Each word can have many parallel 'states' or 'attentions'
+  - Transformers = stop using RNN and instead use __normal neural network with attentions__
+- Generative Adversarial Networks (__GAN__):
+  - Used for face-swapping or aging applications, generate __synthetic data such as images, videos__ or sounds that resemble the training data. Helpful for data augmentation
+  - Generator maps random noise to an image
+  - Discriminator learns to identify real images from generate/fake images
+  - Generator and Discriminator are adversarial.
+  - Ends when Discriminator cannot tell the difference between fake and real image    
+- __BERT__ (Bidirectional Encoder Representations from Transformers) – similar intent to GPT, but reads the text in two directions
+- __SVM__ (Support Vector Machine) – ML algorithm for __classification and regression__
+- __WaveNet__ – model to generate __raw audio waveform__, used in Speech Synthesis
+- XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
+- __GPT__ (Generative Pre-trained Transformer) – __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
+  - transformers
+    - LLM
+    - Diffusion (images)
+    - Multi-Modal
+- __Diffusion Models__
+  - Used to generate images
+  - Take text and create embeddings
+  - Add random changes to image
+  - After several iterations reverse this process
+  - Result it image similar to the original.
+  - Output of embedding is not text buy image or sound
+
+### Generative AI (Gen-AI) <a id="GenAI"></a>
 
 - Multi-purpose foundation models backed by __neural networks__
 - They can be fine-tuned if necessary to better fit our use-cases: text generation, text summarization, chatbot, image generation
@@ -211,6 +271,11 @@ Use cases:
   - Example: a multi-modal can take a mix of audio, image and text and output a mix of video, text
   - "Generate a video of making the picture of the cat speak the audio that is included"
 - Example: generate new content
+
+Terms:
+- __Token__ = numerical representation of words or part of words
+- __Embedding__ = vector that encodes the meaning of a token
+- __Top P__ = threashold probablility for token inclusion (next word)
 
 #### RLHF = Reinforcement Learning from Human Feedback
 
@@ -231,14 +296,14 @@ RLHF incorporates human feedback in the reward function, to be more aligned with
 RLHF is used throughout GenAI applications including LLM Models
 
 
-### Use cases
+### Use cases <a id="UseCases"></a>
 
 - Expert system (is AI but not ML): if...then rules
 - Regression and classification - is ML but not Deep Learning. It can recognize a blue ball from yellow ball (classification)
 - Computer vision, Facial recognition, Natural language processing - Deep Learning. We have seen similar facts and we can recognize features of something we have never seen.
 - Generate book - Gen-AI
 
-### Training Data
+### Training Data <a id="TrainingData"></a>
 
 - Labeled vs. Unlabeled Data
   - Labeled Data:
@@ -259,7 +324,7 @@ RLHF is used throughout GenAI applications including LLM Models
     - Text Data: Unstructured text such as articles, social media posts, or customer reviews
     - Image Data: Data in the form of images, which can vary widely in format and content
 
-### Model Performance
+### Model Performance <a id="ModelPerformance"></a>
 
 #### Model Fit:
 - __Overfitting__
@@ -305,6 +370,7 @@ Difference or error between predicted and actual value
   - The model doesn’t closely match the training data
   - Example: linear regression function on a non-linear dataset
   - Considered as underfitting
+  - indicates underfitting, where model is too simple
 - __Reducing the Bias__
   - __Use a more complex model__
   - __Increase the number of features__
@@ -313,6 +379,7 @@ Difference or error between predicted and actual value
 
 How much the performance of a model changes if trained on a different dataset which has a similar distribution
 - __High Variance__
+  - model fits the training data well but performs poorly on new, unseen data
   - Model is __very sensitive to changes in the training data__
   - This is the case when overfitting: performs well on training data, but poorly on unseen test data
 - __Reducing the Variance__
@@ -328,7 +395,7 @@ You want to minimize the error
 ![ bias and variance 2 ](./images/bias_and_variance_2.gif)
 
 
-### Model Evaluation Metrics
+### Model Evaluation Metrics <a id="ModelMetrics"></a>
 
 #### Evaluate binary classification
 
@@ -356,7 +423,7 @@ MAE, MAPE, RMSE – measure the error: how “accurate” the model is
 
 R² (R Squared) – measures the variance. If R² is 0.8, this means that 80% of the changes in test scores can be explained
 
-### Machine Learning – Inferencing
+### Machine Learning – Inferencing <a id="Inferencing"></a>
 
 Inferencing is when a model is making prediction on new data
 - __Real Time__: make decisions quickly as data arrives. Speed over accuracy. Chatbots
@@ -365,7 +432,7 @@ Inferencing is when a model is making prediction on new data
   - Small Language Model (SLM) on the edge device, Offline capability,
   - Large Language Model (LLM) on a remote server
 
-### Phases of ML project
+### Phases of ML project <a id="PhasesOfML"></a>
 
 ![ Phases of ML project ](./images/phases_of_ml_project.gif)
 
@@ -406,9 +473,10 @@ __Monitoring__
   - Requirements may change
   - Iteration is important to keep the model accurate and relevant over time
 
-### Hyperparameter Tuning
+### Hyperparameter Tuning <a id="HyperparameterTuning"></a>
 
 Hyperparameter:
+- Neural networks and trained by gradient descent. We start at some random point and sample different solutions (weights) seeking to minimize some cost function.
 - Settings that define the model structure and learning algorithm and process
 - Set before training begins
 - Important hyperparameters:
@@ -435,7 +503,7 @@ How to do it?
 
 
 
-## Amazon Bedrock and Generative AI
+## Amazon Bedrock and Generative AI <a id="Bedrock"></a>
 
 Used to build generative (Gen-AI) applications i.e. generate new data that is going to be similar to the data it was trained on.
 The data can be: text, images, audio, code and video.
@@ -682,7 +750,7 @@ Human evaluation
 Amazon OpenSearch Serverless
 
 
-## Prompt Engineering
+## Prompt Engineering <a id="PromptEngineering"></a>
 
 Prompt Engineering = developing, designing, and optimizing prompts to enhance the output of FMs for your needs.
 
@@ -775,7 +843,7 @@ Helps with
 
 Protecting against prompt injections:  Add explicit instructions to ignore any unrelated or potential malicious content
 
-## Amazon Q
+## Amazon Q <a id="AmazonQ"></a>
 
 ### Amazon Q Business
 
@@ -823,7 +891,7 @@ Part of Amazon Q Business
 
 
 
-## AWS Managed AI Services
+## AWS Managed AI Services <a id="ManagedAIServices"></a>
 
 ### Amazon Comprehend
 
@@ -974,7 +1042,7 @@ Automatically convert medical-related speech to text (HIPAA compliant)
   - Up to 4x throughput and 70% cost reduction
 
 
-## SageMaker
+## SageMaker <a id="SageMaker"></a>
 
 Fully managed service for developers / data scientists to build ML models.
 
@@ -1145,7 +1213,7 @@ __MLFlow__ on Amazon SageMaker:
 - Fully integrated with SageMaker
 
 
-## AI Challenges and Responsibilities
+## AI Challenges and Responsibilities <a id="AIChallengesResponsibilities"></a>
 
 Responsible AI:
 - Making sure AI systems are transparent and trustworthy
@@ -1291,7 +1359,7 @@ MLOps
 
 ![ MLOps ](./images/mlops.gif)
 
-## AWS Security Services
+## AWS Security Services <a id="SecurityServices"></a>
 
 - VPC Endpoint powered by AWS PrivateLink – provide private access to AWS Services within VPC
 - S3 Gateway Endpoint: access Amazon S3 privately
@@ -1315,7 +1383,7 @@ Access Bedrock Model using an App in VPC:
 
 ![ Bedrock VPC ](./images/bedrock_vpc.gif)
 
-## References
+## References <a id="References"></a>
 
 Certification page: https://aws.amazon.com/certification/certified-ai-practitioner/
 
