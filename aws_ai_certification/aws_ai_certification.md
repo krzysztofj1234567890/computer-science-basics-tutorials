@@ -20,12 +20,37 @@
   - [Phases of ML project](#PhasesOfML)
   - [Hyperparameter Tuning](#HyperparameterTuning)
 - [Amazon Bedrock](#Bedrock)
+  - [Bedrock API](#BedrockAPI)
+  - [Model Fine Tuning](#ModelFineTuning)
+  - [Model Evaluation](#ModelEvaluation)
+  - [RAG](#RAG)
+  - [Guardrails](#Guardrails)
+  - [LLM Agents](#LLMAgents)
+  - [Bedrock Pricing](#BedrockPricing)
 - [Prompt Engineering](#PromptEngineering)
 - [Amazon Q](#AmazonQ)
+  - [Amazon Q Business](#AmazonQBusiness)
+  - [Amazon Q Apps](#AmazonQApps)
+  - [Amazon Q Developer](#AmazonQDeveloper)
+  - [Amazon Q for AWS Services](#AmazonQServices)
 - [AWS Managed AI Services](#ManagedAIServices)
 - [SageMaker](#SageMaker)
+  - [ SageMaker Studio]( #SageMakerStudio )
+  - [ SageMaker Notebooks]( #SageMakerNotebooks )
+  - [ SageMaker Experiments]( #SageMakerExperiments )
+  - [ SageMaker Debugger ]( #SageMakerDebugger )
+  - [ SageMaker Autopilot ]( #SageMakerAutopilot )
+  - [ SageMaker Monitor ]( #SageMakerMonitor )
+  - [ SageMaker Jumpstart ]( #SageMakerJumpstart )
+  - [ SageMaker Clarify ]( #SageMakerClarify )
+  - [ Ground Truth]( #GroundTruth )
 - [AI Challenges and Responsibilities](#AIChallengesResponsibilities)
+  - [Responsible AI](#ResponsibleAI)
+  - [ML Design Principles](#MLDesignPrinciples)
+  - [ML Life cycle](#MLLifeCycle)
+  - [MLOps](#MLOps)
 - [AWS Security Services](#SecurityServices)
+  - [Security and Privacy for AI Systems](#PrivacyAISystems)
 - [References](#References)
 
 ## Concepts <a id="Concepts"></a>
@@ -509,6 +534,13 @@ Used to build generative (Gen-AI) applications i.e. generate new data that is go
 The data can be: text, images, audio, code and video.
 It can combine its 'knowledge' in new ways
 
+- Invoke chat, text, or image models
+- Pre-built, your own fine-tuned models, or your own models
+- Third-party models bill you through AWS via their own pricing
+- Support for RAG (Retrieval-Augmented Generation… we’ll get there) - minimize hallucinations?
+- Support for LLM agents Serverless
+- Can integrate with SageMaker Canvas
+
 Basic characteristics:
 - fully managed service
 - the __input data never leaves your account__
@@ -533,9 +565,20 @@ Amazon Titan:
 
 ![ Foundation Model Comparison ](./images/foundation_model_comparison.gif)
 
-### Fine tuning a model
+### The Bedrock API <a id="BedrockAPI"></a>
+
+Endpoints:
+- bedrock: Manage, deploy, train models
+- bedrock-runtime: Perform inference (execute prompts, generate embeddings) against these models. Converse, ConverseStream, InvokeModel, InvokeModelWithReponseStream
+- bedrock-agent: Manage, deploy, train LLM agents and knowledge bases
+- bedrock-agent-runtime: Perform inference against agents and knowledge bases
+- InvokeAgent, Retrieve, RetrieveAndGenerate
+
+### Model Fine Tuning <a id="ModelFineTuning"></a>
 
 Fine tuning improves the performance of a pre-trained FM on domain-specific tasks.
+
+Fine tuning a model can be better than RAG if you use this new model a lot, because your prompts are shorter (cheaper).
 
 Add your own data to foundation model. 
 Not all models can be fine-tuned.
@@ -611,7 +654,7 @@ various asset classes, including commodities, forex, and equity index futures."
   - broader concept of re-using a pre-trained model to adapt it to a new related task.
   - used to image classification or language NLP-type models 
 
-### Model Evaluation
+### Model Evaluation <a id="ModelEvaluation"></a>
 
 - Automatic Evaluation: judge model 
 - Human Evaluation: human subject matter experts evaluate generated answers
@@ -631,7 +674,11 @@ Metrics:
   - Uses pre-trained BERT models to compare the contextualized embeddings of both texts and computes the cosine similarity between them
 - Perplexity: how well the model predicts the next token
 
-### RAG = Retrieval-Augmented Generation
+### RAG = Retrieval-Augmented Generation <a id="RAG"></a>
+
+RAG is good to add new information to the existing model like latest results of elections, which was not in the model. 
+
+Fix hallucinations because you provided more relevant data through RAG.
 
 - Allows a Foundation Model to reference a data source outside of its training data
 - Bedrock takes care of creating Vector Embeddings in the database of your choice based on your data
@@ -662,7 +709,51 @@ Document Sources:
 
 ![ RAG Vector Database ](./images/rag_vector_database.gif)
 
-### Guardrails
+RAG pros:
+- Faster & cheaper way to incorporate new or proprietary information into “GenAI” vs. finetuning 
+- Updating info is just a matter of updating a database
+- Can leverage 'semantic search' via vector stores
+- Can prevent 'hallucinations' when you ask the model about something it wasn’t trained on
+- If your boss wants 'AI search', this is an easy way to deliver it.
+- Technically you aren’t 'training' a model with this data
+
+RAG cons:
+- You have made the world’s most overcomplicated search engine
+- Very sensitive to the prompt templates you use to incorporate your data
+- Non-deterministic
+- It can still hallucinate
+- Very sensitive to the relevancy of the information you retrieve
+
+Choosing a Database for RAG:
+- MOST cases: use Vector database. Elasticsearch / Opensearch can function as a vector DB
+  - An embedding is just a big vector associated with your data
+  - Embeddings are computed such that items that are similar to each other are close to each other in that space
+  - Database stores your data alongside their computed embedding vectors
+  - Examples of vector databases in AWS
+    - Amazon OpenSearch Service (provisioned)
+    - Amazon OpenSearch Serverless
+    - Amazon MemoryDB
+    - pgvector extension in Amazon Relational Database Service (Amazon RDS) for PostgreSQL
+    - Amazon Kendra
+  - How to do it?
+    - Bedrock - use embedding base models (like Titan) to compute embeddings and feed them into vector database
+- Graph database (i.e., Neo4j) for retrieving product recommendations or relationships between items
+- Elasticsearch/OpenSearch or something for traditional text search (TF/IDF)
+
+RAG process:
+- Populate vector database with relevant documents
+- Get prompt
+- Compute embeddings from the prompt
+- Search vector database and use the query vector to find all documents/sentences relevant to your prompt
+- Add the found documents to your prompt
+- Execute the new prompt.
+
+RAG In Bedrock = Knowledgebase
+- upload your docs into S3 
+- select embedding model
+- add vector store. Control the 'chunking' (How many tokens are represented by each vector).
+
+### Guardrails <a id="Guardrails"></a>
 
 - Control the interaction between users and Foundation Models (FMs)
 - Filter undesirable and harmful content
@@ -670,8 +761,13 @@ Document Sources:
 - Enhanced privacy
 - Reduce hallucinations
 - Ability to create multiple Guardrails
+- Content filtering for prompts and responses
+- Word and Topic filtering
+- Contextual Grounding Check: Helps prevent hallucination. Measures “grounding” (how similar the response is to the contextual data received)
+- Can be incorporated into agents and knowledge bases
 
-### Agents
+
+### LLM Agents <a id="LLMAgents"></a>
 
 - Manage and carry out various multi-step tasks related to infrastructure provisioning, application deployment, and operational activities
 - Task coordination: perform tasks in the correct order and ensure information is passed correctly between tasks
@@ -697,7 +793,20 @@ Use Agent Example:
 
 ![ Bedrock Agent ](./images/bedrock_agent.gif)
 
-### Bedrock – Pricing
+- The LLM is given discretion on which tools to use for what purpose
+- The agent has a memory, an ability to plan how to answer a request, and tools it can use in the process.
+- “memory” is just the chat history and external data stores
+- the “planning module” is guidance given to the LLM on how to break down a question into subquestions that the tools might be able to help with.
+- “Tools” are just functions provided to a tools API.
+  - In Bedrock, this can be a Lambda function.
+  - Prompts guide the LLM on how to use them.
+  - Tools may access outside information, retrievers, other Python modules, services, etc
+  - “Action Groups” define a tool
+  - You must define the parameters your tool (Lambda function) expects
+- Agents may also have knowledge bases associated with them
+- Optional “Code Interpreter” allows the agent to write its own code to answer questions or produce charts.
+
+### Bedrock – Pricing <a id="BedrockPricing"></a>
 
 On-Demand:
 - Pay-as-you-go (no commitment)
@@ -759,7 +868,7 @@ Prompt Engineering = developing, designing, and optimizing prompts to enhance th
 Improved Prompting technique consists of:
 - Instructions – a task for the model to do (description, how the model should perform)
 - Context – external information to guide the model
-- Input data – the input for which you want a response
+- Input data – examples, the input 
 - Output Indicator – the output type or format
 
 Example:
@@ -769,12 +878,12 @@ Example:
 | Instructions	  | "Write a concise summary that captures the main points of an article about learning AWS (AmazonWeb Services). 
 |                 | Ensure that the summary is clear and informative, focusing on key services relevant to beginners. 
 |                 | Include details about general learning resources and career benefits associated with acquiring AWS skills.
-| Context	  | I am teaching a beginner’s course on AWS
-| Input Data	  | 'Amazon Web Services (AWS) is a leading cloud platform providing a variety of services suitable for different business needs. 
+| Context	        | I am teaching a beginner’s course on AWS
+| Input Data	    | 'Amazon Web Services (AWS) is a leading cloud platform providing a variety of services suitable for different business needs. 
 |                 | Learning AWS involves getting familiar with essential services like EC2 for computing, S3 for storage, RDS for databases, 
 |		  | Lambda for serverless computing, and Redshift for data warehousing. 
 |		  | Beginners can start with free courses and basic tutorials available online. 
-|		  | The platform also includes more complex services like Lambda for serverless computing and Redshift for data warehousing, which are suited for advanced users. 
+|		  | The platform also includes more complex services like Lambda for serverless computing and Redshift for data warehousing, which are suited for advanced users. s
 |		  | The article emphasizes the value of understanding AWS for career advancement and the availability of numerous certifications to validate cloud skills.
 | Output Indicator| Provide a 2-3 sentence summary that captures the essence of the article.
 
@@ -845,7 +954,7 @@ Protecting against prompt injections:  Add explicit instructions to ignore any u
 
 ## Amazon Q <a id="AmazonQ"></a>
 
-### Amazon Q Business
+### Amazon Q Business <a id="AmazonQBusiness"></a>
 
 - Fully managed Gen-AI assistant for your employees
 - Based on your company’s knowledge and data
@@ -861,7 +970,7 @@ Protecting against prompt injections:  Add explicit instructions to ignore any u
 
 Admin controls == Guardrails: Controls and customize responses to your organizational needs, block specific words or topic.
 
-### Amazon Q Apps
+### Amazon Q Apps <a id="AmazonQApps"></a>
 
 Part of Amazon Q Business
 
@@ -869,7 +978,7 @@ Part of Amazon Q Business
 - Leverages your company’s internal data
 - Possibility to leverage plugins (Jira, etc.)
 
-### Amazon Q Developer
+### Amazon Q Developer <a id="AmazonQDeveloper"></a>
 
 - Answer questions about the AWS documentation and AWS service selection
 - Answer questions about resources in your AWS account
@@ -877,7 +986,26 @@ Part of Amazon Q Business
 - AI code companion to help you code new applications (similar to GitHub Copilot)
 - Integrates with IDE
 
-### Amazon Q for AWS Services
+- Real-time code suggestions
+  - Write a comment of what you want
+  - It suggests blocks of code into your IDE
+  - Based on LLM’s trained on billions of lines of code
+  - Amazon’s code and open source code
+- Security scans
+  - Analyzes code for vulnerabilities
+  - Java, JavaScript, Python
+- Reference tracker
+  - Flags suggestions that are similar to open source code
+  - Provides annotations for proper attribution
+- AWS service integration
+  - Can suggest code for interfacing with AWS API’s: EC2, Lambda, S3
+- Security
+- All content transmitted with TLS
+- Encrypted in transit
+- Encrypted at rest
+  - However – Amazon is allowed to mine your data for individual plans
+
+### Amazon Q for AWS Services  <a id="AmazonQServices"></a>
 
 - Amazon Q for QuickSight: use natural language to ask questions about your data
 - Amazon Q for EC2: guidance and suggestions in natural language for EC2 instance types that are best suited to your new workload
@@ -1089,7 +1217,47 @@ __Model Deployment & Inference__:
 
 ![ SageMaker Deployment Models ](./images/sagemaker_deployment_models.gif)
 
-### Data Wrangler
+![ SageMaker MLOps ](./images/mlops_sagemaker.gif)
+
+### SageMaker Studio <a id="SageMakerStudio"></a>
+
+Visual IDE for machine learning
+
+### SageMaker Notebooks <a id="SageMakerNotebooks"></a>
+
+Create and share Jupyter notebooks with SageMaker Studio
+
+### SageMaker Experiments <a id="SageMakerExperiments"></a>
+
+Organize, capture, compare, and search your ML jobs
+
+### SageMaker Debugger <a id="SageMakerDebugger"></a>
+
+Saves internal model state at periodical intervals, Define rules for detecting unwanted conditions while training
+
+### SageMaker Autopilot <a id="SageMakerAutopilot"></a>
+
+Automates: Algorithm selection, Data preprocessing, Model tuning, All infrastructure required to train. Creates leaderboard of models. Good for: simple tasks, classification, regression.
+
+### SageMaker Model Monitor <a id="SageMakerMonitor"></a>
+
+Get alerts on quality deviations on your deployed models (via CloudWatch). Visualize data drift, Detect anomalies & outliers.
+  - Data is stored in S3 and secured
+  - Metrics are emitted to CloudWatch
+  - Integrates with SageMaker Clarify: you can monitor for bias and be alerted to new potential bias via CloudWatch
+  - Monitoring Types:
+    - Drift in data quality
+    - Drift in model quality (accuracy, etc)
+    - Bias drift
+    - Feature attribution drift
+
+### SageMaker JumpStart <a id="SageMakerJumpstart"></a>
+
+One-click models and algorithms from model zoos
+
+### Data Wrangler <a id="DataWrangler"></a>
+
+Import / transform / analyze / export data within SageMaker Studio
 
 - Prepare tabular and image data for machine learning
 - Data preparation, transformation and feature engineering
@@ -1115,7 +1283,19 @@ __Feature Store__:
 - Ability to define the transformation of data into feature from within Feature Store
 - Can publish directly from SageMaker Data Wrangler into SageMaker Feature Store
 
-### SageMaker Clarify
+![ Data Wrangler ](./images/data_wrangler.gif)
+
+### SageMaker Clarify <a id="SageMakerClarify"></a>
+
+Detects potential bias, helps explain model behavior:
+  - Pre-training Bias Metrics in Clarify: 
+    - Class Imbalance (CI): One facet (demographic group) has fewer training values than another
+    - Difference in Proportions of Labels (DPL): Imbalance of positive outcomes between facet values
+    - Kullback-Leibler Divergence (KL), Jensen-Shannon Divergence(JS): How much outcome distributions of facets diverge
+    - Lp-norm (LP): P-norm difference between distributions of outcomes from facets
+    - Total Variation Distance (TVD): L1-norm difference between distributions of outcomes from facets
+    - Kolmogorov-Smirnov (KS): Maximum divergence between outcomes in distributions from facets
+    - Conditional Demographic Disparity (CDD)
 
 - Compare and Evaluate Foundation Models
 - Evaluating human-factors such as friendliness or humor
@@ -1141,7 +1321,7 @@ Types of bias:
 - Observer bias: Observer bias happens when the person collecting or interpreting the data has personal biases that affect the results
 - Confirmation bias: Confirmation bias is when individuals interpret or favor information that confirms their preconceptions.
 
-### Ground Truth
+### Ground Truth <a id="GroundTruth"></a>
 
 - RLHF – Reinforcement Learning from Human Feedback
   - Model review, customization and evaluation
@@ -1151,6 +1331,26 @@ Types of bias:
   - Creating or evaluating your models
   - Data generation or annotation (create labels)
 - Reviewers: Amazon Mechanical Turk workers, your employees, or third-party vendors
+
+
+### SageMaker Feature Store
+
+Find, discover, and share features in Studio. Keep it organized (feature groups) and share features across different models. 
+  - Integrates with many technologies: kinesis, kafka, EMR, glue, athena, lambda etc. Created glue data catalog.
+  - You can access it pffline from S3 or streaming via http put/get requests
+
+### SageMaker Edge Manager
+
+Software agent for edge devices
+
+### SageMaker ML Lineage Tracking
+
+Keep a running history of your models. Tracks: trial components, trials, experiments, context, action, artifact
+
+### SageMaker Canvas
+
+No-code machine learning for business analysts
+
 
 ### SageMaker ML Governance
 
@@ -1189,7 +1389,7 @@ __SageMaker Role Manager__
   - Define roles for personas
   - Example: data scientists, MLOps engineers
 
-## SageMaker JumpStart
+### SageMaker JumpStart
 
 - ML Hub to find pre-trained Foundation Model (FM), computer vision models, or natural language processing models
 - Large collection of models from Hugging Face, Databricks, Meta, Stability AI…
@@ -1212,10 +1412,32 @@ __MLFlow__ on Amazon SageMaker:
   - Launch on SageMaker with a few clicks
 - Fully integrated with SageMaker
 
+### SageMaker BuiltIn Algorithms
+
+- Linear Learner: Linear regression - Fit a line to your training data
+- XGBoost: decision tree for classification or regression
+  - Boosted group of decision trees
+  - New trees made to correct the errors of previous trees
+  - Uses gradient descent to minimize loss as new trees are added
+- Seq2Seq: Input is a sequence of tokens, output is a sequence of tokens. Good for Machine Translation, Text summarization, Speech to text
+- DeepAR: Forecasting one-dimensional time series data. Uses RNN. Finds frequencies and seasonality
+- BlazingText: Text classification. Predict labels for a sentence, Useful in web searches, information retrieval, Supervised
+- Word2vec: Creates a vector representation of words. Semantically similar words are represented by vectors close to each other
+- Object2Vec: It’s like that, but arbitrary objects. creates low-dimensional dense embeddings of highdimensional objects
+- Object Detection
+- Image Classification
+- Random Cut Forest: Anomaly detection, Unsupervised, Detect unexpected spikes in time series data
+- KNN: K-Nearest-Neighbors. Simple classification or regression algorithm
+- K-Means: Unsupervised clustering. Divide data into K groups, where members of a group are as similar as possible to each other
+- PCA: Principal Component Analysis. Dimensionality reduction Project higher-dimensional data (lots of features) into lowerdimensional (like a 2D plot) while minimizing loss of information
+- Factorization Machines: Dealing with sparse data: Click prediction, Item recommendations
+- IP Insights: Unsupervised learning of IP address usage patterns
+
 
 ## AI Challenges and Responsibilities <a id="AIChallengesResponsibilities"></a>
 
-Responsible AI:
+### Responsible AI <a id="ResponsibleAI"></a>
+
 - Making sure AI systems are transparent and trustworthy
 - Mitigating potential risk and negative outcomes
 - Throughout the AI lifecycle: design, development, deployment, monitoring, evaluation
@@ -1318,7 +1540,103 @@ Data Lineage
 - Cataloging – organization and documentation of datasets
 - Helpful for transparency, traceability and accountability
 
-Security and Privacy for AI Systems
+### ML Design Principles <a id="MLDesignPrinciples"></a>
+
+- Assign ownership
+- Provide protection = security controls
+- Enable resiliency: fault tolerance, recoverability
+- Enable reusability
+- Enable reproducibility, version control
+- Optimize resources
+- Reduce cost
+- Enable automation, CI/CD, CT (continuous training)
+- Enable continuous improvement (monitoring)
+
+### ML Life cycle <a id="MLLifeCycle"></a>
+
+- Business goal identification
+  - skills
+  - agree on model explainability (aws clarify)
+  - how to monitor success KPI or compliance with business requirements
+  - license terms, data permissions
+  - ROI
+- ML problem framing
+  - roles and responsibilities: who will train model etc.
+  - document resources you will use
+  - model improvement strategies: hyper-parameter tuning, experiments
+  - lineage tracking system
+  - feedback loops
+  - review fairness and explainability
+  - data encryption
+  - APIs to access models
+  - what aws services can you use? Use pre-trained models.
+- Data Processing
+  - data collection (label, ingest) 
+  - profile/understand data: Data Wrangler, Glue, Athena, Quicksight
+  - preparation: partition, normalization, balance data
+  - feature engineering: feature selection (what features are important), feature registry, transformation: SageMaker feature store
+  - track and version data, lineage: SageMaker model registry, store netobooks in git, SageMaker ML Lineage tracker
+  - security: IAM, KMS, Secrets Manager, VPC+Private link, Amazon Macie(protect sensitive data), Remove PII wth Comprehend
+  - pipelines, automation, MLOps, data catalog: glue, sage maker pipelines, ground truth (label data)
+- Model development
+  - select algorithm and tech: pyTorch, Tensorflow
+  - seed features/data into model
+  - train model using features
+  - define validation metrics: SageMaker Model Monitor
+  - model evaluation: SageMaker Clarify to detect bias
+  - model tuning
+  - create container
+  - model registry
+  - automate: CloudFormation, SageMaker pipelines, Step functions
+  - protect: SageMaker clarify, model registry
+- Deployment
+  - code in container
+  - monitor
+  - CI/CD pipeline, blue-green, canary deployemnt
+  - cloud vs edge ceployments
+  - real-time, serverless, async, batch
+- Monitoring
+
+### MLOps <a id="MLOps"></a>
+
+- Version control: data, code, models could be rolled back if necessary
+- Automation: of all stages, including data ingestion, pre-processing, training, etc…
+- Continuous Integration: test models consistently
+- Continuous Delivery: of model in productions
+- Continuous Retraining
+- Continuous Monitoring
+
+![ MLOps ](./images/mlops.gif)
+
+![ MLOps 2 ](./images/mlops2.gif)
+
+
+## AWS Security Services <a id="SecurityServices"></a>
+
+- VPC Endpoint powered by AWS PrivateLink – provide private access to AWS Services within VPC
+- S3 Gateway Endpoint: access Amazon S3 privately
+- Macie – find sensitive data (ex: PII data) in Amazon S3 buckets
+- Config – track config changes and compliance against rules
+- Inspector – find software vulnerabilities in EC2, ECR Images, and Lambda functions
+- CloudTrail – track API calls made by users within account
+- Artifact – get access to compliance reports such as PCI, ISO, etc…
+- Trusted Advisor – to get insights, Support Plan adapted to your needs
+- GuardRails for Bedrock- Restrict specific topics in a GenAI application
+
+Bedrock must access an encrypted S3 bucket:
+
+![ Bedrock S3 ](./images/bedrock_s3.gif)
+
+Deploy SageMaker Model in your VPC:
+
+![ Deploy SageMaker ](./images/deploy_sagemaker_model_vpc.gif)
+
+Access Bedrock Model using an App in VPC:
+
+![ Bedrock VPC ](./images/bedrock_vpc.gif)
+
+### Security and Privacy for AI Systems <a id="PrivacyAISystems"></a>
+
 - Threat Detection
   - Example: generating fake content, manipulated data, automated attacks
   - Deploy AI-based threat detection systems
@@ -1348,40 +1666,6 @@ Security and Privacy for AI Systems
   - Storage
   - System Logs
 - Bias and Fairness, Compliance and Responsible AI
-
-MLOps
-- Version control: data, code, models could be rolled back if necessary
-- Automation: of all stages, including data ingestion, pre-processing, training, etc…
-- Continuous Integration: test models consistently
-- Continuous Delivery: of model in productions
-- Continuous Retraining
-- Continuous Monitoring
-
-![ MLOps ](./images/mlops.gif)
-
-## AWS Security Services <a id="SecurityServices"></a>
-
-- VPC Endpoint powered by AWS PrivateLink – provide private access to AWS Services within VPC
-- S3 Gateway Endpoint: access Amazon S3 privately
-- Macie – find sensitive data (ex: PII data) in Amazon S3 buckets
-- Config – track config changes and compliance against rules
-- Inspector – find software vulnerabilities in EC2, ECR Images, and Lambda functions
-- CloudTrail – track API calls made by users within account
-- Artifact – get access to compliance reports such as PCI, ISO, etc…
-- Trusted Advisor – to get insights, Support Plan adapted to your needs
-- GuardRails for Bedrock- Restrict specific topics in a GenAI application
-
-Bedrock must access an encrypted S3 bucket:
-
-![ Bedrock S3 ](./images/bedrock_s3.gif)
-
-Deploy SageMaker Model in your VPC:
-
-![ Deploy SageMaker ](./images/deploy_sagemaker_model_vpc.gif)
-
-Access Bedrock Model using an App in VPC:
-
-![ Bedrock VPC ](./images/bedrock_vpc.gif)
 
 ## References <a id="References"></a>
 
