@@ -34,6 +34,13 @@
   - [Amazon Q Developer](#AmazonQDeveloper)
   - [Amazon Q for AWS Services](#AmazonQServices)
 - [AWS Managed AI Services](#ManagedAIServices)
+  - [Amazon Comprehend](#AmazonComprehend)
+  - [Amazon Translate](#AmazonTranslate)
+  - [Amazon Transcribe](#AmazonTranscribe)
+  - [Amazon Polly](#AmazonPolly)
+  - [Amazon Rekognition](#AmazonRekognition)
+  - [Amazon Lex](#AmazonLex)
+  - [Amazon Personalize](#AmazonPersonalize)
 - [SageMaker](#SageMaker)
   - [ SageMaker Studio]( #SageMakerStudio )
   - [ SageMaker Notebooks]( #SageMakerNotebooks )
@@ -429,10 +436,12 @@ You want to minimize the error
 Confusion Matrix: Best way to evaluate the performance of a model that does classifications
 
 Metrics:
-- Precision – Best (1.0) when false positives few
-- Recall – Best (1.0) when false negatives are few
-- F1 Score – Best when you want a balance between precision and recall, especially in imbalanced datasets
-- Accuracy – Best (1.0) for balanced datasets
+- __Precision__ – Best (1.0) when false positives few
+  - Good for medical screening, drug testing. You do not want to do medical procedure if it is not true
+- __Recall__ – Best (1.0) when false negatives are few
+  - Good for fraud detection (you want to capture all frauds)
+- __F1 Score__ – Best when you want a balance between precision and recall, especially in imbalanced datasets
+- __Accuracy__ – Best (1.0) for balanced datasets
 
 #### AUC-ROC Area under the curve-receiver operator curve
 
@@ -576,7 +585,7 @@ Endpoints:
 
 ### Model Fine Tuning <a id="ModelFineTuning"></a>
 
-Fine tuning improves the performance of a pre-trained FM on domain-specific tasks.
+Fine tuning improves the __performance__, __specificity__, __accuracy__ of a pre-trained FM on domain-specific tasks. It __reduces bias, boosts efficiency__.
 
 Fine tuning a model can be better than RAG if you use this new model a lot, because your prompts are shorter (cheaper).
 
@@ -590,6 +599,13 @@ You need to provide data that:
 - Be stored in Amazon S3
 
 If you want to use the new fine-tuned model - you must use "Provisioned Throughput".
+
+Preparing data for fine-tuning:
+- quality of data over quantity
+- data specific and relevant
+- label data correctly
+- governance
+- combat bias: check for imbalances in data
 
 Methods for __fine tuning a model__:
 - __Instruction-based fine-tuning__:
@@ -656,21 +672,29 @@ various asset classes, including commodities, forex, and equity index futures."
 
 ### Model Evaluation <a id="ModelEvaluation"></a>
 
-- Automatic Evaluation: judge model 
-- Human Evaluation: human subject matter experts evaluate generated answers
+- __Automatic Evaluation: judge model__
+- __Human Evaluation__: human subject matter experts evaluate generated answers
 
 ![ Model Evaluation ](./images/model_evaluation.gif)
 
 Metrics:
-- ROUGE: Recall-Oriented Understudy for Gisting Evaluation. 
-  - Evaluating automatic summarization and machine translation systems
+- __ROUGE__: Recall-Oriented Understudy for Gisting Evaluation. 
+  - Evaluating automatic __text summarization and machine translation systems__
+  - Counts number of overlapping 'units' between computer output and human output
   - ROUGE-N – measure the number of matching n-grams (gram=word) between reference and generated text
   - ROUGE-L – longest common subsequence between reference and generated text
-- BLEU: Bilingual Evaluation Understudy
-  - Evaluate the quality of generated text, especially for translations
+  - Example: 
+    - Human: certified AI practitioner
+    - Computer output: Certified ML Practitioner
+    - ROUGE-N - matching units: 2 (certified, practitioner) / 3 total number of units
+    - ROUGE-L = 1
+- __BLEU__: Bilingual Evaluation Understudy
+  - Evaluate the quality of generated text, especially for __translations__
+  - Compares machine translation to human translation
+    - checks how many words appear in the reference translation
   - Considers both precision and penalizes too much brevity
-- BERTScore
-  - Semantic similarity between generated text
+- __BERTScore__
+  - __Semantic similarity__ between generated text
   - Uses pre-trained BERT models to compare the contextualized embeddings of both texts and computes the cosine similarity between them
 - Perplexity: how well the model predicts the next token
 
@@ -1021,91 +1045,99 @@ Part of Amazon Q Business
 
 ## AWS Managed AI Services <a id="ManagedAIServices"></a>
 
-### Amazon Comprehend
+### Amazon Comprehend <a id="AmazonComprehend"></a>
 
-For Natural Language Processing – NLP
+For Natural Language Processing – __NLP__
 - Fully managed and serverless service
 - Real-time or Async analysis
 - Uses machine learning to find insights and relationships in text. Analyzes text using tokenization and parts of speech
-- Sentiment Analysis: Understands how positive or negative the text is
-- Named Entity Recognition (NER)
+- __Sentiment Analysis__: Understands how positive or negative the text is
+- __Named Entity Recognition__ (NER)
   - Extracts predefined, general-purpose entities like people, places, organizations, dates, and other standard categories, from text
   - Can recognize PII
 - Custom Entity Recognition
   - Analyze text for specific terms and noun-based phrases
   - Train the model with custom data such as a list of the entities and documents that contain them
-- Custom Classification:
+- __Custom Classification__:
   - Can Organize documents into categories (classes) that you define
+- __Language identification__
+- __Event detection__
+- __PII__ Identification and redaction
 
-### Amazon Translate
+### Amazon Translate <a id="AmazonTranslate"></a>
 
 Natural and accurate language translation
 
-Allows you to localize content - such as websites and applications - for international users, and to easily translate large volumes of text efficiently.
+Allows you to localize content - such as websites and applications - for international users, and to easily __translate__ large volumes of text efficiently.
 
 - Neural network
 - Batch or synchronous
-- Can translate: sentences, documents (html, pdf etc.)
-- Can be customized: create custom dictionary (terminology)
+- Can __translate__: sentences, documents (html, pdf etc.)
+- Can be __customized__: create custom dictionary (terminology)
 - Success metrics
 
-### Amazon Transcribe
+### Amazon Transcribe  <a id="AmazonTranscribe"></a>
 
-- Automatically convert speech to text
+- Automatically convert __speech to text__
 - Uses a deep learning process called automatic speech recognition (ASR) to convert speech to text quickly and accurately
-- Can automatically remove Personally Identifiable Information (PII) using Redaction
-- Supports Automatic Language Identification for multi-lingual audio
+- Can automatically __remove__ Personally Identifiable Information (__PII__) using Redaction
+- Supports __Automatic Language Identification__ for multi-lingual audio
+- __Channel Identification__
 - Improving Accuracy: 
   - capture domain-specific or non-standard terms
-  - Custom Vocabularies (for words). Add specific words, phrases, domain-specific terms
+  - __Custom Vocabularies__ (for words). Add specific words, phrases, domain-specific terms
   - Custom Language Models (for context). Train Transcribe model on your own domain-specific text data
-- Toxicity Detection:
+- __Toxicity Detection__:
   - Leverages speech cues: tone and pitch, and text-based cues
   - Toxicity categories: sexual harassment, hate speech, threat, abuse, profanity,
 
-### Amazon Polly
+### Amazon Polly <a id="AmazonPolly"></a>
 
-Turn text into lifelike speech using deep learning
+Turn __text into lifelike speech__ using deep learning
 
-- Lexicons: Define how to read certain specific pieces of text. Example: AWS => 'Amazon Web Services'
-- SSML: Speech Synthesis Markup Language: Markup for your text to indicate how to pronounce it. Example: 'Hello, <break> how are you?'
-- Voice engine: generative, long-form, neural, standard…
-- Speech mark: Encode where a sentence/word starts or ends in the audio
+- __Lexicons__: Define how to read certain specific pieces of text. Example: __AWS => 'Amazon Web Services'__
+- __SSML__: Speech Synthesis __Markup Language__: Markup for your text to indicate how to pronounce it. Example: 'Hello, <break> how are you?'
+  - Gives control over pronounciatin, breathing, whispering, pitch, pauses
+- __Voice engine__: generative, long-form, neural, standard…
+- __Speech mark__: Encode where a sentence/word starts or ends in the audio. For animations.
 
-### Amazon Rekognition
+### Amazon Rekognition <a id="AmazonRekognition"></a>
 
-- Find objects, people, text, scenes in images and videos using ML
-- Facial analysis and facial search to do user verification, people counting
-- Custom Labels: 
+- __Find objects__, __people__, text, scenes in images and videos using ML
+  - example: recognize people marked on timeline, face comparison
+- __Facial analysis__ and __facial search__ to do user verification, people counting
+- __Custom Labels__: 
   - Label your training images and upload them to Amazon Rekognition
   - Only needs a few hundred images or less
   - Amazon Rekognition creates a custom model on your images set
   - New subsequent images will be categorized the custom way you have defined
-- Content Moderation:
+- __Content Moderation__:
   - Automatically detect inappropriate, unwanted, or offensive content
   - Custom Moderation Adaptors. Extends Rekognition capabilities by providing your own labeled set of images
+- Can use lambda to trigger analysis on upload
 
-### Amazon Lex
+### Amazon Lex <a id="AmazonLex"></a>
 
-- Build chatbots quickly for your applications using voice and text
-- Supports multiple languages
-- Integration with AWS Lambda, Connect, Comprehend, Kendra
-- The bot automatically understands the user intent to invoke the correct Lambda function to 'fulfill the intent'
-- The bot will ask for 'Slots' (input parameters) if necessary
+- Build __chatbots__ quickly for your applications using __voice and text__
+- Supports __multiple languages__
+- Integration with AWS __Lambda__, Connect, Comprehend, Kendra
+- The bot automatically understands the __user intent__ to invoke the correct __Lambda__ function to 'fulfill the intent'
+- The bot will ask for '__Slots__' (input parameters) if necessary
 
-### Amazon Personalize
+### Amazon Personalize <a id="AmazonPersonalize"></a>
 
-- Fully managed ML-service to build apps with real-time personalized recommendations
+- Fully managed ML-service to build apps with __real-time personalized recommendations__
 - Example: personalized product recommendations/re-ranking, customized direct marketing
 - Example: User bought gardening tools, provide recommendations on the next one to buy
-- Integrates into existing websites, applications, SMS, email marketing systems, …
+- __Integrates into existing websites, applications, SMS, email__ marketing systems, …
 - Implement in days, not months (you don’t need to build, train, and deploy ML solutions)
+- __User Segmentation__
 
-Data Source (S3 or API) -> Amazon Personalize -> Web Sites or Mobile Apps or SMS or email
+Data Source (__S3__ or API) -> Amazon Personalize -> Web Sites or Mobile Apps or SMS or email
 
 Recipes:
 - Algorithms that are prepared for specific use cases
-- You must provide the training configuration on top of the recipe
+- You must provide the __training configuration__ on top of the recipe
 - Example recipes:
   - Recommending items for users (USER_PERSONALIZATION recipes): User-Personalization-v2
   - Recommending trending or popular items (POPULAR_ITEMS recipes): Trending-Now, Popularity-Count
@@ -1656,10 +1688,10 @@ Access Bedrock Model using an App in VPC:
   - Encrypt data at rest and in transit
   - Manage encryption keys properly and make sure they’re protected against unauthorized access Performance Metrics
 - Model Accuracy – ratio of positive predictions
-  - Precision – ratio of true positive predictions (correct vs. incorrect positive prediction)
-  - Recall – ratio of true positive predictions compare to actual positive
-  - F1-score – average of precision and recall (good balanced measure)
-  - Latency – time taken by the model to make a prediction
+  - __Precision__ – ratio of true positive predictions (correct vs. incorrect positive prediction)
+  - __Recall__ – ratio of true positive predictions compare to actual positive
+  - __F1-score__ – average of precision and recall (good balanced measure)
+  - __Latency__ – time taken by the model to make a prediction
 - Infrastructure monitoring (catch bottlenecks and failures)
   - Compute resources (CPU and GPU usage)
   - Network performance
