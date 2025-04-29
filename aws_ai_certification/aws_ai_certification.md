@@ -673,7 +673,13 @@ various asset classes, including commodities, forex, and equity index futures."
 ### Model Evaluation <a id="ModelEvaluation"></a>
 
 - __Automatic Evaluation: judge model__
+  - Accuracy, robustness, toxicity
 - __Human Evaluation__: human subject matter experts evaluate generated answers
+  - Friendliness, style, alignment, brand voice
+  - Use in-house staff or AWS-provided reviewers
+- Filter content, redact PII
+- Enhance content safety and privacy
+- Monitor and analyze both inputs and responses
 
 ![ Model Evaluation ](./images/model_evaluation.gif)
 
@@ -1341,6 +1347,18 @@ Model Explainability:
 - Debug predictions provided by the model after it's deployed
 - Helps increase the trust and understanding of the model
 - Example: Why did the model predict a negative outcome such as a loan rejection for a given applicant?
+- Understanding WHY a model makes its decisions
+  - Helps with debugging and troubleshooting
+  - Helps with understanding a model’s limitations
+  - Helps with deciding how to use the model
+- Explainability Frameworks
+  - Shapeley Value Added (SHAP)
+  - Layer-Independent Matrix Factorization (LIME)
+  - Counterfactual Explanations
+- AWS Explainability Tools
+  - SageMaker Clarify + SageMaker Experiments – Which features are most important?
+  - SageMaker Clarify Online Explainability
+  - SageMaker Autopilot – Also works with Clarify
 
 Detect Bias (human)
 - Ability to detect and explain biases in your datasets and models
@@ -1486,13 +1504,68 @@ __MLFlow__ on Amazon SageMaker:
 - How to do it:
   - Bedrock:
     - human or automatic model evaluation
+      - Friendliness, style, alignment, brand voice
+      - Use in-house staff or AWS-provided reviewers
+    - automatic model evaluation: Accuracy, robustness, toxicity 
     - Filter content, redact PII
-  - SageMaker Clarify: accuracy, robustness, toxicity, Bias detection 
-  - SageMaker Data Wrangler : fix bias by balancing dataset
+    - Enhance content safety and privacy
+    - Monitor and analyze both inputs and responses
+  - SageMaker Clarify: 
+    - accuracy, robustness, toxicity, Bias detection 
+    - You give it features you want to check for bias (age, gender, etc.)
+    - It analyzes and reports on any bias in your data
+    - It’s up to you to balance that out
+  - SageMaker Data Wrangler: 
+    - fix bias by balancing dataset
+    - You can use this to balance your biased data
+    - Random undersampling
+    - Random oversampling
+    - Synthetic Minority Oversampling Technique (SMOTE)
+    - Artificially generates new samples of the minority class using nearest neighbors
   - SageMaker Model Monitor : quality analysis in production
   - Partial Dependence Plots (PDP): Show how a single feature can influence the predicted outcome, while holding other features constant
+  - SageMaker ML Governance
+    - SageMaker Role Manager
+    - Model Cards
+    - Model Dashboard
+
+Model Predictions: SageMaker Clarify + SageMaker Experiments
+- Uses a technique called Shapley Values:
+  - A 'feature' is some property you are trying to make predictions from
+    - For example: you might try to predict income based on features such as age, education level, location, etc. 
+  - Basically evaluates your models with each feature left out, and measures the impact of the missing feature
+  - From that we can measure the relative importance of each feature
+
+Model selection:
+- Use model evaluation in SageMaker or Bedrock
+- Define your use-case narrowly:
+  - What could go wrong? What might mess up your model, and in what way?
+  - What levers do you need for tuning to mitigate those issues?
+- Test how a model performs with your data
+  - Don’t choose based on general benchmarks, choose on how it performs for your specific problem
+
+Responsible Dataset:
+- Balance your data
+  - Using SageMaker Data Wrangler or SageMaker Clarify
+  - Data cleaning, feature selection, normalization are some pre-processing techniques
+- Ensure inclusive and diverse data
+  - Ensure fair treatment of all, especially when the stakes are high
+  - Law enforcement, financial approvals, etc.
+- Regular auditing
+
+Transparency: 
+- Understanding HOW a model makes its decisions
+  - Provides accountability
+  - Builds trust
+  - Enables auditing
+
+Interpretability: 
+- The degree to which a human can understand the cause of a decision
+- extent to which you can get into the inner weights of the model and understand it
+- Simpler models are easier to interpret
 
 ![ Interpretability ](./images/Interpretability_performance.gif)
+
 
 Secure AI:
 - Ensure that confidentiality, integrity, and availability are maintained
@@ -1502,6 +1575,9 @@ Governance:
 - Ensure to add value and manage risk in the operation of business
 - Clear policies, guidelines, and oversight mechanisms to ensure AI systems align with legal and regulatory requirements
 
+Controllability: 
+- How much control you have over the model by changing the input data
+- More control = easier to achieve desired behavior
 
 Compliance:
 - Ensure adherence to regulations and guidelines
@@ -1668,6 +1744,51 @@ Access Bedrock Model using an App in VPC:
 ![ Bedrock VPC ](./images/bedrock_vpc.gif)
 
 ### Security and Privacy for AI Systems <a id="PrivacyAISystems"></a>
+
+7 Layers of security:
+- Data Protection
+  - Encryption at rest: KMS
+  - Encryption in transit: 
+    - AWS Certificate Manager (ACM)
+    - AWS Private Certificate Authority (Private CA)
+    - AWS PrivateLink and Virtual Private Clouds (VPC’s)
+- Identity and Access Management
+  - Only authorized users / apps / services can access your infrastructure and services: IAM
+- Application Protection:
+  - Protect against: DoS attacks, Data breaches, Unauthorized access
+  - AWS tools: AWS Shield, WAF, Amazon Cognito
+- Network and Edge Protection: Protect security of the network infrastructure
+  - VPC, WAF
+- Infrastructure Protection
+  - protection against: Unauthorized access, Data breaches, System failures, Natural disasters: IAM
+- Threat Detection and Incident Response:
+  - Detection: AWS Security Hub, Amazon GuardDuty
+  - Response: Lambda, EventBridge
+- Policies, Procedures, and Awareness
+  - Implement policy of least privilege
+  - Use AWS IAM Access Analyzer to find overly permissive accounts
+  - Use short-termed credentials
+
+Security Services relevant to AI:
+- SageMaker Role Manager: Build & manage persona-based IAM roles for ML
+- Amazon Macie: discovery of sensitive data: Scans S3 for PII 
+- Amazon Inspector: Scans AWS workloads for software vulnerabilities
+
+Security in Data Engineering:
+- Assess data quality
+  - Completeness, accuracy, timeliness, consistency
+  - Data validation checks and tests within the pipeline
+  - Profiling and monitoring
+-Enhance privacy
+  - Data masking, obfuscation
+  - Encryption, tokenization
+- Data integrity
+  - Validate schemas, data, referential integrity, business rules
+  - Backup & recovery strategy
+  - Use transaction management / atomicity to ensure consistency during processing
+
+
+![ Security Scoping Martix ](./images/security_scoping_martix.gif)
 
 - Threat Detection
   - Example: generating fake content, manipulated data, automated attacks
