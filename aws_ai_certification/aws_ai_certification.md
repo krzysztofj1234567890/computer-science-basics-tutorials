@@ -82,6 +82,9 @@ Prompt: to query LLM you send a prompt. It can be text and pictures etc.
 
 Output of a prompt is not deterministic and it can be many different data types (text, image etc.)
 
+All foundational language models are LLMs, but not all LLMs are foundational models—only those trained at sufficient scale and generality.
+
+
 ### RAG <a id="RAG"></a>
 
 - Allows a Foundation Model to reference a __data source outside of its training data__
@@ -93,6 +96,8 @@ Output of a prompt is not deterministic and it can be many different data types 
 Converting raw text into a sequence of tokens
 - Word-based tokenization: text is split into individual words
 - Subword tokenization: some words can be split too
+
+Words split into multiple tokens: unbelievable -> ['un', 'believ', 'able']
 
 ### Context Window <a id="ContextWindow"></a>
 
@@ -243,41 +248,71 @@ Use cases:
       - Figure out using NLP, what are the m__ain issues that people are calling in about__ when they call my customer service reps?
       - Use NLP to figure out automatically whether or not people are happy or not and what the main issues are that they're facing.
 
+__The 'neural network' represents the 'meaning' that can be translated into many languages__.
+
 Types of Neural Networks:
+
 - Convolutional Neural Networks (__CNN__):
   - Usually used for __image recognition__ (find features within images), machine translation
   - Used when you have __data that does not nicely align into columns__
   - __Can find features__ that are not in a specific spot
+  - Instead of analyzing all pixels at once, it looks at small local patterns and builds up understanding from simple to complex.
+    - For a photo of a cat, a CNN might:
+      - Detect edges and textures.
+      - Combine edges into shapes (ears, eyes).
+      - Recognize object parts (face).
+      - Classify the object as a “cat.”
   - Works like eye:
     - take source image or data
     - break is into smaller chunks called convolutions
     - assemble convolutions and look for patterns
-- __ResNet__ (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
+
 - Recurrent Neural Networks (__RNN__):
   - Used for __sequences of data__ (like __time series__, or machine translations (words) or music(notes))
   - __Output of the neuron goes back into the same neuron__ (feedback loop)
   - A sequence of words is encoded into neural network and later this neural network can be decoded into words in anothe language (translation).
+  - ResNet (short for Residual Network) is type of CNN
+  - As neural networks get deeper, they should perform better—but in practice, they often get worse due to: Vanishing gradient, Overfitting, Training instability
   - The 'neural network' represents the 'meaning' that can be translated into many languages.
+  - __ResNet__ (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
+    - ResNet introduces shortcut (skip) connections that allow gradients and data to flow more easily through the network.
+
 - __Transformer__ Architecture:
   - __RNN + self attention__ (=tention/relationship between words)
   - Each word can have many parallel 'states' or 'attentions'
   - Transformers = stop using RNN and instead use __normal neural network with attentions__
+
 - Generative Adversarial Networks (__GAN__):
   - Used for face-swapping or aging applications, generate __synthetic data such as images, videos__ or sounds that resemble the training data. Helpful for data augmentation
   - Generator maps random noise to an image
   - Discriminator learns to identify real images from generate/fake images
   - Generator and Discriminator are adversarial.
   - Ends when Discriminator cannot tell the difference between fake and real image    
+
 - __BERT__ (Bidirectional Encoder Representations from Transformers) – similar intent to GPT, but reads the text in two directions
+  - Previous Models (like GPT or traditional RNNs): Process text in a unidirectional manner, meaning they understand the context of a word from only one direction (either left-to-right or right-to-left). 
+  - BERT: Is bidirectional, meaning it processes the entire context of a word simultaneously from both directions (left-to-right and right-to-left). This allows BERT to fully capture the nuances of meaning from both sides
+
 - __SVM__ (Support Vector Machine) – ML algorithm for __classification and regression__
+
 - __WaveNet__ – model to generate __raw audio waveform__, used in Speech Synthesis
+
 - XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
+  - It is a boosting technique that builds multiple models sequentially, with each model trying to correct the errors of the previous one.
+  - XGBoost uses decision trees as the base learners.
+  - Boosting is an ensemble learning technique where multiple weak learners (typically decision trees) are combined to create a strong learner
+  - Gradient Boosting involves fitting new models (trees) that correct the residuals of the models before them. The "gradient" refers to the gradient descent optimization technique used to minimize errors, which makes the models progressively better at predicting the target.
+  - The "Extreme" in XGBoost refers to the fact that it is a highly optimized, scalable, and efficient version of gradient boosting.
+
 - __GPT__ (Generative Pre-trained Transformer) – __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
   - transformers
     - LLM
     - Diffusion (images)
     - Multi-Modal
+
 - __Diffusion Models__
+  - They gradually transforming noise into structured data through a process inspired by physical diffusion
+  - The diffusion process in these models refers to the gradual addition of noise to data over several steps
   - Used to generate images
   - Take text and create embeddings
   - Add random changes to image
@@ -286,6 +321,12 @@ Types of Neural Networks:
   - Output of embedding is not text buy image or sound
 
 ### Generative AI (Gen-AI) <a id="GenAI"></a>
+
+FMs use self-supervised learning to create labels from input data, however, fine-tuning an FM is a supervised learning process
+Foundation models use self-supervised learning to create labels from input data. This means no one has instructed or trained the model with labeled training data sets.
+
+Fine-tuning involves further training a pre-trained language model on a specific task or domain-specific dataset, allowing it to address business requirements. Fine-tuning is a customization method that does change the weights of your model.
+Fine-tuning an FM is a supervised learning process.
 
 - Multi-purpose foundation models backed by __neural networks__
 - They can be fine-tuned if necessary to better fit our use-cases: text generation, text summarization, chatbot, image generation
@@ -440,10 +481,22 @@ Metrics:
   - Good for medical screening, drug testing. You do not want to do medical procedure if it is not true
 - __Recall__ – Best (1.0) when false negatives are few
   - Good for fraud detection (you want to capture all frauds)
+  - Recall example:
+    - True Positive (TP) - actual fraud was predicted
+    - False Negative (FN) = Fraudulent transaction missed → fraudster steals money and gets away with it.
+    - False Positive (FP) = Legit transaction flagged as fraud → customer gets annoyed, maybe blocks card, but the money is safe.
+    - A high recall means you’re catching most fraud cases.
+    - A low recall means many fraud cases go undetected — bad for the business and customers.
 - __F1 Score__ – Best when you want a balance between precision and recall, especially in imbalanced datasets
 - __Accuracy__ – Best (1.0) for balanced datasets
 
 #### AUC-ROC Area under the curve-receiver operator curve
+
+AUC-ROC stands for Area Under the Receiver Operating Characteristic Curve, and it is a performance metric used to evaluate the quality of binary classification models, especially those that produce probability scores (not just binary outputs).
+
+The Receiver Operating Characteristic (ROC) curve plots the trade-off between:
+- True Positive Rate (TPR) = Recall - Y axis
+- False Positive Rate (FPR) - X axis
 
 ![ auc roc ](./images/auc_roc.gif)
 
@@ -823,6 +876,8 @@ Use Agent Example:
 
 ![ Bedrock Agent ](./images/bedrock_agent.gif)
 
+Amazon Bedrock Agents utilize multiple specialized models to handle different aspects of a task. These models work together to interpret user input, retrieve relevant information, and perform actions.
+
 - The LLM is given discretion on which tools to use for what purpose
 - The agent has a memory, an ability to plan how to answer a request, and tools it can use in the process.
 - “memory” is just the chat history and external data stores
@@ -983,6 +1038,12 @@ Helps with
 Protecting against prompt injections:  Add explicit instructions to ignore any unrelated or potential malicious content
 
 ## Amazon Q <a id="AmazonQ"></a>
+
+Amazon Q is a generative AI–powered assistant that allows you to create pre-packaged generative AI applications, whereas, Amazon Bedrock provides an environment to build and scale generative AI applications using a Foundation Model (FM)
+
+Amazon Q is a generative AI-powered assistant for accelerating software development and leveraging companies' internal data. Amazon Q generates code, tests, and debugs. It has multistep planning and reasoning capabilities that can transform and implement new code generated from developer requests. Amazon Q also makes it easier for employees to get answers to questions across business data.
+
+Amazon Bedrock provides an environment to build and scale generative AI applications with FMs. It is a fully managed service that offers a choice of high-performing FMs from leading AI companies. It also provides a broad set of capabilities around security, privacy, and responsible AI. It also supports fine-tuning, Retrieval Augmented Generation (RAG), and agents that execute tasks.
 
 ### Amazon Q Business <a id="AmazonQBusiness"></a>
 
@@ -1325,6 +1386,11 @@ __Feature Store__:
 
 ### SageMaker Clarify <a id="SageMakerClarify"></a>
 
+Helps detect and reduce bias in machine learning models and datasets by providing automated tools for analyzing both:
+- Data bias — bias in your input features before training: looks at data imbalance and feature distribution across different group
+- Model bias — bias in your model’s predictions after training: checks whether it treats different groups fairly — for example, does it predict positive loan approval more often for one gender
+- You need to Specify Sensitive Features: (e.g., gender, race, age)
+
 Detects potential bias, helps explain model behavior:
   - Pre-training Bias Metrics in Clarify: 
     - Class Imbalance (CI): One facet (demographic group) has fewer training values than another
@@ -1359,6 +1425,10 @@ Model Explainability:
   - SageMaker Clarify + SageMaker Experiments – Which features are most important?
   - SageMaker Clarify Online Explainability
   - SageMaker Autopilot – Also works with Clarify
+- It explains how and why a model makes certain predictions, even for complex models like XGBoost or deep neural networks
+- It uses SHAP (SHapley Additive exPlanations) — a well-established technique based on cooperative game theory — to provide local and global explanations.
+- Local Explainability: Explains individual predictions. Shows the impact of each input feature on a specific prediction
+- Global Explainability: Explains the overall model behavior. Aggregates SHAP values across all predictions. Tells you which features are generally most important
 
 Detect Bias (human)
 - Ability to detect and explain biases in your datasets and models
@@ -1381,6 +1451,21 @@ Types of bias:
   - Creating or evaluating your models
   - Data generation or annotation (create labels)
 - Reviewers: Amazon Mechanical Turk workers, your employees, or third-party vendors
+
+It is a data labeling service that helps you build high-quality labeled datasets for machine learning
+
+SageMaker Ground Truth helps you:
+- Label data (images, text, audio, video, documents)
+- Build training datasets for supervised ML models
+- Automate labeling using machine learning techniques (active learning)
+
+- Human-in-the-loop Labeling
+  - Your own workforce (private team)
+  - Amazon Mechanical Turk (public crowdworkers
+- Automatic Labeling (Active Learning)
+  - Ground Truth uses an ML model to auto-label easy examples
+  - Human reviewers only label uncertain or complex examples
+  - Over time, more labeling is automated → saves time and cost
 
 
 ### SageMaker Feature Store
@@ -1445,6 +1530,7 @@ __SageMaker Role Manager__
 - Large collection of models from Hugging Face, Databricks, Meta, Stability AI…
 - Models can be fully customized for your data and use-case
 - Models are deployed on SageMaker directly
+- Amazon SageMaker JumpStart and Amazon Bedrock are both designed to help you quickly use machine learning models, but they serve different audiences, support different types of models, and have different use cases.
 
 ML Hub vs ML Solutions
 - ML Hub: browse foundational models -> Experiment -> Customize model with your data set -> Deploy
@@ -1819,6 +1905,176 @@ Security in Data Engineering:
   - Storage
   - System Logs
 - Bias and Fairness, Compliance and Responsible AI
+
+## Questions
+
+### A data scientist is working on a binary classification problem to predict whether a customer will churn. They want to select the best metric to evaluate their model’s performance, given that the cost of a false negative (predicting a customer will not churn when they will) is much higher than a false positive. Which evaluation metric should the data scientist use to prioritize reducing false negatives?
+
+Recall
+
+Recall, also known as sensitivity, measures the proportion of actual positive cases that were correctly identified by the model. In this case, where false negatives are more costly, recall is crucial as it prioritizes minimizing false negatives, making it the most suitable metric for evaluating the model's performance.
+
+### A pharmaceutical company is using Amazon Bedrock to fine-tune a language model with sensitive clinical trial data stored in Amazon S3. Due to the sensitive nature of the data, the company needs to ensure that all data transfers between Amazon Bedrock and Amazon S3 are secure and do not traverse the public internet. Which TWO actions should the company take to securely connect Amazon Bedrock to Amazon S3 for fine-tuning the model?
+ 
+- Configure Amazon Bedrock to use a Virtual Private Cloud (VPC) to keep data transfers within the AWS network.
+- Set up AWS PrivateLink to create a private connection between Amazon Bedrock and Amazon S3.
+
+### A healthcare organization wants to use Amazon Bedrock to create a conversational agent that assists patients by answering questions based on a large set of medical documents stored in a knowledge base. What technique should the organization use to ensure the conversational agent provides accurate and relevant information?
+
+Implement Retrieval-Augmented Generation (RAG) to retrieve relevant documents and provide context to the LLM.
+Implementing Retrieval-Augmented Generation (RAG) allows the conversational agent to retrieve relevant documents from the knowledge base and provide context to the Language Model (LLM). This technique ensures that the agent can access and utilize the most relevant information to answer patient questions accurately and effectively.
+
+### Which AWS services/tools can be used to implement Responsible AI practices? (Select two)
+
+SageMaker Model Monitor and SageMaker Clarify
+
+### Which of the following would you identify as correct regarding underfitting and overfitting in machine learning?
+
+Underfit models experience high bias, whereas, overfit models experience high variance
+Your model is underfitting the training data when the model performs poorly on the training data. 
+This is because the model is unable to capture the relationship between the input examples
+Your model is overfitting your training data when you see that the model performs well on the training data but does not perform well on the evaluation data. This is because the model is memorizing the data it has seen and is unable to generalize to unseen examples.
+__Underfit models experience high bias — they give inaccurate results for both the training data and test set. On the other hand, overfit models experience high variance - they give accurate results for the training set but not for the test set.__
+
+### How would you differentiate between overfitting and underfitting in the context of machine learning?
+
+Overfitting occurs when a model performs well on the training data but poorly on new, unseen data, while underfitting occurs when a model performs poorly on both the training data and new, unseen data
+
+### Which of the following are correct statements regarding the AWS Global Infrastructure? (Select two)
+
+- Each AWS Region consists of a minimum of three Availability Zones (AZ)
+- Each Availability Zone (AZ) consists of one or more discrete data centers
+
+### Identify which of the following accurately applies to Amazon Bedrock and its capabilities? 
+
+- Smaller models are cheaper to use than larger models
+- You can use a customized model only in the Provisioned Throughput mode
+
+### Which of the following best describes the Amazon SageMaker Canvas ML tool?
+
+Gives the ability to use machine learning to generate predictions without the need to write any code
+
+### Which of the following techniques is used by Foundation Models to create labels from input data?
+
+Self-supervised learning
+
+### Which of the following summarizes the capabilities of a multimodal model?
+
+A multimodal model can accept a mix of input types such as audio/text and create a mix of output types such as video/image
+
+#### Which of the following explanations BEST describes the differences between Shapley values and Partial Dependence Plots (PDP) in the context of model explainability, and how you might use them for this purpose?
+
+Shapley values provide a local explanation by quantifying the contribution of each feature to the prediction for a specific instance, while PDP provides a global explanation by showing the marginal effect of a feature on the model’s predictions across the dataset. Use Shapley values to explain individual predictions and PDP to understand the model's behavior at a dataset level
+Shapley values are a local interpretability method that explains individual predictions by assigning each feature a contribution score based on its marginal effect on the prediction. This method is useful for understanding the impact of each feature on a specific instance's prediction.
+
+Partial Dependence Plots (PDP), on the other hand, provide a global view of the model’s behavior by illustrating how the predicted outcome changes as a single feature is varied across its range, holding all other features constant. PDPs help understand the overall relationship between a feature and the model output across the entire dataset.
+Thus, Shapley values are suited for explaining individual decisions, while PDP is used to understand broader trends in model behavior.
+
+### What solution or approach would you recommend for implementing fully managed support for a RAG workflow in Amazon Bedrock?
+
+Knowledge Bases for Amazon Bedrock
+With Knowledge Bases for Amazon Bedrock, you can give FMs and agents contextual information from your company’s private data sources for RAG to deliver more relevant, accurate, and customized responses
+
+### Which of the following options would be the most suitable for assessing the performance of the classification model?
+
+Confusion matrix
+
+Confusion matrix is a tool specifically designed to evaluate the performance of classification models by displaying the number of true positives, true negatives, false positives, and false negatives
+
+### the company's data science team is exploring AWS AI services that can perform sentiment analysis on the written customer reviews. Which of the following would you recommend? (Select two)
+
+- Amazon Bedrock:  it can be used to fine-tune pre-trained foundation models for various tasks, including sentiment analysis. With the proper configuration and fine-tuning, Bedrock can analyze text data to determine sentiment
+- Amazon Comprehend: uses machine learning to uncover insights and relationships in text. It is specifically designed for tasks such as sentiment analysis, entity recognition, key phrase extraction, and language detection
+
+### Which of the following AWS services powers Amazon Q Developer?
+
+Amazon Bedrock
+
+### The company observes that the predictions are not as accurate as desired, leading to potential financial losses or missed fraud detections. Which approach would you recommend to enhance the accuracy of the company's machine learning models?
+
+The company should increase the number of epochs, which involves training the model for more iterations over the dataset
+Increasing the number of epochs allows the model to learn from the training data for a longer period, potentially capturing more complex patterns and relationships, which can improve accuracy.
+
+### Which approach would be the most suitable for enabling ongoing self-improvement of the chatbot based on its conversations with customers?
+
+The company should leverage reinforcement learning (RL), where rewards are generated from positive customer feedback to train the chatbot in optimizing its responses
+Positive customer feedback serves as a reward signal that guides the chatbot to improve its responses over time. The chatbot adapts its behavior based on rewards or penalties, refining its conversational skills through continuous feedback loops. 
+
+### This monitoring is crucial for tracking usage, auditing access patterns, and troubleshooting any issues that may arise during model execution. The company is looking for a solution that provides detailed visibility into all model invocations to maintain effective oversight.
+
+The company should enable model invocation logging, which allows for detailed logging of all requests and responses during model invocations in Amazon Bedrock
+
+### They are looking for a tool that provides recommendations and best practices to enhance the overall efficiency and security of their AI systems.
+
+AWS Trusted Advisor
+
+AWS Trusted Advisor is a service that provides guidance to help you provision your resources following AWS best practices. It helps optimize your AWS environment in areas such as cost savings, performance, security, and fault tolerance, making it an essential tool for governance in AI systems.
+
+### Which of these approaches would be the most effective for turning the Foundation Model into a domain-specific expert?
+
+The company should use Domain Adaptation Fine-Tuning, which involves fine-tuning the model on domain-specific data to adapt its knowledge to that particular domain
+
+Domain Adaptation Fine-Tuning is an effective approach because it takes a pre-trained Foundation Model and further adjusts its parameters using domain-specific data. This process helps the model learn the nuances, terminology, and context specific to the domain, enhancing its ability to generate accurate and relevant outputs in that field.
+
+The company should use Continued Pre-Training, which involves further training the model on a large corpus of domain-specific data, enhancing its ability to understand domain-specific terms, jargon, and context
+
+Continued Pre-Training is another appropriate strategy for making a Foundation Model an expert in a specific domain. By pre-training the model on a large dataset specifically from the target domain, the model can learn the distinct characteristics, language patterns, and specialized knowledge relevant to that domain.
+
+### A technology company is utilizing multiple machine learning models across different departments, such as marketing, customer support, and product development, to address various business needs. To enhance overall performance, the company wants these models to learn from each other by sharing the latest data insights and patterns discovered by each model. The goal is to optimize the models' accuracy and efficiency by effectively using the most up-to-date information available from all sources. Given this objective, which approach would be the most suitable for achieving cross-model optimization?
+
+The company should use transfer learning, a method where a model pre-trained on one task is adapted to improve performance on a different but related task by leveraging knowledge from the original task
+
+### Which of the following options best summarizes the differences between model inference and model evaluation in the context of generative AI?
+
+Model evaluation is the process of evaluating and comparing model outputs to determine the model that is best suited for a use case, whereas, model inference is the process of a model generating an output (response) from a given input (prompt)
+
+### Which of the following statements is correct regarding the model customization methods for Amazon Bedrock?
+
+Continued pre-training uses unlabeled data to pre-train a model, whereas, fine-tuning uses labeled data to train a model
+
+- In the continued pre-training process, you provide unlabeled data to pre-train a model by familiarizing it with certain types of inputs. You can provide data from specific topics to expose a model to those areas. The Continued Pre-training process will tweak the model parameters to accommodate the input data and improve its domain knowledge.
+- While fine-tuning a model, you provide labeled data to train a model to improve performance on specific tasks. By providing a training dataset of labeled examples, the model learns to associate what types of outputs should be generated for certain types of inputs. The model parameters are adjusted in the process and the model's performance is improved for the tasks represented by the training dataset.
+
+### The company needs a model that not only accurately classifies the movies but also provides clear insights into how the classification decisions are made. This transparency will help the team understand which features most influence the categorization, ensuring that the model's decision-making process is fully documented and interpretable. Which of the following machine learning algorithms would be the most suitable for achieving this goal?
+
+Decision Trees
+
+### Which of the following best summarizes the way Transformer models work?
+
+Transformer models use a self-attention mechanism and implement contextual embeddings
+Transformer models are a type of neural network architecture designed to handle sequential data, such as language, in an efficient and scalable way. They rely on a mechanism called self-attention to process input data, allowing them to understand and generate language effectively. Self-attention allows the model to weigh the importance of different words in a sentence when encoding a particular word. This helps the model capture relationships and dependencies between words, regardless of their position in the sequence.
+
+### Which of the following generative AI techniques are used in the Amazon Q Business web application workflow?
+
+- Retrieval-Augmented Generation (RAG)
+- Large Language Model (LLM)
+
+### To improve the chatbot's performance, the company wants the model to correctly identify the intent behind various user interactions, such as whether a user is asking for a refund, seeking product information, or needing technical support. To achieve this, the company decides to use few-shots prompting to train the model effectively. Given this goal, what type of data should be included in the few-shots examples to help the model accurately recognize and distinguish the correct user intent?
+
+- The data should include user-input along with the correct user intent, providing examples of user queries and the corresponding intent
+This is the correct answer because few-shots prompting involves providing the model with examples that include both the user-input and the correct user intent. These examples help the model understand and learn how to map various user queries to their appropriate intents. By repeatedly seeing this pairing, the model can generalize from these examples and improve its ability to recognize user intent in new, unseen queries.
+- Prompt structure for few-shot learning:
+- Section A: Contect: overall prompt instructions
+  - Example: You are the CEO a Company preparing to present the quarterly earnings report to investors. Draft a comprehensive earnings call script that covers the key financial metrics, business highlights.....
+- Section B: Style, tone, narrative: specific guideance
+  - Example: The earnings script should be written in a formal, investor-friendly tone suitable for a public earnings call.
+- Section C: Examples
+  - Example: Amazon Earnings call transcript for Q1 2021....
+- Example:
+  Tell me the sentiment of the following headline and categorize it as positive or negative: Here are some examples:
+  ex1: research firm dends off allrgations of improprietayto over new technology.
+  answer: Negative
+  ex2: Offshort windfarm contibnue to thrive
+  answer: Positive
+
+### Which of the following embedding models would be most suitable for differentiating the contextual meanings of words when applied to different phrases?
+
+Bidirectional Encoder Representations from Transformers (BERT)
+
+### What is a key difference between Foundation Models (FMs) and Large Language Models (LLMs) in the context of generative AI?
+
+Foundation Models serve as a broad base for various AI applications by providing generalized capabilities, whereas Large Language Models are specialized for understanding and generating human language
+
 
 ## References <a id="References"></a>
 
