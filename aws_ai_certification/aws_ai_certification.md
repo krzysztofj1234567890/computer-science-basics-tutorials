@@ -183,6 +183,10 @@ The goal is to __discover inherent patterns__, structures, or relationships __wi
 The machine must uncover and create the groups itself, but __humans still put labels__ on the output groups.
 Common techniques include __Clustering__, Association Rule Learning , and Anomaly Detection.
 
+Algorithms to do association rule learning:
+- Apriori: finds frequent itemsets by iteratively extending them, pruning infrequent ones.
+- Eclat: Uses a depth-first search and vertical data format (item → list of transactions).
+
 Unsupervised learning involves iterating until some objective function is minimized.
 
 Examples:
@@ -194,6 +198,10 @@ __Semi-supervised Learning:__
 - Use a small amount of labeled data and a large amount of unlabeled data to train systems
 - the partially trained algorithm itself labels the unlabeled data
 - model is then re-trained on the resulting data mix without being explicitly programmed
+- Semi-supervised learning is a type of machine learning that combines a small amount of labeled data with a large amount of unlabeled data during training. It lies between supervised and unsupervised learning.
+- Use it when:
+  - Labeling data is expensive or time-consuming (e.g., medical images, legal documents).
+  - Unlabeled data is abundant and easy to collect (e.g., website text, sensor data).
 
 #### Self-Supervised Learning
 
@@ -244,73 +252,107 @@ Use cases:
 - Requires large amount of input data and GPUs
 - __Computer Vision__ – image classification, object detection, image segmentation
 - Natural Language Processing (__NLP__) – text classification, sentiment analysis, machine translation, language generation
-    - __Intent analysis:__ You could use it to analyze feedback or call center recordings.
-      - Figure out using NLP, what are the m__ain issues that people are calling in about__ when they call my customer service reps?
-      - Use NLP to figure out automatically whether or not people are happy or not and what the main issues are that they're facing.
+  - __Intent analysis:__ You could use it to analyze feedback or call center recordings.
+    - Figure out using NLP, what are the m__ain issues that people are calling in about__ when they call my customer service reps?
+    - Use NLP to figure out automatically whether or not people are happy or not and what the main issues are that they're facing.
 
 __The 'neural network' represents the 'meaning' that can be translated into many languages__.
 
 Types of Neural Networks:
 
-- Convolutional Neural Networks (__CNN__):
-  - Usually used for __image recognition__ (find features within images), machine translation
-  - Used when you have __data that does not nicely align into columns__
-  - __Can find features__ that are not in a specific spot
-  - Instead of analyzing all pixels at once, it looks at small local patterns and builds up understanding from simple to complex.
-    - For a photo of a cat, a CNN might:
-      - Detect edges and textures.
-      - Combine edges into shapes (ears, eyes).
-      - Recognize object parts (face).
-      - Classify the object as a “cat.”
-  - Works like eye:
-    - take source image or data
-    - break is into smaller chunks called convolutions
-    - assemble convolutions and look for patterns
+#### Feedforward Neural Network (FNN)
 
-- Recurrent Neural Networks (__RNN__):
-  - Used for __sequences of data__ (like __time series__, or machine translations (words) or music(notes))
-  - __Output of the neuron goes back into the same neuron__ (feedback loop)
-  - A sequence of words is encoded into neural network and later this neural network can be decoded into words in anothe language (translation).
-  - ResNet (short for Residual Network) is type of CNN
-  - As neural networks get deeper, they should perform better—but in practice, they often get worse due to: Vanishing gradient, Overfitting, Training instability
-  - The 'neural network' represents the 'meaning' that can be translated into many languages.
-  - __ResNet__ (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
-    - ResNet introduces shortcut (skip) connections that allow gradients and data to flow more easily through the network.
+#### Convolutional Neural Networks (__CNN__)
 
-- __Transformer__ Architecture:
-  - __RNN + self attention__ (=tention/relationship between words)
-  - Each word can have many parallel 'states' or 'attentions'
-  - Transformers = stop using RNN and instead use __normal neural network with attentions__
+- Usually used for __image recognition__ (find features within images), machine translation
+- Used when you have __data that does not nicely align into columns__
+- __Can find features__ that are not in a specific spot
+- Instead of analyzing all pixels at once, it looks at small local patterns and builds up understanding from simple to complex.
+  - For a photo of a cat, a CNN might:
+    - Detect edges and textures.
+    - Combine edges into shapes (ears, eyes).
+    - Recognize object parts (face).
+    - Classify the object as a “cat.”
+- Works like eye:
+  - take source image or data
+  - break is into smaller chunks called convolutions
+  - assemble convolutions and look for patterns
 
-- Generative Adversarial Networks (__GAN__):
-  - Used for face-swapping or aging applications, generate __synthetic data such as images, videos__ or sounds that resemble the training data. Helpful for data augmentation
-  - Generator maps random noise to an image
-  - Discriminator learns to identify real images from generate/fake images
-  - Generator and Discriminator are adversarial.
-  - Ends when Discriminator cannot tell the difference between fake and real image    
+#### Recurrent Neural Networks (__RNN__)
 
-- __BERT__ (Bidirectional Encoder Representations from Transformers) – similar intent to GPT, but reads the text in two directions
-  - Previous Models (like GPT or traditional RNNs): Process text in a unidirectional manner, meaning they understand the context of a word from only one direction (either left-to-right or right-to-left). 
-  - BERT: Is bidirectional, meaning it processes the entire context of a word simultaneously from both directions (left-to-right and right-to-left). This allows BERT to fully capture the nuances of meaning from both sides
+- Used for __sequences of data__ (like __time series__, or machine translations (words) or music(notes))
+- __Output of the neuron goes back into the same neuron__ (feedback loop)
+- A sequence of words is encoded into neural network and later this neural network can be decoded into words in anothe language (translation).
+- ResNet (short for Residual Network) is type of CNN
+- As neural networks get deeper, they should perform better—but in practice, they often get worse due to: Vanishing gradient, Overfitting, Training instability
+- The 'neural network' represents the 'meaning' that can be translated into many languages.
+- __ResNet__ (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
+  - ResNet introduces shortcut (skip) connections that allow gradients and data to flow more easily through the network.
 
-- __SVM__ (Support Vector Machine) – ML algorithm for __classification and regression__
+#### __Transformer__ Architecture
 
-- __WaveNet__ – model to generate __raw audio waveform__, used in Speech Synthesis
+- __RNN + self attention__ (=tention/relationship between words)
+- Each word can have many parallel 'states' or 'attentions'
+- Transformers = stop using RNN and instead use __normal neural network with attentions__
+- Structure: Uses self-attention mechanisms, no recurrence.
+- Use Case: Language understanding, translation, generative AI.
+- Example: GPT, BERT, ChatGPT.
 
-- XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
+#### Generative Adversarial Networks (__GAN__)
+
+- Used for face-swapping or aging applications, generate __synthetic data such as images, videos__ or sounds that resemble the training data. Helpful for data augmentation
+- Generator maps random noise to an image
+- Discriminator learns to identify real images from generate/fake images
+- Generator and Discriminator are adversarial.
+- Ends when Discriminator cannot tell the difference between fake and real image 
+- Structure: Two networks — a generator and a discriminator — compete to improve each other.
+- Use Case: Generating realistic data (images, text, audio).
+- Example: Deepfake generation, art synthesis.   
+
+#### Autoencoder
+
+- Structure: Encoder compresses input; decoder reconstructs it.
+- Use Case: Dimensionality reduction, denoising, anomaly detection.
+- Example: Compressing images or detecting fraudulent transactions
+
+#### Radial Basis Function (RBF) Network
+
+- Structure: Uses radial basis functions as activation functions.
+- Use Case: Function approximation, classification.
+- Example: Signal processing tasks.
+
+#### __BERT__ (Bidirectional Encoder Representations from Transformers) 
+
+- similar intent to GPT, but reads the text in two directions
+- Previous Models (like GPT or traditional RNNs): Process text in a unidirectional manner, meaning they understand the context of a word from only one direction (either left-to-right or right-to-left). 
+- BERT: Is bidirectional, meaning it processes the entire context of a word simultaneously from both directions (left-to-right and right-to-left). This allows BERT to fully capture the nuances of meaning from both sides
+
+#### __SVM__ (Support Vector Machine) – ML algorithm for __classification and regression__
+
+#### __WaveNet__ – model to generate __raw audio waveform__, used in Speech Synthesis
+
+#### XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
   - It is a boosting technique that builds multiple models sequentially, with each model trying to correct the errors of the previous one.
   - XGBoost uses decision trees as the base learners.
   - Boosting is an ensemble learning technique where multiple weak learners (typically decision trees) are combined to create a strong learner
   - Gradient Boosting involves fitting new models (trees) that correct the residuals of the models before them. The "gradient" refers to the gradient descent optimization technique used to minimize errors, which makes the models progressively better at predicting the target.
   - The "Extreme" in XGBoost refers to the fact that it is a highly optimized, scalable, and efficient version of gradient boosting.
 
-- __GPT__ (Generative Pre-trained Transformer) – __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
+#### Long Short-Term Memory (LSTM)
+  - Structure: Special types of RNNs with gates to manage long-term dependencies.
+  - Use Case: Long sequences like text or music.
+  - Example: Machine translation, speech recognition. 
+
+#### __GPT__ (Generative Pre-trained Transformer)
+
+  - __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
   - transformers
     - LLM
     - Diffusion (images)
     - Multi-Modal
 
-- __Diffusion Models__
+#### __Diffusion Models__
+
   - They gradually transforming noise into structured data through a process inspired by physical diffusion
   - The diffusion process in these models refers to the gradual addition of noise to data over several steps
   - Used to generate images
@@ -1649,6 +1691,7 @@ Interpretability:
 - The degree to which a human can understand the cause of a decision
 - extent to which you can get into the inner weights of the model and understand it
 - Simpler models are easier to interpret
+__Interpretability__ is about understanding the internal mechanisms of a machine learning model, whereas __explainability__ focuses on providing understandable reasons for the model's predictions and behaviors to stakeholders.
 
 ![ Interpretability ](./images/Interpretability_performance.gif)
 
@@ -2074,6 +2117,104 @@ Bidirectional Encoder Representations from Transformers (BERT)
 ### What is a key difference between Foundation Models (FMs) and Large Language Models (LLMs) in the context of generative AI?
 
 Foundation Models serve as a broad base for various AI applications by providing generalized capabilities, whereas Large Language Models are specialized for understanding and generating human language
+
+#### Which prompt engineering technique is best suited for breaking down a complex problem into smaller logical parts?
+
+Chain-of-thought prompting
+
+Chain-of-thought prompting is a technique that breaks down a complex question into smaller, logical parts that mimic a train of thought. This helps the model solve problems in a series of intermediate steps rather than directly answering the question. This enhances its reasoning ability.
+
+#### Which of the following would you recommend for user management in Amazon Q Business?
+
+IAM Identity Center
+
+With IAM Identity Center, you can create or connect workforce users and centrally manage their access across all their AWS accounts and applications. You need to configure an IAM Identity Center instance for your Amazon Q Business application environment with users and groups added
+
+#### How would you highlight the key differences between SageMaker model cards and AI service cards?
+
+SageMaker model cards include information about the model such as intended use and risk rating of a model, training details and metrics, evaluation results, and observations. AI service cards provide transparency about AWS AI services' intended use, limitations, and potential impacts
+
+#### The data science team is exploring AWS services that can help in monitoring machine learning models and incorporating human review processes. Understanding which AWS services are specifically designed to support model monitoring and human oversight will help the team maintain high standards of accuracy and compliance. Which AWS services can be combined to support these requirements?
+
+- Amazon SageMaker Model Monitor
+- Amazon Augmented AI (Amazon A2I): Amazon Augmented AI (A2I) is a service that helps implement human review workflows for machine learning predictions. It integrates human judgment into ML workflows, allowing for reviews and corrections of model predictions, which is critical for applications requiring high accuracy and accountability.
+
+#### Which of the following represents the capabilities of Amazon Q Developer
+
+- Understand and manage your cloud infrastructure on AWS: Amazon Q Developer helps you understand and manage your cloud infrastructure on AWS. With this capability, you can list and describe your AWS resources using natural language prompts, minimizing friction in navigating the AWS Management Console and compiling all information from documentation pages.
+- Get answers to your AWS account-specific cost-related questions using natural language: Amazon Q Developer can get answers to AWS cost-related questions using natural language. This capability works by retrieving and analyzing cost data from AWS Cost Explorer
+
+#### The company is evaluating several generative AI solutions to determine which one best fits their need for enhancing customer service interactions
+
+Amazon Q in Connect
+
+Amazon Connect is the contact center service from AWS. Amazon Q helps customer service agents provide better customer service. Amazon Q in Connect uses real-time conversation with the customer along with relevant company content to automatically recommend what to say or what actions an agent should take to better assist customers.
+
+#### How can you prevent model-overfitting in machine learning?
+
+By using techniques such as cross-validation, regularization, and pruning to simplify the model and improve its generalization
+- Early Stopping
+- Pruning = feature selection = identify features that impact final predictions
+- regularization: collection of optimization techniques
+- Ensembling: combine predictions from several algorithms
+- Data augmentation: small changes to data every time model is processing it.Makes training sets unique (image roatation)
+
+#### An insurance company is transitioning to AWS Cloud and wants to use Amazon Bedrock for product recommendations. The company wants to supplement organization-specific information to the underlying Foundation Model (FM).Which of the following represents the best-fit solution for the given use case?
+
+Use Knowledge Bases for Amazon Bedrock to supplement contextual information from the company's private data to the FM using Retrieval Augmented Generation (RAG)
+
+With the comprehensive capabilities of Amazon Bedrock, you can experiment with a variety of top FMs, customize them privately with your data using techniques such as fine-tuning and retrieval-augmented generation (RAG), and create managed agents that execute complex business tasks—from booking travel and processing insurance claims to creating ad campaigns and managing inventory—all without writing any code.
+
+You do not fine-tune the base FM. Rather, you make a separate copy of the base FM model and train this private copy of the model using the labeled training dataset. So, this option is incorrect.
+
+#### What is the bias versus variance trade-off in machine learning?
+
+The bias versus variance trade-off refers to the challenge of balancing the error due to the model's complexity (variance) and the error due to incorrect assumptions in the model (bias), where high bias can cause underfitting and high variance can cause overfitting
+
+The bias versus variance trade-off in machine learning is about finding a balance between bias (error due to overly simplistic assumptions in the model, leading to underfitting) and variance (error due to the model being too sensitive to small fluctuations in the training data, leading to overfitting). The goal is to achieve a model that generalizes well to new data.
+
+#### Which of the following highlights the key differences between model parameters and hyperparameters in the context of generative AI?
+
+Model parameters are values that define a model and its behavior in interpreting input and generating responses. Hyperparameters are values that can be adjusted for model customization to control the training process
+
+#### Which of the following are examples of semi-supervised learning
+
+- Fraud identification: Within a large set of transactional data, there’s a subset of labeled data where experts have confirmed fraudulent transactions. 
+- Sentiment analysis: When considering the breadth of an organization’s text-based customer interactions, it may not be cost-effective to categorize or label sentiment across all channels. An organization could train a model on the larger unlabeled portion of data first, and then a sample that has been labeled. 
+
+
+#### Which of the following represents the best-fit use cases for utilizing Retrieval Augmented Generation (RAG) in Amazon Bedrock?
+
+Customer service chatbot and Medical queries chatbot
+
+To equip foundation models (FMs) with up-to-date and proprietary information, organizations use Retrieval Augmented Generation (RAG), a technique that fetches data from company data sources and enriches the prompt to provide more relevant and accurate responses. Knowledge Bases for Amazon Bedrock is a fully managed capability that helps you implement the entire RAG workflow from ingestion to retrieval and prompt augmentation without having to build custom integrations to data sources and manage data flows. Some of the common use cases that can be addressed via RAG in Amazon Bedrock are customer service chatbot, medical queries chatbot, legal research and analysis, etc.
+
+#### Which approach would be most effective for ensuring that the chatbot's responses are consistently aligned with the company's tone and style?
+
+The company should iteratively test and adjust the chatbot prompts to ensure that its outputs consistently reflect the company's tone and style
+
+This is the correct approach because it directly focuses on fine-tuning the chatbot’s behavior via prompt engineering. Experimenting with and refining the prompt allows the company to guide the chatbot towards generating responses that are aligned with its specific tone and communication style. This process involves providing clear instructions or examples in the prompt and making iterative adjustments based on the chatbot's output until the desired tone is achieved.
+
+#### What is the primary difference between Amazon Mechanical Turk and Amazon Ground Truth?
+
+Amazon Mechanical Turk provides a marketplace for outsourcing various tasks to a distributed workforce, while Amazon Ground Truth is specifically designed for creating labeled datasets for machine learning, incorporating both automated and human labeling
+
+Amazon Mechanical Turk provides an on-demand, scalable, human workforce to complete jobs that humans can do better than computers. Amazon Mechanical Turk software formalizes job offers to the thousands of Workers willing to do piecemeal work at their convenience. T
+
+Amazon Ground Truth helps you build high-quality training datasets for your machine learning models. With Amazon Ground Truth, you can use workers from either Amazon Mechanical Turk, a vendor company that you choose, or an internal, private workforce along with machine learning to enable you to create a labeled dataset.
+
+#### Which approach would be the most cost-effective for enabling the chatbot to process such multi-modal queries effectively?
+
+The company should use a multi-modal embedding model, which is designed to represent and align different types of data (such as text and images) in a shared embedding space, allowing the chatbot to understand and interpret both forms of input simultaneously
+
+A multi-modal embedding model is the most suitable choice for this task because it enables the integration of multiple types of data, such as text and images, into a unified representation. This allows the chatbot to effectively process and understand queries containing both text and visual content by aligning them in a shared embedding space, facilitating more accurate and context-aware responses.
+
+A generative model may be excessive if the primary goal is to process and respond to existing multi-modal queries.
+
+#### Which AWS solutions should the team implement to address both the selection of the appropriate model and the mitigation of harmful content generation?
+
+- Model Evaluation on Amazon Bedrock: Model evaluation on Amazon Bedrock involves a comprehensive process of preparing data, training models, selecting appropriate metrics, testing and analyzing results, ensuring fairness and bias detection, tuning performance, and continuous monitoring. Model Evaluation on Amazon Bedrock helps you to incorporate Generative AI into your application by giving you the power to select the foundation model that gives you the best results for your particular use case.
+- Guardrails for Amazon Bedrock: Guardrails for Amazon Bedrock enables you to implement safeguards for your generative AI applications based on your use cases and responsible AI policies. You can create multiple guardrails tailored to different use cases and apply them across multiple foundation models (FM), providing a consistent user experience and standardizing safety and privacy controls across generative AI applications. You can use guardrails with text-based user inputs and model responses.
 
 
 ## References <a id="References"></a>
