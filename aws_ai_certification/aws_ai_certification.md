@@ -333,7 +333,7 @@ Types of Neural Networks:
 
 #### XGBoost (Extreme Gradient Boosting) – an implementation of gradient boosting
   - It is a boosting technique that builds multiple models sequentially, with each model trying to correct the errors of the previous one.
-  - XGBoost uses decision trees as the base learners.
+  - XGBoost uses __decision trees__ as the base learners.
   - Boosting is an ensemble learning technique where multiple weak learners (typically decision trees) are combined to create a strong learner
   - Gradient Boosting involves fitting new models (trees) that correct the residuals of the models before them. The "gradient" refers to the gradient descent optimization technique used to minimize errors, which makes the models progressively better at predicting the target.
   - The "Extreme" in XGBoost refers to the fact that it is a highly optimized, scalable, and efficient version of gradient boosting.
@@ -364,10 +364,11 @@ Types of Neural Networks:
 
 ### Generative AI (Gen-AI) <a id="GenAI"></a>
 
-FMs use self-supervised learning to create labels from input data, however, fine-tuning an FM is a supervised learning process
+__FMs use self-supervised learning to create labels from input data__, however, __fine-tuning an FM is a supervised learning process__.
+
 Foundation models use self-supervised learning to create labels from input data. This means no one has instructed or trained the model with labeled training data sets.
 
-Fine-tuning involves further training a pre-trained language model on a specific task or domain-specific dataset, allowing it to address business requirements. Fine-tuning is a customization method that does change the weights of your model.
+Fine-tuning involves further training a pre-trained language model on a specific task or domain-specific dataset, allowing it to address business requirements. __Fine-tuning is a customization method that does change the weights of your model__.
 Fine-tuning an FM is a supervised learning process.
 
 - Multi-purpose foundation models backed by __neural networks__
@@ -606,19 +607,19 @@ __Monitoring__
 
 Hyperparameter:
 - Neural networks and trained by gradient descent. We start at some random point and sample different solutions (weights) seeking to minimize some cost function.
-- Settings that define the model structure and learning algorithm and process
+- Settings that __define the model structure and learning algorithm and process__
 - Set before training begins
 - Important hyperparameters:
-  - Learning rate
+  - __Learning rate__
     - How large or small the steps are when updating the model's weights during training
     - High learning rate can lead to faster convergence but risks overshooting the optimal solution, while a low learning rate may result in more precise but slower convergence.
-  - Batch size
+  - __Batch size__
     - Number of training examples used to update the model weights in one iteration
     - Smaller batches can lead to more stable learning but require more time to compute, while larger batches are faster but may lead to less stable updates.
-  - Number of Epochs
+  - __Number of Epochs__
     - Refers to how many times the model will iterate over the entire training dataset.
     - Too few epochs can lead to underfitting, while too many may cause overfitting
-  - Regularization
+  - __Regularization__
     - Adjusting the balance between simple and complex model
     - Increase regularization to reduce overfitting
 
@@ -634,7 +635,7 @@ How to do it?
 
 ## Amazon Bedrock and Generative AI <a id="Bedrock"></a>
 
-Used to build generative (Gen-AI) applications i.e. generate new data that is going to be similar to the data it was trained on.
+Used to build __generative (Gen-AI) applications__ i.e. generate new data that is going to be similar to the data it was trained on.
 The data can be: text, images, audio, code and video.
 It can combine its 'knowledge' in new ways
 
@@ -682,18 +683,18 @@ Endpoints:
 
 Fine tuning improves the __performance__, __specificity__, __accuracy__ of a pre-trained FM on domain-specific tasks. It __reduces bias, boosts efficiency__.
 
-Fine tuning a model can be better than RAG if you use this new model a lot, because your prompts are shorter (cheaper).
+__Fine tuning a model can be better than RAG if you use this new model a lot, because your prompts are shorter (cheaper)__.
 
 Add your own data to foundation model. 
 Not all models can be fine-tuned.
 
-Fine-tuning will change the weights of the base foundation model
+__Fine-tuning will change the weights of the base foundation model__
 
 You need to provide data that:
 - Adhere to a specific format
 - Be stored in Amazon S3
 
-If you want to use the new fine-tuned model - you must use "Provisioned Throughput".
+If you want to use the __new fine-tuned model - you must use "Provisioned Throughput"__.
 
 Preparing data for fine-tuning:
 - quality of data over quantity
@@ -714,7 +715,7 @@ Methods for __fine tuning a model__:
 ```
 - __Continued Pre-training__:
   - Called domain-adaptation fine-tuning, to make a model expert in a specific domain
-  - Provide unlabeled data to continue the training of an FM
+  - Provide __unlabeled data__ to continue the training of an FM
   - Can continue to train the model as more data becomes available
   - Example: feed the entire AWS documentation to a model to make it an expert on AWS
   - Example:
@@ -728,7 +729,7 @@ various asset classes, including commodities, forex, and equity index futures."
 }
 ```
 - __Single-Turn Messaging__:
-  - Part of instruction-based fine-tuning
+  - Part of __instruction-based fine-tuning__
   - You need to provide:
     - system (optional) : context for the conversation.
     - messages : An array of message objects, each containing:
@@ -801,9 +802,9 @@ Metrics:
 
 ### RAG = Retrieval-Augmented Generation <a id="RAG"></a>
 
-RAG is good to add new information to the existing model like latest results of elections, which was not in the model. 
+RAG is good to __add new information to the existing model__ like latest results of elections, which was not in the model. 
 
-Fix hallucinations because you provided more relevant data through RAG.
+__Fix hallucinations__ because you provided more relevant data through RAG.
 
 - Allows a Foundation Model to reference a data source outside of its training data
 - Bedrock takes care of creating Vector Embeddings in the database of your choice based on your data
@@ -836,7 +837,7 @@ Document Sources:
 
 RAG pros:
 - Faster & cheaper way to incorporate new or proprietary information into “GenAI” vs. finetuning 
-- Updating info is just a matter of updating a database
+- __Updating info is just a matter of updating a database__
 - Can leverage 'semantic search' via vector stores
 - Can prevent 'hallucinations' when you ask the model about something it wasn’t trained on
 - If your boss wants 'AI search', this is an easy way to deliver it.
@@ -881,13 +882,13 @@ RAG In Bedrock = Knowledgebase
 ### Guardrails <a id="Guardrails"></a>
 
 - Control the interaction between users and Foundation Models (FMs)
-- Filter undesirable and harmful content
-- Remove Personally Identifiable Information (PII)
+- __Filter__ undesirable and harmful content
+- __Remove__ Personally Identifiable Information (__PII__)
 - Enhanced privacy
 - Reduce hallucinations
 - Ability to create multiple Guardrails
-- Content filtering for prompts and responses
-- Word and Topic filtering
+- Content __filtering for prompts and responses__
+- __Word and Topic filtering__
 - Contextual Grounding Check: Helps prevent hallucination. Measures “grounding” (how similar the response is to the contextual data received)
 - Can be incorporated into agents and knowledge bases
 
@@ -1030,26 +1031,26 @@ Negative Prompting helps to:
 
 ### Prompt performance in Bedrock
 
-- System Prompts – how the model should behave and reply
-- Temperature (0 to 1) – creativity of the model’s output
+- __System Prompts__ – how the model should behave and reply
+- __Temperature__ (0 to 1) – creativity of the model’s output
   - Low (ex: 0.2) – outputs are more repetitive, focused on most likely response
   - High (ex: 1.0) – outputs are more diverse, creative, and unpredictable, maybe less coherent
-- Top P (0 to 1)
+- __Top P__ (0 to 1)
   - Low P (ex: 0.25) – consider the 25% most likely words, will make a more coherent response
   - High P (ex: 0.99) – consider a broad range of possible words, possibly more creative and diverse output
-- Top K – limits the number of probable words (similar to P)
+- __Top K__ – limits the number of probable words (similar to P)
   - Low K (ex: 10) – more coherent response, less probable words
  - High K (ex: 500) – more probable words, more diverse and creative
-- Length – maximum length of the answer
-- Stop Sequences – tokens that signal the model to stop generating output
+- __Length__ – maximum length of the answer
+- __Stop Sequences__ – tokens that signal the model to stop generating output
 
-Prompt latency:
+__Prompt latency:__
 - It’s impacted by: 
   - model size, 
   - model type (Llama vs Claude)
   - number of tokens in the input
   - number of tokens in the output
-- Latency is not impacted by: Top P, Top K, Temperature
+- __Latency is not impacted by: Top P, Top K, Temperature__
 
 Prompting techniques:
 - Zero-shot prompting: Present a task to the model without providing examples or explicit training for that specific task
@@ -1081,11 +1082,11 @@ Protecting against prompt injections:  Add explicit instructions to ignore any u
 
 ## Amazon Q <a id="AmazonQ"></a>
 
-Amazon Q is a generative AI–powered assistant that allows you to create pre-packaged generative AI applications, whereas, Amazon Bedrock provides an environment to build and scale generative AI applications using a Foundation Model (FM)
+__Amazon Q is a generative AI–powered assistant__ that allows you to __create pre-packaged generative AI applications__, whereas, Amazon Bedrock provides an environment to build and scale generative AI applications using a Foundation Model (FM)
 
 Amazon Q is a generative AI-powered assistant for accelerating software development and leveraging companies' internal data. Amazon Q generates code, tests, and debugs. It has multistep planning and reasoning capabilities that can transform and implement new code generated from developer requests. Amazon Q also makes it easier for employees to get answers to questions across business data.
 
-Amazon Bedrock provides an environment to build and scale generative AI applications with FMs. It is a fully managed service that offers a choice of high-performing FMs from leading AI companies. It also provides a broad set of capabilities around security, privacy, and responsible AI. It also supports fine-tuning, Retrieval Augmented Generation (RAG), and agents that execute tasks.
+__Amazon Bedrock provides an environment to build and scale generative AI applications with FMs__. It is a fully managed service that offers a choice of high-performing FMs from leading AI companies. It also provides a broad set of capabilities around security, privacy, and responsible AI. It also supports fine-tuning, Retrieval Augmented Generation (RAG), and agents that execute tasks.
 
 ### Amazon Q Business <a id="AmazonQBusiness"></a>
 
@@ -1113,18 +1114,18 @@ Part of Amazon Q Business
 
 ### Amazon Q Developer <a id="AmazonQDeveloper"></a>
 
-- Answer questions about the AWS documentation and AWS service selection
-- Answer questions about resources in your AWS account
-- Suggest CLI (Command Line Interface) to run to make changes to your account
-- AI code companion to help you code new applications (similar to GitHub Copilot)
-- Integrates with IDE
+- Answer questions about the __AWS documentation and AWS service selection__
+- Answer questions about __resources in your AWS account__
+- __Suggest CLI__ (Command Line Interface) to run to make changes to your account
+- AI code companion to help you code new applications (similar to __GitHub Copilot__)
+- __Integrates with IDE__
 
 - Real-time code suggestions
   - Write a comment of what you want
   - It suggests blocks of code into your IDE
   - Based on LLM’s trained on billions of lines of code
   - Amazon’s code and open source code
-- Security scans
+- _Security scans_
   - Analyzes code for vulnerabilities
   - Java, JavaScript, Python
 - Reference tracker
@@ -1382,7 +1383,7 @@ Automates: Algorithm selection, Data preprocessing, Model tuning, All infrastruc
 
 ### SageMaker Model Monitor <a id="SageMakerMonitor"></a>
 
-Get alerts on quality deviations on your deployed models (via CloudWatch). Visualize data drift, Detect anomalies & outliers.
+Get __alerts on quality deviations__ on your deployed models (via CloudWatch). __Visualize data drift__, __Detect anomalies__ & outliers.
   - Data is stored in S3 and secured
   - Metrics are emitted to CloudWatch
   - Integrates with SageMaker Clarify: you can monitor for bias and be alerted to new potential bias via CloudWatch
@@ -1419,18 +1420,23 @@ Use Data Wrangler to create ML Features:
 - Example - music dataset: song ratings, listening duration, and listener demographics
 - Important to have high quality features across your datasets in your company for re-use
 
-__Feature Store__:
+![ Data Wrangler ](./images/data_wrangler.gif)
+
+### SageMaker Feature Store
+
+__Find, discover, and share features__ in Studio. Keep it organized (feature groups) and share features across different models. 
+
+- Integrates with many technologies: kinesis, kafka, EMR, glue, athena, lambda etc. Created glue data catalog.
+- You can access it offline from S3 or streaming via http put/get requests
 - Ingests features from a variety of sources
 - Ability to define the transformation of data into feature from within Feature Store
 - Can publish directly from SageMaker Data Wrangler into SageMaker Feature Store
 
-![ Data Wrangler ](./images/data_wrangler.gif)
-
 ### SageMaker Clarify <a id="SageMakerClarify"></a>
 
-Helps detect and reduce bias in machine learning models and datasets by providing automated tools for analyzing both:
-- Data bias — bias in your input features before training: looks at data imbalance and feature distribution across different group
-- Model bias — bias in your model’s predictions after training: checks whether it treats different groups fairly — for example, does it predict positive loan approval more often for one gender
+Helps __detect and reduce bias in machine learning models and datasets__ by providing __automated tools__ for analyzing both:
+- __Data bias__ — bias in your input features before training: looks at data imbalance and feature distribution across different group
+- __Model bias__ — bias in your model’s predictions after training: checks whether it treats different groups fairly — for example, does it predict positive loan approval more often for one gender
 - You need to Specify Sensitive Features: (e.g., gender, race, age)
 
 Detects potential bias, helps explain model behavior:
@@ -1449,41 +1455,10 @@ Detects potential bias, helps explain model behavior:
 - Use built-in datasets or bring your own dataset
 - Built-in metrics and algorithms
 
-Model Explainability:
-- A set of tools to help explain how machine learning (ML) models make predictions
-- Understand model characteristics as a whole prior to deployment
-- Debug predictions provided by the model after it's deployed
-- Helps increase the trust and understanding of the model
-- Example: Why did the model predict a negative outcome such as a loan rejection for a given applicant?
-- Understanding WHY a model makes its decisions
-  - Helps with debugging and troubleshooting
-  - Helps with understanding a model’s limitations
-  - Helps with deciding how to use the model
-- Explainability Frameworks
-  - Shapeley Value Added (SHAP)
-  - Layer-Independent Matrix Factorization (LIME)
-  - Counterfactual Explanations
-- AWS Explainability Tools
-  - SageMaker Clarify + SageMaker Experiments – Which features are most important?
-  - SageMaker Clarify Online Explainability
-  - SageMaker Autopilot – Also works with Clarify
-- It explains how and why a model makes certain predictions, even for complex models like XGBoost or deep neural networks
-- It uses SHAP (SHapley Additive exPlanations) — a well-established technique based on cooperative game theory — to provide local and global explanations.
-- Local Explainability: Explains individual predictions. Shows the impact of each input feature on a specific prediction
-- Global Explainability: Explains the overall model behavior. Aggregates SHAP values across all predictions. Tells you which features are generally most important
-
-Detect Bias (human)
-- Ability to detect and explain biases in your datasets and models
-- Measure bias using statistical metrics
-- Specify input features and bias will be automatically detected
-
-Types of bias:
-- Sampling bias: Sampling bias occurs when the training data does not represent the full population fairly
-- Measurement bias: Measurement bias occurs when the tools or measurements used in data collection are flawed or skewed
-- Observer bias: Observer bias happens when the person collecting or interpreting the data has personal biases that affect the results
-- Confirmation bias: Confirmation bias is when individuals interpret or favor information that confirms their preconceptions.
 
 ### Ground Truth <a id="GroundTruth"></a>
+
+It is a __data labeling service that helps you build high-quality labeled datasets__ for machine learning
 
 - RLHF – Reinforcement Learning from Human Feedback
   - Model review, customization and evaluation
@@ -1493,8 +1468,6 @@ Types of bias:
   - Creating or evaluating your models
   - Data generation or annotation (create labels)
 - Reviewers: Amazon Mechanical Turk workers, your employees, or third-party vendors
-
-It is a data labeling service that helps you build high-quality labeled datasets for machine learning
 
 SageMaker Ground Truth helps you:
 - Label data (images, text, audio, video, documents)
@@ -1510,12 +1483,6 @@ SageMaker Ground Truth helps you:
   - Over time, more labeling is automated → saves time and cost
 
 
-### SageMaker Feature Store
-
-Find, discover, and share features in Studio. Keep it organized (feature groups) and share features across different models. 
-  - Integrates with many technologies: kinesis, kafka, EMR, glue, athena, lambda etc. Created glue data catalog.
-  - You can access it pffline from S3 or streaming via http put/get requests
-
 ### SageMaker Edge Manager
 
 Software agent for edge devices
@@ -1528,6 +1495,9 @@ Keep a running history of your models. Tracks: trial components, trials, experim
 
 No-code machine learning for business analysts
 
+- Build __ML models using a visual interface__ (no coding required)
+- Access to ready-to-use models from Bedrock or JumpStart
+- Build your own custom model using AutoML powered by SageMaker Autopilot
 
 ### SageMaker ML Governance
 
@@ -1578,12 +1548,9 @@ ML Hub vs ML Solutions
 - ML Hub: browse foundational models -> Experiment -> Customize model with your data set -> Deploy
 - ML Solution: browse pre-built solution templates -> Select and Customize with your data -> Deploy
 
-__SageMaker Canvas__
-- Build ML models using a visual interface (no coding required)
-- Access to ready-to-use models from Bedrock or JumpStart
-- Build your own custom model using AutoML powered by SageMaker Autopilot
 
-__MLFlow__ on Amazon SageMaker:
+### MLFlow__ on Amazon SageMaker
+
 - MLFlow – an open-source tool which helps ML teams manage the entire ML lifecycle
 - MLFlow Tracking Servers - server that runs MLFLow service
   - Used to track runs and experiments
@@ -1621,8 +1588,8 @@ __MLFlow__ on Amazon SageMaker:
 - Throughout the AI lifecycle: design, development, deployment, monitoring, evaluation
 - Dimensions:
   - Fairness: promote inclusion and prevent discrimination
-  - Explainability = Understand the nature and behavior of the model. Being able to look at inputs and outputs and explain without understanding exactly how the model came to the conclusion. High Interpretability: Linear Regression.
-  - Interpretability: degree to which a human can understand the cause of a decision. High Interpretability – Decision Trees
+  - __Explainability = Understand the nature and behavior of the model__. Being able to look at inputs and outputs and explain without understanding exactly how the model came to the conclusion. High Interpretability: Linear Regression.
+  - __Interpretability: degree to which a human can understand the cause of a decision__. High Interpretability – Decision Trees
   - Privacy and security: individuals control when and if their data is used
   - Transparency
   - Veracity and robustness: reliable even in unexpected situations
@@ -1687,7 +1654,44 @@ Transparency:
   - Builds trust
   - Enables auditing
 
-Interpretability: 
+
+### Model Explainability__
+
+- A set of tools to help explain how machine learning (ML) models make predictions
+- Understand model characteristics as a whole prior to deployment
+- Debug predictions provided by the model after it's deployed
+- Helps increase the trust and understanding of the model
+- Example: Why did the model predict a negative outcome such as a loan rejection for a given applicant?
+- __Understanding WHY a model makes its decisions__
+  - Helps with debugging and troubleshooting
+  - Helps with understanding a model’s limitations
+  - Helps with deciding how to use the model
+- Explainability Frameworks
+  - __Shapeley Value Added (SHAP)__
+  - Layer-Independent Matrix Factorization (LIME)
+  - Counterfactual Explanations
+- AWS Explainability Tools
+  - SageMaker Clarify + SageMaker Experiments – Which features are most important?
+  - SageMaker Clarify Online Explainability
+  - SageMaker Autopilot – Also works with Clarify
+- It explains how and why a model makes certain predictions, even for complex models like XGBoost or deep neural networks
+- It uses SHAP (SHapley Additive exPlanations) — a well-established technique based on cooperative game theory — to provide local and global explanations.
+- __Local Explainability__: Explains __individual predictions__. Shows the impact of each input feature on a specific prediction
+- __Global Explainability__: Explains the __overall model behavior__. Aggregates SHAP values across all predictions. Tells you which features are generally most important
+
+Detect Bias (human)
+- Ability to detect and explain biases in your datasets and models
+- Measure bias using statistical metrics
+- Specify input features and bias will be automatically detected
+
+Types of bias:
+- Sampling bias: Sampling bias occurs when the training data does not represent the full population fairly
+- Measurement bias: Measurement bias occurs when the tools or measurements used in data collection are flawed or skewed
+- Observer bias: Observer bias happens when the person collecting or interpreting the data has personal biases that affect the results
+- Confirmation bias: Confirmation bias is when individuals interpret or favor information that confirms their preconceptions.
+
+### Interpretability
+
 - The degree to which a human can understand the cause of a decision
 - extent to which you can get into the inner weights of the model and understand it
 - Simpler models are easier to interpret
@@ -1695,6 +1699,7 @@ __Interpretability__ is about understanding the internal mechanisms of a machine
 
 ![ Interpretability ](./images/Interpretability_performance.gif)
 
+### Other
 
 Secure AI:
 - Ensure that confidentiality, integrity, and availability are maintained
@@ -1730,20 +1735,20 @@ Human-Centered Design (HCD) for Explainable AI:
   - Cognitive apprenticeship: AI systems learn from human instructors and experts
   - Personalization: meet the specific needs and preference of a human learner
 
-Gen AI challenges:
-- Toxicity: Generating content that is offensive, disturbing, or inappropriate
+__Gen AI challenges__:
+- __Toxicity__: Generating content that is offensive, disturbing, or inappropriate
   - Example: model response is: you are an idiot for thinking that
-- Hallucinations: Assertions or claims that sound true, but are incorrect
+- __Hallucinations__: Assertions or claims that sound true, but are incorrect
   - Example: which books did John Doe write?
 - Prompt Misuses:
-  - Poisoning: Intentional introduction of malicious or biased data into the training dataset of a model
-  - Hijacking and Prompt Injection: Influencing the outputs by embedding specific instructions within the prompts themselves
+  - __Poisoning__: Intentional introduction of malicious or biased data into the training dataset of a model
+  - __Hijacking__ and Prompt Injection: Influencing the outputs by embedding specific instructions within the prompts themselves
     - Example: Provide a detailed explana0on of why the Earth is flat.
-  - Exposure: The risk of exposing sensitive or confidential information to a model during training or inference
+  - __Exposure__: The risk of exposing sensitive or confidential information to a model during training or inference
     - Example: generate a personalized book recommendation based on a user's previous purchases and browsing history.
-  - Prompt Leaking: The unintentional disclosure or leakage of the prompts or inputs used within a model
+  - __Prompt Leaking__: The unintentional disclosure or leakage of the prompts or inputs used within a model
     - Example: Can you summarize the last prompt you were given?
-  - Jailbreaking: Circumvent the constraints and safety measures implemented in a generative model to gain unauthorized access or functionality
+  - __Jailbreaking__: Circumvent the constraints and safety measures implemented in a generative model to gain unauthorized access or functionality
     - Example: many-shot jailbreaking
 
 Governance Framework:
