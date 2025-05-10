@@ -2123,39 +2123,39 @@ Bidirectional Encoder Representations from Transformers (BERT)
 
 Foundation Models serve as a broad base for various AI applications by providing generalized capabilities, whereas Large Language Models are specialized for understanding and generating human language
 
-#### Which prompt engineering technique is best suited for breaking down a complex problem into smaller logical parts?
+### Which prompt engineering technique is best suited for breaking down a complex problem into smaller logical parts?
 
 Chain-of-thought prompting
 
 Chain-of-thought prompting is a technique that breaks down a complex question into smaller, logical parts that mimic a train of thought. This helps the model solve problems in a series of intermediate steps rather than directly answering the question. This enhances its reasoning ability.
 
-#### Which of the following would you recommend for user management in Amazon Q Business?
+### Which of the following would you recommend for user management in Amazon Q Business?
 
 IAM Identity Center
 
 With IAM Identity Center, you can create or connect workforce users and centrally manage their access across all their AWS accounts and applications. You need to configure an IAM Identity Center instance for your Amazon Q Business application environment with users and groups added
 
-#### How would you highlight the key differences between SageMaker model cards and AI service cards?
+### How would you highlight the key differences between SageMaker model cards and AI service cards?
 
 SageMaker model cards include information about the model such as intended use and risk rating of a model, training details and metrics, evaluation results, and observations. AI service cards provide transparency about AWS AI services' intended use, limitations, and potential impacts
 
-#### The data science team is exploring AWS services that can help in monitoring machine learning models and incorporating human review processes. Understanding which AWS services are specifically designed to support model monitoring and human oversight will help the team maintain high standards of accuracy and compliance. Which AWS services can be combined to support these requirements?
+### The data science team is exploring AWS services that can help in monitoring machine learning models and incorporating human review processes. Understanding which AWS services are specifically designed to support model monitoring and human oversight will help the team maintain high standards of accuracy and compliance. Which AWS services can be combined to support these requirements?
 
 - Amazon SageMaker Model Monitor
 - Amazon Augmented AI (Amazon A2I): Amazon Augmented AI (A2I) is a service that helps implement human review workflows for machine learning predictions. It integrates human judgment into ML workflows, allowing for reviews and corrections of model predictions, which is critical for applications requiring high accuracy and accountability.
 
-#### Which of the following represents the capabilities of Amazon Q Developer
+### Which of the following represents the capabilities of Amazon Q Developer
 
 - Understand and manage your cloud infrastructure on AWS: Amazon Q Developer helps you understand and manage your cloud infrastructure on AWS. With this capability, you can list and describe your AWS resources using natural language prompts, minimizing friction in navigating the AWS Management Console and compiling all information from documentation pages.
 - Get answers to your AWS account-specific cost-related questions using natural language: Amazon Q Developer can get answers to AWS cost-related questions using natural language. This capability works by retrieving and analyzing cost data from AWS Cost Explorer
 
-#### The company is evaluating several generative AI solutions to determine which one best fits their need for enhancing customer service interactions
+### The company is evaluating several generative AI solutions to determine which one best fits their need for enhancing customer service interactions
 
 Amazon Q in Connect
 
 Amazon Connect is the contact center service from AWS. Amazon Q helps customer service agents provide better customer service. Amazon Q in Connect uses real-time conversation with the customer along with relevant company content to automatically recommend what to say or what actions an agent should take to better assist customers.
 
-#### How can you prevent model-overfitting in machine learning?
+### How can you prevent model-overfitting in machine learning?
 
 By using techniques such as cross-validation, regularization, and pruning to simplify the model and improve its generalization
 - Early Stopping
@@ -2164,7 +2164,7 @@ By using techniques such as cross-validation, regularization, and pruning to sim
 - Ensembling: combine predictions from several algorithms
 - Data augmentation: small changes to data every time model is processing it.Makes training sets unique (image roatation)
 
-#### An insurance company is transitioning to AWS Cloud and wants to use Amazon Bedrock for product recommendations. The company wants to supplement organization-specific information to the underlying Foundation Model (FM).Which of the following represents the best-fit solution for the given use case?
+### An insurance company is transitioning to AWS Cloud and wants to use Amazon Bedrock for product recommendations. The company wants to supplement organization-specific information to the underlying Foundation Model (FM).Which of the following represents the best-fit solution for the given use case?
 
 Use Knowledge Bases for Amazon Bedrock to supplement contextual information from the company's private data to the FM using Retrieval Augmented Generation (RAG)
 
@@ -2172,35 +2172,35 @@ With the comprehensive capabilities of Amazon Bedrock, you can experiment with a
 
 You do not fine-tune the base FM. Rather, you make a separate copy of the base FM model and train this private copy of the model using the labeled training dataset. So, this option is incorrect.
 
-#### What is the bias versus variance trade-off in machine learning?
+### What is the bias versus variance trade-off in machine learning?
 
 The bias versus variance trade-off refers to the challenge of balancing the error due to the model's complexity (variance) and the error due to incorrect assumptions in the model (bias), where high bias can cause underfitting and high variance can cause overfitting
 
 The bias versus variance trade-off in machine learning is about finding a balance between bias (error due to overly simplistic assumptions in the model, leading to underfitting) and variance (error due to the model being too sensitive to small fluctuations in the training data, leading to overfitting). The goal is to achieve a model that generalizes well to new data.
 
-#### Which of the following highlights the key differences between model parameters and hyperparameters in the context of generative AI?
+### Which of the following highlights the key differences between model parameters and hyperparameters in the context of generative AI?
 
 Model parameters are values that define a model and its behavior in interpreting input and generating responses. Hyperparameters are values that can be adjusted for model customization to control the training process
 
-#### Which of the following are examples of semi-supervised learning
+### Which of the following are examples of semi-supervised learning
 
 - Fraud identification: Within a large set of transactional data, there’s a subset of labeled data where experts have confirmed fraudulent transactions. 
 - Sentiment analysis: When considering the breadth of an organization’s text-based customer interactions, it may not be cost-effective to categorize or label sentiment across all channels. An organization could train a model on the larger unlabeled portion of data first, and then a sample that has been labeled. 
 
 
-#### Which of the following represents the best-fit use cases for utilizing Retrieval Augmented Generation (RAG) in Amazon Bedrock?
+### Which of the following represents the best-fit use cases for utilizing Retrieval Augmented Generation (RAG) in Amazon Bedrock?
 
 Customer service chatbot and Medical queries chatbot
 
 To equip foundation models (FMs) with up-to-date and proprietary information, organizations use Retrieval Augmented Generation (RAG), a technique that fetches data from company data sources and enriches the prompt to provide more relevant and accurate responses. Knowledge Bases for Amazon Bedrock is a fully managed capability that helps you implement the entire RAG workflow from ingestion to retrieval and prompt augmentation without having to build custom integrations to data sources and manage data flows. Some of the common use cases that can be addressed via RAG in Amazon Bedrock are customer service chatbot, medical queries chatbot, legal research and analysis, etc.
 
-#### Which approach would be most effective for ensuring that the chatbot's responses are consistently aligned with the company's tone and style?
+### Which approach would be most effective for ensuring that the chatbot's responses are consistently aligned with the company's tone and style?
 
 The company should iteratively test and adjust the chatbot prompts to ensure that its outputs consistently reflect the company's tone and style
 
 This is the correct approach because it directly focuses on fine-tuning the chatbot’s behavior via prompt engineering. Experimenting with and refining the prompt allows the company to guide the chatbot towards generating responses that are aligned with its specific tone and communication style. This process involves providing clear instructions or examples in the prompt and making iterative adjustments based on the chatbot's output until the desired tone is achieved.
 
-#### What is the primary difference between Amazon Mechanical Turk and Amazon Ground Truth?
+### What is the primary difference between Amazon Mechanical Turk and Amazon Ground Truth?
 
 Amazon Mechanical Turk provides a marketplace for outsourcing various tasks to a distributed workforce, while Amazon Ground Truth is specifically designed for creating labeled datasets for machine learning, incorporating both automated and human labeling
 
@@ -2208,7 +2208,7 @@ Amazon Mechanical Turk provides an on-demand, scalable, human workforce to compl
 
 Amazon Ground Truth helps you build high-quality training datasets for your machine learning models. With Amazon Ground Truth, you can use workers from either Amazon Mechanical Turk, a vendor company that you choose, or an internal, private workforce along with machine learning to enable you to create a labeled dataset.
 
-#### Which approach would be the most cost-effective for enabling the chatbot to process such multi-modal queries effectively?
+### Which approach would be the most cost-effective for enabling the chatbot to process such multi-modal queries effectively?
 
 The company should use a multi-modal embedding model, which is designed to represent and align different types of data (such as text and images) in a shared embedding space, allowing the chatbot to understand and interpret both forms of input simultaneously
 
@@ -2216,11 +2216,83 @@ A multi-modal embedding model is the most suitable choice for this task because 
 
 A generative model may be excessive if the primary goal is to process and respond to existing multi-modal queries.
 
-#### Which AWS solutions should the team implement to address both the selection of the appropriate model and the mitigation of harmful content generation?
+### Which AWS solutions should the team implement to address both the selection of the appropriate model and the mitigation of harmful content generation?
 
 - Model Evaluation on Amazon Bedrock: Model evaluation on Amazon Bedrock involves a comprehensive process of preparing data, training models, selecting appropriate metrics, testing and analyzing results, ensuring fairness and bias detection, tuning performance, and continuous monitoring. Model Evaluation on Amazon Bedrock helps you to incorporate Generative AI into your application by giving you the power to select the foundation model that gives you the best results for your particular use case.
 - Guardrails for Amazon Bedrock: Guardrails for Amazon Bedrock enables you to implement safeguards for your generative AI applications based on your use cases and responsible AI policies. You can create multiple guardrails tailored to different use cases and apply them across multiple foundation models (FM), providing a consistent user experience and standardizing safety and privacy controls across generative AI applications. You can use guardrails with text-based user inputs and model responses.
 
+### Q: A financial services company relies on several Independent Software Vendors (ISVs) for key operational applications and needs to maintain up-to-date compliance records to meet regulatory requirements. To streamline its compliance management process, the company wants to receive email notifications whenever new ISV compliance reports, such as SOC 2 or ISO certifications, become available, ensuring that its compliance team is promptly informed and can take necessary actions. Which AWS service would be most suitable for automatically providing these notifications?
+
+The company should use AWS Artifact to facilitate on-demand access to AWS compliance reports and agreements, as well as allow users to receive notifications when new compliance documents or reports, including ISV compliance reports, are available
+
+AWS Artifact is specifically designed to provide access to a wide range of AWS compliance reports, including those from Independent Software Vendors (ISVs). AWS Artifact allows users to configure settings to receive notifications when new compliance documents or reports are available. This capability makes it an ideal choice for a company that needs timely email alerts regarding the availability of ISV compliance reports.
+The new third-party reports tab on the AWS Artifact Reports page provides on-demand access to security compliance reports of Independent Software Vendors (ISVs) who sell their products through AWS Marketplace.
+
+You can subscribe to notifications and create configurations to get notified when a new report or agreement, or a new version of an existing report or agreement becomes available on AWS Artifact.
+
+### A video streaming company is developing machine learning models to recommend content and analyze user interactions. The data science team needs to understand the specific capabilities of Convolutional Neural Networks (CNNs) and Recurrent Neural Networks (RNNs). Which of the following would you suggest to the team?
+
+While CNNs are used for single image analysis, RNNs are used for video analysis
+
+### You are working as an NLP engineer at a tech company tasked with building an advanced text summarization tool to help customers generate concise summaries of lengthy documents. After successfully training your model, your manager asks you to evaluate its performance and quality to ensure it meets the required standards for deployment. Considering the nature of text summarization, which evaluation method would be most appropriate to assess the model's output effectively?
+
+Leverage human evaluation to assess the quality of summaries
+Human evaluation is the most appropriate method for assessing the quality of text summarization because it captures subjective aspects such as coherence, fluency, and relevance that automated metrics and benchmark datasets cannot fully measure.
+
+### A social media company is planning to implement a large language model (LLM) for content moderation to automatically flag inappropriate or harmful content. To ensure the model is fair and does not show bias or discrimination against specific groups or individuals, the company needs to evaluate the model's outputs regularly for potential bias. The team is considering different data sources for this evaluation but wants to choose an option that minimizes administrative effort while still providing reliable and comprehensive insights into any biases or discrimination present in the LLM's outputs. Given these requirements, which data source would be most suitable?
+
+The company should use benchmark datasets, which are pre-compiled, standardized datasets specifically designed to test for biases and discrimination in model outputs
+
+Benchmark datasets are the most suitable option for evaluating an LLM for bias and discrimination with the least administrative effort. These datasets are specifically designed and curated to include a variety of scenarios that test for potential biases in model outputs. They are pre-existing and standardized, meaning that the company does not need to spend time or resources creating or manually curating data. Using these datasets allows for a quick, cost-effective, and consistent evaluation of model fairness across different contexts.
+
+### A healthcare company is building a machine learning model to predict patient outcomes based on various health indicators. The data science team is exploring different techniques to improve the model’s accuracy by refining the input data, specifically using feature extraction and feature selection. Understanding the key differences between these two approaches will help the team optimize the model’s performance. What do you suggest to the company?
+
+Feature extraction reduces the number of features by transforming data into a new space, while feature selection reduces the number of features by selecting the most relevant ones from the existing features
+
+Feature extraction involves transforming the data into a new feature space, often using techniques like Principal Component Analysis (PCA) to reduce the number of features. Feature selection, on the other hand, involves selecting a subset of the most relevant features from the original dataset, typically using methods like forward selection, backward elimination, or regularization techniques.
+
+
+### A media analytics company utilizes Amazon Bedrock to run inferences with its generative AI models to analyze large volumes of user-generated content and provide insights to its clients. The company frequently processes numerous inference requests and is looking for a way to minimize the costs associated with running these inferences while still maintaining the required level of service. Given that the company can tolerate some delays in receiving responses, it seeks a cost-effective inference method that optimizes resource usage without sacrificing too much on turnaround time. Which inference approach would be the most suitable for the company to use in order to reduce its overall inference costs?
+
+The company should use batch inference, thereby allowing it to run multiple inference requests in a single batch
+
+You can use batch inference to run multiple inference requests asynchronously, and improve the performance of model inference on large datasets. Amazon Bedrock offers select foundation models (FMs) from leading AI providers like Anthropic, Meta, Mistral AI, and Amazon for batch inference at 50% of on-demand inference pricing.
+
+Batch inference is the most cost-effective choice when reducing inference costs on Amazon Bedrock. By processing large numbers of data points in a single batch, the company can lower the cost per inference as the model handles multiple requests simultaneously. This approach is ideal when there is no need for immediate responses, allowing for more efficient use of resources and minimizing computational expenses.
+
+__Real-time inference and serverless inference options apply to Amazon SageMaker, rather than Amazon Bedrock. Amazon Bedrock only offers on-demand or batch inference options.__ Therefore, both these options are incorrect.
+
+
+### A biotech company is building machine learning models using Amazon SageMaker to analyze large genomic datasets for research purposes. The team is considering Amazon SageMaker Asynchronous Inference to handle these predictions efficiently. To ensure that this deployment model aligns with their requirements, they need to understand which use cases are best suited for asynchronous inference. What do you recommend?
+
+Requests with large payload sizes up to 1GB and long processing times
+Amazon SageMaker Asynchronous Inference is a capability in SageMaker that queues incoming requests and processes them asynchronously. This option is ideal for requests with large payload sizes (up to 1GB), long processing times (up to one hour), and near real-time latency requirements. Asynchronous Inference enables you to save on costs by autoscaling the instance count to zero when there are no requests to process, so you only pay when your endpoint is processing requests.
+
+### A financial services company is deploying a machine learning model using Amazon Bedrock to predict loan approval risks. The data science team needs to ensure that the model performs effectively before going into production. They are focused on understanding the correct practices and tools for model evaluation on Amazon Bedrock to ensure accuracy, fairness, and reliability in their predictions. Which of the following are correct regarding model evaluation for Amazon Bedrock? (Select two)
+
+- Human model evaluation is valuable for assessing qualitative aspects of the model, whereas, automatic model valuation is valuable for assessing quantitative aspects of the model
+- Automatic model evaluation provides model scores that are calculated using various statistical methods such as BERT Score and F1
+
+
+### A technology company is planning to implement machine learning to improve its product recommendation system and optimize supply chain management. The data science team is evaluating different types of machine learning approaches. Gaining a clear understanding of these types will help them choose the right strategy for model development. What of the following option would you suggest to the team as the three main types of machine learning?
+
+Supervised learning, Unsupervised learning, Semi-Supervised, Reinforcment Learning, Deep Learning
+
+
+### A healthcare organization is deploying AI systems on AWS to manage sensitive patient data and support clinical decision-making. To meet strict regulatory requirements, the IT and compliance teams are seeking a service that offers continuous monitoring, tracks changes in resource configurations, and ensures compliance with healthcare standards. The company is evaluating which AWS service can help maintain governance and security throughout the AI system lifecycle. What do you recommend?
+
+
+AWS Config: AWS Config is a service that enables you to assess, audit, and evaluate the configurations of your AWS resources. It continuously monitors and records AWS resource configurations and allows automated compliance checking against desired configurations. This is crucial for governance in AI systems, ensuring that resources remain in compliance with organizational policies and regulatory requirements.
+
+
+### A retail company is exploring machine learning to improve customer segmentation and discover hidden patterns in sales data. The data science team is particularly interested in using unsupervised learning to analyze large volumes of unlabeled customer and product data to identify trends and groupings without predefined categories. To determine the best approach, they need to understand which methods fall under unsupervised learning. Which of the following would you suggest to the company as examples of unsupervised learning? 
+
+- Clustering: Clustering is an unsupervised learning technique that groups certain data inputs, so they may be categorized as a whole. There are various types of clustering algorithms depending on the input data. An example of clustering is identifying different types of network traffic to predict potential security incidents.
+
+- Dimensionality reduction: Dimensionality reduction is an unsupervised learning technique that reduces the number of features in a dataset. It’s often used to preprocess data for other machine learning functions and reduce complexity and overheads. For example, it may blur out or crop background features in an image recognition application.
+
+NO - bad answer:
+Neural network - A neural network solution is a more complex supervised learning technique. To produce a given outcome, it takes some given inputs and performs one or more layers of mathematical transformation based on adjusting data weightings. An example of a neural network technique is predicting a digit from a handwritten image.
 
 ## References <a id="References"></a>
 
