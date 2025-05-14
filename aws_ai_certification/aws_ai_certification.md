@@ -182,23 +182,15 @@ Feature Engineering on Unstructured Data:
 
 The goal is to __discover inherent patterns__, structures, or relationships __within the input data__.
 The machine must uncover and create the groups itself, but __humans still put labels__ on the output groups.
-Common techniques include __Clustering__, Association Rule Learning , and Anomaly Detection.
-
-Algorithms to do association rule learning:
-- Apriori: finds frequent itemsets by iteratively extending them, pruning infrequent ones.
-- Eclat: Uses a depth-first search and vertical data format (item → list of transactions).
-
-Unsupervised learning involves iterating until some objective function is minimized.
+Unsupervised learning involves __iterating until some objective function is minimized__.
 
 Examples:
-- Clustering Technique: group similar data points together into clusters based on their features
-- Association Rule Learning: supermarket wants to understand which products are frequently bought together
-- Anomaly Detection: detect fraudulent credit card transactions
-
-Unsupervised Learning examples:
-- K-Means Clustering – grouping similar customers
-- PCA (Principal Component Analysis) – reducing features for visualization
-- Autoencoders – compressing data into a lower-dimensional representation
+- __K-Means Clustering__ Technique: group similar data points together into clusters based on their features
+- __Association Rule Learning__: supermarket wants to understand which products are frequently bought together
+  - Apriori: finds frequent itemsets by iteratively extending them, pruning infrequent ones.
+  - Eclat: Uses a depth-first search and vertical data format (item → list of transactions).
+- __Anomaly Detection__: detect fraudulent credit card transactions
+- __Autoencoders__ – compressing data into a lower-dimensional representation
 
 
 __Semi-supervised Learning:__ 
@@ -215,7 +207,7 @@ __Semi-supervised Learning:__
 Steps:
 - Have a __model generate pseudo-labels__ for its own data without having humans label any data first
 - Then, __using the pseudo labels, solve problems traditionally solved by Supervised Learning__
-- Widely used in NLP (to create the BERT and GPT models for example) and in image recognition tasks
+- Widely used in __NLP__ (to create the BERT and GPT models for example) and in __image recognition__ tasks
 
 Example:
 - Create 'pre-text tasks' to have the model solve simple tasks and learn patterns in the dataset
@@ -296,9 +288,7 @@ Types of Neural Networks:
 - Used for __sequences of data__ (like __time series__, or machine translations (words) or music(notes))
 - __Output of the neuron goes back into the same neuron__ (feedback loop)
 - A sequence of words is encoded into neural network and later this neural network can be decoded into words in anothe language (translation).
-- ResNet (short for Residual Network) is type of CNN
 - As neural networks get deeper, they should perform better—but in practice, they often get worse due to: Vanishing gradient, Overfitting, Training instability
-- The 'neural network' represents the 'meaning' that can be translated into many languages.
 - __ResNet__ (Residual Network) – Deep Convolutional Neural Network (CNN) used for image recognition tasks, object detection, facial recognition
   - ResNet introduces shortcut (skip) connections that allow gradients and data to flow more easily through the network.
 
@@ -309,7 +299,7 @@ Types of Neural Networks:
 - Transformers = stop using RNN and instead use __normal neural network with attentions__
 - Structure: Uses self-attention mechanisms, no recurrence.
 - Use Case: Language understanding, translation, generative AI.
-- Example: GPT, BERT, ChatGPT.
+- Example: GPT (Generative Pre-trained Transformer), BERT, ChatGPT.
 
 #### Generative Adversarial Networks (__GAN__)
 
@@ -361,7 +351,6 @@ Types of Neural Networks:
   - __generate human text__ or computer code based on input prompts. create new content or data (text,imae,voice) that resembles existing data using a model like transformer
   - transformers
     - LLM
-    - Diffusion (images)
     - Multi-Modal
 
 #### __Diffusion Models__
@@ -377,12 +366,12 @@ Types of Neural Networks:
 
 ### Generative AI (Gen-AI) <a id="GenAI"></a>
 
-__FMs use self-supervised learning to create labels from input data__, however, __fine-tuning an FM is a supervised learning process__.
-
 Foundation models use self-supervised learning to create labels from input data. This means no one has instructed or trained the model with labeled training data sets.
 
 Fine-tuning involves further training a pre-trained language model on a specific task or domain-specific dataset, allowing it to address business requirements. __Fine-tuning is a customization method that does change the weights of your model__.
 Fine-tuning an FM is a supervised learning process.
+
+__FMs use self-supervised learning to create labels from input data__, however, __fine-tuning an FM is a supervised learning process__.
 
 - Multi-purpose foundation models backed by __neural networks__
 - They can be fine-tuned if necessary to better fit our use-cases: text generation, text summarization, chatbot, image generation
@@ -399,6 +388,9 @@ Fine-tuning an FM is a supervised learning process.
   - Does NOT create a single type of output
   - Example: a multi-modal can take a mix of audio, image and text and output a mix of video, text
   - "Generate a video of making the picture of the cat speak the audio that is included"
+  - LLMs and Diffiusion models are still __2 different neural networks__, but they communicate:
+    - LLM generates a text description or prompt, which is passed to the diffusion model. 
+    - The diffusion model takes this text (possibly encoded into a suitable representation) and then generates an image based on it.
 - Example: generate new content
 
 Terms:
