@@ -58,6 +58,7 @@
   - [MLOps](#MLOps)
 - [AWS Security Services](#SecurityServices)
   - [Security and Privacy for AI Systems](#PrivacyAISystems)
+- [Questions](#Questions)
 - [References](#References)
 
 ## Concepts <a id="Concepts"></a>
@@ -194,6 +195,12 @@ Examples:
 - Association Rule Learning: supermarket wants to understand which products are frequently bought together
 - Anomaly Detection: detect fraudulent credit card transactions
 
+Unsupervised Learning examples:
+- K-Means Clustering – grouping similar customers
+- PCA (Principal Component Analysis) – reducing features for visualization
+- Autoencoders – compressing data into a lower-dimensional representation
+
+
 __Semi-supervised Learning:__ 
 - Use a small amount of labeled data and a large amount of unlabeled data to train systems
 - the partially trained algorithm itself labels the unlabeled data
@@ -218,6 +225,12 @@ Example:
   - provides on-demand cloud ??? -> computing
   - APIs to individuals, ???, and governmants -> companies
 - After solving the pre-text tasks, we have a model trained that can solve our end goal: 'downstream tasks'
+
+Examples of Self-Supervised Learning:
+- BERT (Masked Language Modeling) – predicts missing words
+- SimCLR / MoCo (Contrastive Learning) – learns visual features by comparing augmented views of the same image
+- GPT (Next-token prediction) – predicts the next word given previous context
+
 
 #### Reinforcement Learning (RL)
 
@@ -411,6 +424,15 @@ RLHF incorporates human feedback in the reward function, to be more aligned with
 
 RLHF is used throughout GenAI applications including LLM Models
 
+##### How to do reinforcement learning with amazon ?
+
+As of now (2025), Amazon Bedrock does not natively support Reinforcement Learning (RL) in the same way that you might apply RL to train a custom model from scratch
+
+While you can’t train a policy with rewards directly on Bedrock, you can simulate RL-style learning or feedback loops using a hybrid architecture:
+- You generate output using a Bedrock-hosted model (e.g., Claude, Jurassic-2).
+- Evaluate the output using a reward function (can be human scoring, heuristics, or another model).
+- Use the score to select better prompts, re-rank completions, or update your data.
+
 
 ### Use cases <a id="UseCases"></a>
 
@@ -509,6 +531,16 @@ Error = Bias^2 + Variance
 You want to minimize the error
 
 ![ bias and variance 2 ](./images/bias_and_variance_2.gif)
+ 
+#### If Model predictions are not as accurate as desired
+
+Increasing the number of epochs allows the model to learn from the training data for a longer period, potentially capturing more complex patterns and relationships, which can improve accuracy. Multiple epochs are run until the accuracy of the model reaches an acceptable level, or when the error rate drops below an acceptable level.
+
+The company should reduce the batch size, which means processing fewer samples in each training step - Reducing the batch size can make the training process noisier, as each update to the model weights is based on fewer examples. While this might help the model escape local minima during optimization, it does not necessarily lead to an improvement in accuracy and could even slow down convergence or lead to less stable training.
+
+The company should increase regularization to improve the accuracy of the model - Increasing regularization is beneficial when the model is overfitting, as it adds constraints that penalize complexity, encouraging the model to generalize better. However, if the model is already underfitting (not capturing the patterns in the data well), increasing regularization could further decrease its performance, and it might not improve accuracy.
+
+The company should decrease the learning rate, which reduces the size of the steps taken during optimization - Decreasing the learning rate can help the model converge more slowly and steadily, potentially avoiding overshooting the optimal point. However, too small of a learning rate can significantly slow down training and cause the model to get stuck in local minima, thereby not necessarily improving accuracy. It's more of a fine-tuning step once other hyperparameters are appropriately set.
 
 
 ### Model Evaluation Metrics <a id="ModelMetrics"></a>
@@ -765,6 +797,12 @@ various asset classes, including commodities, forex, and equity index futures."
 - __Transfer Learning__:
   - broader concept of re-using a pre-trained model to adapt it to a new related task.
   - used to image classification or language NLP-type models 
+  - The key idea is to leverage the knowledge gained from one problem and apply it to another, reducing the need for large amounts of data and computational resources for the new task.
+  - Example: Use the pre-trained image model and adjust it to classify medical images, where you only have a few thousand images labeled for this task.
+  - How it works:
+    - Pre-training (Source Task): Train a model on a large dataset related to a general task.
+    - Fine-tuning: reuse the pre-trained model's learned features.
+
 
 ### Model Evaluation <a id="ModelEvaluation"></a>
 
@@ -1052,13 +1090,53 @@ __Prompt latency:__
   - number of tokens in the output
 - __Latency is not impacted by: Top P, Top K, Temperature__
 
-Prompting techniques:
-- Zero-shot prompting: Present a task to the model without providing examples or explicit training for that specific task
-- Few-Shots Prompting: Provide few examples of a task to the model to guide its output
-- Chain of Thought Prompting: 
-  - Divide the task into a sequence of reasoning steps, leading to more structure and coherence
-  - Using a sentence like "Think step by step" helps
-  - Example: 
+#### Prompting techniques
+
+##### Zero-shot prompting
+
+Present a task to the model without providing examples or explicit training for that specific task
+
+##### Few-Shots Prompting
+
+Provide few examples of a task to the model to guide its output
+
+- Step 1: Create Few-Shot Examples
+```
+Example 1:
+Input: "Where is my order?"
+Output: "Order Status"
+
+Example 2:
+Input: "I want to return a product I bought."
+Output: "Return Request"
+```
+
+- Step 2: Create the Few-Shot Prompt for the Model
+  - You prompt the model with a new user query, you include the examples above to help the model understand the task
+
+```
+You are a customer support agent. Below are examples of customer inquiries and their respective intents:
+
+Example 1:
+Input: "Where is my order?"
+Output: "Order Status"
+
+Example 2:
+Input: "I want to return a product I bought."
+Output: "Return Request"
+```
+
+- Expected Output: After seeing the above prompt with examples, the model should output something like
+
+```
+Output: "Order Status"
+```
+
+##### Chain of Thought Prompting
+
+- Divide the task into a sequence of reasoning steps, leading to more structure and coherence
+- Using a sentence like "Think step by step" helps
+- Example: 
 ```
 Let’s write a story about a dog solving a mystery.
 First, describe the setting and the dog.
@@ -1067,7 +1145,10 @@ Next, show how the dog discovers clues.
 Finally, reveal how the dog solves the mystery and conclude the story.
 Write a short story following this plan. Think step by step
 ```
-- RAG:  Combine the model’s capability with external data sources to generate a more informed and contextually rich response
+
+##### RAG
+
+Combine the model’s capability with external data sources to generate a more informed and contextually rich response
 
 ### Prompt templates
 
@@ -1138,6 +1219,16 @@ Part of Amazon Q Business
 - Encrypted in transit
 - Encrypted at rest
   - However – Amazon is allowed to mine your data for individual plans
+
+Features:
+- Chat: Get answers to your AWS account-specific cost-related questions using natural language
+- COnversational memory - context
+- Code improvements and advice - answer questions about software development
+- code competion - code suggestions
+- Trougbleshoot and support: help understand errors
+- Understand and manage your cloud infrastructure on AWS: u can list and describe your AWS resources using natural language prompts, minimizing friction in navigating the AWS Management Console and compiling all information from documentation pages.
+
+
 
 ### Amazon Q for AWS Services  <a id="AmazonQServices"></a>
 
@@ -1275,6 +1366,16 @@ Automatically extracts text, handwriting, and data from any scanned documents us
 - Use cases: image classification, data collection, business processing
 - Integrates with Amazon A2I, SageMaker Ground Truth
 
+#### Amazon Mechanical Turk vs Ground Truth
+
+- Subjective Sentiment Analysis: 
+  - Sentiment is inherently subjective, and different individuals may interpret the same text in different ways. A model trained on ground truth data may not fully capture nuances like sarcasm, irony, or context, and human judgment is needed for accurate sentiment classification.
+  - Example: Classifying a review of a restaurant: "The food was okay, but the waiter was really rude." Sentiment analysis models might struggle with this mixed review, but human workers can correctly identify it as a neutral or negative sentiment.
+- Image Captioning and Interpretation:
+  - Ground truth might have captions, but those are typically simple, pre-defined descriptions. Some images require complex contextual understanding, such as cultural context, emotions
+  - Example: Given a photo of a crowded street with street vendors, MTurk workers can generate captions that describe not just what is visible but also provide context like the type of market or possible cultural significance.
+
+
 ### Amazon Augmented AI (A2I)
 
 Human oversight of Machine Learning predictions in production
@@ -1395,7 +1496,14 @@ Get __alerts on quality deviations__ on your deployed models (via CloudWatch). _
 
 ### SageMaker JumpStart <a id="SageMakerJumpstart"></a>
 
-One-click models and algorithms from model zoos
+One-click models and algorithms from model zoos.
+
+You can evaluate, compare, and select Foundation Models quickly based on pre-defined quality and responsibility metrics
+
+Pre-trained models are fully customizable for your use case with your data
+
+Amazon SageMaker JumpStart is a machine learning (ML) hub that can help you accelerate your ML journey. With SageMaker JumpStart, you can evaluate, compare, and select FMs quickly based on pre-defined quality and responsibility metrics to perform tasks like article summarization and image generation. Pretrained models are fully customizable for your use case with your data, and you can easily deploy them into production with the user interface or SDK. You can also share artifacts, including models and notebooks, within your organization to accelerate model building and deployment, and admins can control which models are visible to users within their organization.
+
 
 ### Data Wrangler <a id="DataWrangler"></a>
 
@@ -1508,10 +1616,14 @@ __SageMaker Model Cards__:
 __SageMaker Model Dashboard__
   - Centralized repository where you can view, search, and explore all of your models
   - Information and insights for all models
+  - Amazon SageMaker Model Dashboard is a centralized repository of all models created in your account. The models are generally the outputs of SageMaker training jobs, but you can also import models trained elsewhere and host them on SageMaker. Model Dashboard provides a single interface for IT administrators, model risk managers, and business leaders to track all deployed models and aggregate data from multiple AWS services to provide indicators about how your models are performing. You can view details about model endpoints, batch transform jobs, and monitoring jobs for additional insights into model performance.
+  - The dashboard’s visual display helps you quickly identify which models have missing or inactive monitors, so you can ensure all models are periodically checked for data drift, model drift, bias drift, and feature attribution drift. Lastly, the dashboard’s ready access to model details helps you dive deep, so you can access logs, infrastructure-related information, and resources to help you debug monitoring failures.
 
 __SageMaker – Model Monitor__
   - Monitor the quality of your model in production: continuous or on-schedule
   - Alerts for deviations in the model quality: fix data & retrain model
+  - Amazon SageMaker Model Monitor monitors the quality of Amazon SageMaker machine learning models in production. With Model Monitor, you can set up: Continuous monitoring with a real-time endpoint, Continuous monitoring with a batch transform job that runs regularly, and On-schedule monitoring for asynchronous batch transform jobs.
+
 
 __SageMaker – Model Registry__
   - Centralized repository allows you to track, manage, and version ML models
@@ -1589,7 +1701,8 @@ ML Hub vs ML Solutions
 - Dimensions:
   - Fairness: promote inclusion and prevent discrimination
   - __Explainability = Understand the nature and behavior of the model__. Being able to look at inputs and outputs and explain without understanding exactly how the model came to the conclusion. High Interpretability: Linear Regression.
-  - __Interpretability: degree to which a human can understand the cause of a decision__. High Interpretability – Decision Trees
+  - __Interpretability: degree to which a human can understand the cause of a decision__. High Interpretability - Decision Trees
+    - Interpretability is about understanding the internal mechanisms of a machine learning model, whereas explainability focuses on providing understandable reasons for the model's predictions and behaviors to stakeholders
   - Privacy and security: individuals control when and if their data is used
   - Transparency
   - Veracity and robustness: reliable even in unexpected situations
@@ -1624,14 +1737,41 @@ ML Hub vs ML Solutions
     - Model Cards
     - Model Dashboard
 
-Model Predictions: SageMaker Clarify + SageMaker Experiments
-- Uses a technique called Shapley Values:
-  - A 'feature' is some property you are trying to make predictions from
-    - For example: you might try to predict income based on features such as age, education level, location, etc. 
-  - Basically evaluates your models with each feature left out, and measures the impact of the missing feature
-  - From that we can measure the relative importance of each feature
+#### Model Predictions: SageMaker Clarify + SageMaker Experiments
 
-Model selection:
+##### Shapley Values
+- A 'feature' is some property you are trying to make predictions from
+  - For example: you might try to predict income based on features such as age, education level, location, etc. 
+- Basically evaluates your models with each feature left out, and measures the impact of the missing feature
+- From that we can measure the relative importance of each feature
+- Example: How should the total payout be fairly divided among the players based on their individual contributions?
+- Local: Explains a single prediction
+
+How it works:
+- Imagine every possible order in which features could be added to the model.
+- For each ordering, measure how much adding a feature changes the prediction.
+- Average that change over all possible orderings.
+
+##### Partial Dependence Plot
+
+Helps you understand the relationship between one or more input features and the predicted outcome of a model. 
+It shows how the average prediction changes as you vary one feature, while keeping all others fixed in the data.
+
+Example: On average, what does the model predict when house size is X, regardless of other features?
+
+Global: Show average behavior of model
+
+How it works:
+- Take the dataset with all your input features.
+- Choose a range of values for feature xjxj​.
+- For each value vv in that range:
+  - Replace feature xjxj​ with vv for every instance in the dataset.
+  - Predict using the model on these modified inputs.
+  - Average the predictions.
+- Plot the average prediction versus the feature value vv.
+
+
+#### Model selection:
 - Use model evaluation in SageMaker or Bedrock
 - Define your use-case narrowly:
   - What could go wrong? What might mess up your model, and in what way?
@@ -1639,7 +1779,7 @@ Model selection:
 - Test how a model performs with your data
   - Don’t choose based on general benchmarks, choose on how it performs for your specific problem
 
-Responsible Dataset:
+#### Responsible Dataset:
 - Balance your data
   - Using SageMaker Data Wrangler or SageMaker Clarify
   - Data cleaning, feature selection, normalization are some pre-processing techniques
@@ -1648,7 +1788,7 @@ Responsible Dataset:
   - Law enforcement, financial approvals, etc.
 - Regular auditing
 
-Transparency: 
+#### Transparency: 
 - Understanding HOW a model makes its decisions
   - Provides accountability
   - Builds trust
@@ -1877,6 +2017,25 @@ Access Bedrock Model using an App in VPC:
 
 ![ Bedrock VPC ](./images/bedrock_vpc.gif)
 
+### AWS Trusted Advisor
+
+Trusted Advisor scans your AWS account and provides insights and best-practice checks to help you.
+
+It __automatically scans__ your AWS account and gathers metadata and creates list of checks and results.
+
+Use it __before__ deploying system to:
+- Check service limits: Make sure you're not close to hitting quotas (e.g., EC2 instances, VPCs).
+- Validate basic security settings: Ensure no open security groups or overly permissive IAM roles.
+- Plan for fault tolerance: See if your design includes high availability and backups.
+- Pre-check cost implications: 
+
+Use it __after__ deploying system to:
+- Optimize cost: Identify underutilized EC2, RDS, or other resources.
+- Tighten security: Monitor changes to IAM, open ports, and S3 bucket permissions.
+- Ensure reliability: Watch for missing backups, redundancy issues, or resource failures.
+- Stay within limits: 
+
+
 ### Security and Privacy for AI Systems <a id="PrivacyAISystems"></a>
 
 7 Layers of security:
@@ -1954,7 +2113,7 @@ Security in Data Engineering:
   - System Logs
 - Bias and Fairness, Compliance and Responsible AI
 
-## Questions
+## Questions <a id="Questions"></a>
 
 ### A data scientist is working on a binary classification problem to predict whether a customer will churn. They want to select the best metric to evaluate their model’s performance, given that the cost of a false negative (predicting a customer will not churn when they will) is much higher than a false positive. Which evaluation metric should the data scientist use to prioritize reducing false negatives?
 
@@ -2293,6 +2452,38 @@ AWS Config: AWS Config is a service that enables you to assess, audit, and evalu
 
 NO - bad answer:
 Neural network - A neural network solution is a more complex supervised learning technique. To produce a given outcome, it takes some given inputs and performs one or more layers of mathematical transformation based on adjusting data weightings. An example of a neural network technique is predicting a digit from a handwritten image.
+
+### A financial services company is deploying AI systems on AWS to analyze customer transactions and detect fraud. To meet stringent regulatory requirements, the company's compliance team needs a tool that can continuously audit AWS usage, automate evidence collection, and streamline risk assessments. This tool should help ensure that the AI systems comply with industry standards and reduce the manual effort involved in compliance reporting.
+
+AWS Audit Manager
+
+AWS Audit Manager helps automate the collection of evidence to continuously audit your AWS usage. It simplifies the process of assessing risk and compliance with regulations and industry standards, making it an essential tool for governance in AI systems.
+
+### A healthcare company is deploying AI systems on AWS to manage patient data and improve diagnostic accuracy. To ensure compliance with strict healthcare regulations and to enhance the security of their applications, the company's security team is looking for an AWS service that can automate security assessments.
+
+Amazon Inspector
+
+Amazon Inspector is an automated security assessment service that helps improve the security and compliance of applications deployed on AWS. It automatically assesses applications for exposure, vulnerabilities, and deviations from best practices, making it an essential tool for ensuring the security of AI systems.
+
+### A healthcare analytics company is exploring the use of Foundation Models to automate the process of labeling vast amounts of medical data, such as patient records and clinical notes, to enhance its machine learning models for diagnosis and treatment recommendations. The company wants to understand the specific techniques that Foundation Models use to generate labels from raw input data, helping streamline the data annotation process without requiring extensive manual effort. Which of the following techniques is used by Foundation Models to create labels from input data?
+
+
+Self-supervised learning
+
+It works when models are provided vast amounts of raw, almost entirely, or completely unlabeled data and then generate the labels themselves.
+
+Foundation models use self-supervised learning to create labels from input data. In self-supervised learning, models are provided vast amounts of raw completely unlabeled data and then the models generate the labels themselves. This means no one has instructed or trained the model with labeled training data sets.
+
+__Incorrect options__:
+
+Reinforcement learning - Reinforcement learning is a method with reward values attached to the different steps that the algorithm must go through. So the model’s goal is to accumulate as many reward points as possible and eventually reach an end goal.
+
+Supervised learning - In supervised learning, models are supplied with labeled and defined training data to assess for correlations. The sample data specifies both the input and the output for the model. For example, images of handwritten figures are annotated to indicate which number they correspond to. A supervised learning system could recognize the clusters of pixels and shapes associated with each number, given sufficient examples.
+
+Data labeling is the process of categorizing input data with its corresponding defined output values. Labeled training data is required for supervised learning. For example, millions of apple and banana images would need to be tagged with the words “apple” or “banana.” Then machine learning applications could use this training data to guess the name of the fruit when given a fruit image.
+
+Unsupervised learning - Unsupervised learning algorithms train on unlabeled data. They scan through new data, trying to establish meaningful connections between the inputs and predetermined outputs. They can spot patterns and categorize data. For example, unsupervised algorithms could group news articles from different news sites into common categories like sports, crime, etc. They can use natural language processing to comprehend meaning and emotion in the article.
+
 
 ## References <a id="References"></a>
 
