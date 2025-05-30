@@ -24,6 +24,8 @@
     - [Global Accelerator](#GlobalAccelerator)
 - [Organizations](#Organizations)
 - [VPC](#VPC)
+  - [Security Groups](#SecurityGroups)
+  - [Connecting To VPC](#ConnectingToVPC)
 - [S3](#S3)
 - [DNS](#DNS)
   - [Route53](#Route53)
@@ -271,8 +273,27 @@ IAM role is the second-best option; however, you need to configure and manage ro
 
 
 
-
 ## Amazon Elastic Compute Cloud (EC2) <a id="EC2"></a>
+
+__AWS Region__ (36) consists of 2 or more availability zones.
+
+__Availability zone__ = one or more discrete data centers with redundant power, networking, and connectivity in an AWS Region, physically separated by a meaningful distance, 
+
+__Local Zone__ (30+) = data center outside of a region. Its purpose is to run full applicatins closer to users. Supports: EC2, EDB, ECS, EKS, RDS etc.
+
+__Wavelength__: mobile only apps accessing vis 5G
+
+__AWS Outpost__: aws hardware installed on private cound that can be managed via aws console
+
+__Edge location__ (400+) = used primarily by Amazon CloudFront but also by AWS Global Accelerator, AWS Shield, and Route 53
+- AWS has hundreds of edge locations around the world
+- A smaller data center that caches data closer to users, used mainly for content delivery and DNS resolution
+- used specifically to deliver content and services with low latency to end users.
+- CDN = CloudFront = content from server hosted in internet service provider
+
+__Regional Edge Cache__ = cache content from Origin so Edge location can get it faster
+
+
 
 With EC2, you launch virtual server instances on the AWS cloud.
 
@@ -296,9 +317,41 @@ Benefits of Amazon EC2 include:
 - __Secure__ It's fully integrated with Amazon VPC and the security features of AWS.
 - __Inexpensive__, so it can be very low cost and you only pay for what you use.
 
+Steps to login to your ec2:
+- Prerequisites:
+  - Key pair (.pem file): You must have the private key (.pem) file that corresponds to the key pair specified when launching the EC2 instance.
+  - Security group: Ensure the EC2 instance's security group allows inbound SSH traffic (port 22).
+  - Public IP or Elastic IP: Your EC2 instance must have a public IP or Elastic IP if you're connecting from outside AWS.
+- Copy the Public IPv4 address from ec2 console
+- ssh -i /path/to/your-key.pem ec2-user@<Public-IP-or-DNS>
+
+The default SSH username depends on the OS of the base AMI:
+| AMI OS       | Default Username
+|--------------|------
+| Amazon Linux | ec2-user
+| Ubuntu       | ubuntu
+| RHEL         | ec2-user or root
+| CentOS       | centos
+| Debian       | admin or debian
+| SUSE         | ec2-user
+
+Storage:
+- Block
+  - Instance Storage: __directly connected storage__ attached to physical host
+    - some EC2 types do not support any instance storage (t2micro) or Windows does not support it.
+    - price included
+  - EBS: __external physical storage__, must be in the same AZ
+- File
+  - EFS (Unix)
+  - FSx (Windows)
+- Object (S3)
+
 ### AMI <a id="AMI"></a>
 
 An Amazon Machine Image provides the information required to launch an instance.
+
+If you create custom AMI then to use it and create new EC2 from it, you need to change the administrator password. Else you will not be able to login to this new EC2.
+
 
 AMI includes:
 - a __template__ for the root volume of the instance,
@@ -313,6 +366,19 @@ AMIs categories:
 - community AMIs,
 - marketplace AMIs,
 - your AMIs, the ones you create yourself.
+
+Steps to create a custom aws AMI:
+- Launch an EC2 instance using an existing Amazon-provided AMI
+- Install and configure the software, updates, and system settings you want to include in your custom AMI.
+- Stop Services (Optional, for consistency): To ensure the disk is in a consistent state, you can stop critical services or the instance itself, though AWS handles this well with modern AMIs.
+- Create Image
+```
+aws ec2 create-image \
+    --instance-id i-1234567890abcdef0 \
+    --name "MyCustomAMI" \
+    --description "AMI with custom software" \
+    --no-reboot
+```
 
 ### Instance types <a id="InstanceTypes"></a>
 ![ Instance Types ](./images/ec2_instance_types.png)
@@ -342,6 +408,16 @@ Process:
 - Map app to instance family
 - Pick an appropriate size [small, large, 2xlarge and so forth]
 - Run performance tests to right-size
+
+SSD:
+- __gp__
+  - gp2: 3 IOPS/GB, max 16 000 IOPS, burst capacity, throughput: 250 MiB/s
+  - gp3: __constant 3000 IOPS__, max 16 000 IOPS, __throughput: 1000 MiB/s__
+- __io__
+  - io1: 64 000 IOPS, multi-attach, throughput: 1000MiB/s
+  - __io2: 64 000 IOPS + 256 000 with block express__, __multi-attach__, __throughput: 4000 MiB/s__, 99.99% durability
+
+__HDD__: __500 IOPS__, throughput: __500 MiB/s__
 
 ### IP addresses <a id="IP"></a>
 
@@ -476,8 +552,11 @@ EC2 pricing options:
 - __on-demand__, which is the standard rate, there's no discount, there's no commitment. It's very good for any kind of short-term requirements or unpredictable workloads.
 - __reserved__ one or three year commitment, but you get a good discount.
 - __spot__ instances, you get a very low price because you're essentially using unused capacity. So you can get a large discount, but you can also be terminated at any time.
-- __Dedicated instances__ offer physical isolation at the host hardware level from instances belonging to other customers. And you pay per instance.
-- __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there.
+- __Dedicated instances__ offer physical isolation at the host hardware level from instances belonging to other customers. And you pay per instance. __Hardware dedicated to you__ (account), but you don’t control the physical server.
+- __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there. You control what EC2 instances run on it
+  - visibility into and control over the host (e.g. __sockets, cores__, instance distribution).
+  - required for bring-your-own-license (__BYOL__) scenarios
+  - You __pay per host__, not per instance.
 - __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
 
 #### Reserved instances:
@@ -595,6 +674,9 @@ General purpose volume offers a baseline performance of 3 IOPS per GB. With 200 
 
 Instance store SSD is not the right choice as the question asks for a persistent storage
 
+#### Can I use default password to login to EC2 created from custom AWS AMI ubuntu?
+
+No: you cannot use a default password to log into an EC2 instance launched from a custom AWS AMI based on Ubuntu. The default Ubuntu AMI and other custom AMIs typically use SSH key-based authentication for login, not passwords
 
 
 
@@ -989,6 +1071,9 @@ Create an OU and add the member accounts and then attached the SCP to the OU.
 
 Create an AWS Organization and send an invite to each developer's AWS account to join the Organization.
 
+
+
+
 ## Amazon VPC <a id="VPC"></a>
 
 Analogous to having your own data center inside AWS.
@@ -1040,6 +1125,15 @@ Rules for your IP CIDR blocks:
 - Split your high availability resources across subnets that are assigned to different AZ.
 - VPC peering requires non-overlapping CIDR blocks.
 
+### Security Groups <a id="SecurityGroups"></a>
+
+Security Group:
+- Default Security Group: Inbound: All, Outbound: All
+- Only Allow rules, no Deny
+- One security group can protect many EC2: SG -- n:n -- EC2
+- Stateful: do not check 'inbound' if session has been initiated and this is returning traffic
+- One security group can protect EC2s in different AZs.
+
 Security groups versus network ACLs:
 - __Security groups__:
   - operate at the __instance level__.
@@ -1053,13 +1147,19 @@ Security groups versus network ACLs:
   - rules get __processed in order__
   - automatically applies to all instances in the subnets that it's associated with.
 
+| Port range | Description           | Example
+|------------|-----------------------|-------
+| 0-1023     | Well-known ports      | Http (80)
+| 1024-49151 | Registered ports      | MySQL (3306)
+| 49152-65535| Dynamic/Private ports | random
+
 ACL Ephemeral Ports
 ![ Ephemeral Ports ](./images/ephemeral_ports.jpg)
 
 Network ACL – Fix Allow Local Traffic
 ![ Fix Allow Local Traffic ](./images/fix_allow_local_traffic.jpg)
 
-Connecting to a VPC:
+### Connecting to a VPC <a id="ConnectingToVPC"></a>
 - AWS __managed VPN__
   - What: an IPSec VPN connection over the Internet.
   - When: a quick and easy way to set up a VPN tunnel to a VPC, can be used as a redundant link for some other connection like Direct Connect
@@ -1936,6 +2036,12 @@ volume types:
 - Snapshots are __stored on S3__.
 - EBS volumes are __AZ specific__, but __snapshots are region specific because they're on S3__.
 
+EBS snapshot: you can:
+- restore in different AZ 
+- you can create encrypted/unencrypted volume (EBS)
+- you can copy snapshot to another region
+- snapshot automation
+
 #### RAID with EB
 - RAID is a Redundant Array of Independent Disks.
 - It's not provided by AWS. It's something you configure in your operating system.
@@ -1977,7 +2083,7 @@ volume types:
 Amazon EFS is a fully managed service for hosting Network File System (__NFS__) filesystems in the cloud.
 
 - File Share for __Linux__ EC2 instances on AWS (NOT Windows).
-- fully managed file system solution accessed using the __NFS protocol__.
+- fully managed file system solution accessed using the __NFS protocol__ only.
 - You get __elastic storage capacity__
 - you __pay only for what you use__.
 - You get __multi-AZ metadata and data storage__.
@@ -1995,6 +2101,12 @@ Amazon EFS is a fully managed service for hosting Network File System (__NFS__) 
 - Lifecycle management moves files that have not been accessed for a period of time to the EFS Infrequent Access Storage class
 - Encryption in transit is enabled when mounting the file system. Enable encryption at rest in the EFS console or by using the AWS CLI or SDKs.
 - EFS is much more __expensive__ than EBS or S3
+- managed, scalable, secure, file sharing
+- __can be protected with security group__
+- __create mounts points to EFS in each AZ__
+- __accessible from ec2, ecs, eks or from on premises__
+- DR: you can move files to S3 using: DataSync (EFS->EFS or EFS->S3), scripts, or AWS Backup (EFS->S3)
+
 
 Access control:
 - use IAM to control who can administer your file system.
@@ -2023,6 +2135,8 @@ Replication:
 #### FSx
 
 - provides a fully managed third-party file system.
+- extermly high performance >> EFS
+- __Linux and Windows__
 - supports __SMB__, __NTFS__ and also __Linux__ and __MacOS__
 - provides you with two options to choose from:
   - __FSx for Windows File Server__, for Windows based apps 
@@ -2037,6 +2151,12 @@ Replication:
     - It works natively with S3, which means you can transparently access your S3 objects as files.
     - S3 objects are presented as files in the file system, and you can write your results back to S3.
     - It also provides a POSIX compliant file system interface.
+- accessible from ec2, ecs, eks or from on premises
+- supports NFS (Linux), SMB (Windows), NetApp etc. It supports file systems:
+  - FSx for NetApp ONTAP: prioprietary OS to manage storage, snapshots, clones, deduplication, compression
+  - FSx for OpenZFS: open source on top of Linux, solves data corruption issues, storage pool, snapshot, cloning, transactions, RAID-Z, deduplication, compression, tiered
+  - FSx for Windows file server: managed service, scalable, needs Active Directory (authentication service for windows)
+  - FSx for Luster (linux cluster): HPC (__high-performance__) = throughput 1000GB/s which is 100 times better then any other, cluster, open source, integrated with S3, only Linux, single AZ
 
 Replication:
 - FSx __automatically replicates data__ within the __same AZ__
