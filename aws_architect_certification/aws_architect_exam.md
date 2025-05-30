@@ -335,7 +335,7 @@ The default SSH username depends on the OS of the base AMI:
 | Debian       | admin or debian
 | SUSE         | ec2-user
 
-Storage:
+__Storage__:
 - Block
   - Instance Storage: __directly connected storage__ attached to physical host
     - some EC2 types do not support any instance storage (t2micro) or Windows does not support it.
@@ -345,6 +345,10 @@ Storage:
   - EFS (Unix)
   - FSx (Windows)
 - Object (S3)
+
+__EC2 instance endpoint__
+- uses aws username and password
+- easy to connect from aws console
 
 ### AMI <a id="AMI"></a>
 
@@ -473,6 +477,11 @@ Systems Manager:
 - __Spread placement group__: This will place a small group of instances across distinct underlying hardware to reduce any kind of correlated failures.
 
 ### NAT <a id="NAT"></a>
+
+NAT Gateway = special agent with publicIP that connects to InternetGateway
+- create NAT gateway in public subnet
+- define public IP
+- add entry to main route table to NAT Gateway
 
 NAT instances versus NAT gateways:
 - The __NAT instance__ is fully managed by you. It's really the old way of doing things.
@@ -806,17 +815,31 @@ Access Logs:
   - Internet Identity Providers
   - SAML
   - OpenID Connect
+- LB is in public or private subnet
+- EC2s are in private subnets
 
 #### Application Load Balancer <a id="ALB"></a>
 
-- use it with web applications with __layer 7__ routing - http and https,
+- use it with web applications with __layer 7__ routing - http, https, gRPC, WebSockets
 - microservices architectures such as Docker containers
 - Targets: __EC2, containers, Lambda, on-premises__
 - Support for hosting multiple websites (Server Name Indication)
 - User Authentication - __Cognito__
+- internet-facing or internal: ALB is in public or private subnet
+  - select 2 or more subnets in separate AZ for HA
+- IPv4 or IPV6
+- VPC + public subnet
+- Security Group
+__ALB will do https decryption__ with the SSL certificate you provide
+- forwards request to __target group__: EC2, lambda, ALB, IP addresses (on-premises)
+- can do port translation
+- __health check__ (default is port http)
+- sticky essions using cookies
+- idle connection timeout
+- Static IP address __NOT supported__
 
 Routing:
-- Path based
+- __path-based__ (exampple.com/images or example.com/orders) and __host-based__ routing (images.example.com or orders.example.com)
 - Host HTTP header (support for multiple domains)
 - Any standard or custom HTTP header
 - Query string parameter based
@@ -834,7 +857,8 @@ ALB - ACL:
 
 #### Network Load Balancer <a id="NLB"></a>
 
-- operating at the __TCP__ and __UDP__ level – __layer 4__
+- TCP traffic, extereme performance, millions requests /s, ultra-low latency
+- operating at the __TCP__ , __UDP__ , __TLS__ level – __layer 4__
 - offers __ultra-low latency__
 - Scales to __millions of requests/sec__
 - static IP addresses. One Static IP (or Elastic IP) per Availability Zone
@@ -842,6 +866,9 @@ ALB - ACL:
 - Targets: __EC2, containers, on-premises__
 - Preserves Client IP (Source IP)
 - __WebSocket__ Support
+- sticky essions using cookies
+- idle connection timeout
+- Static IP address __supported__ (like elastic IP)
 
 Private Link:
 - Network LB based Shared Service
@@ -860,16 +887,26 @@ NLB - ACL:
 
 #### Gateway Load Balancer <a id="GLB"></a>
 
-- This is layer 3.
+- This is layer 3 - only packets
 - listens for all IP packets across all ports.
 - GLP and virtual appliances exchange application traffic using the GENEVE protocol on port 6081.
 - Used with virtual appliances such as firewalls, intrusion detection systems, intrusion prevention systems, and deep packet inspection systems.
+- Application Server -> Gateway Load Balancer Endpoint -> Gateway Load Balancer -> Security Appliance -YES-> GWLB -> GWLB Endpoint -> Application Server / User
+- VPC must use __ingress routing__: inboud or outbound traffic will pass through 3rd party firewall: Integrent Gateway <-> GWLB (with PaloAlto) <-> EC2
+  - Simple case: It is EC2 with NIC and firewall software
+  - HA case is GWLB instead of EC2
+- GWLB does not have url or IP address. It only has endpoint in your VPC
+- GWLB should be setup in a separate VPC and you have an endpoint in your VPC
 
 #### Cross-zone load balancing <a id="Cross-zone"></a>
 - when cross-zone load balancing is enabled, each load balancer node will distribute traffic across the register targets in all enabled AZ.
 - When it's disabled, each load balancer node distributes traffic only across the registered targets in its availability zone.
 - With __Application Load Balancers, cross-zone load balancing is always enabled__.
 - With __Network Load Balancers and Gateway Load Balancers, cross-zone load balancing is disabled by default__.
+- for both ALB and NLB you must select at least 2 AZs
+- for ALB Cross-Zone Load Balancing is always ENABLED
+- for NLB Cross-Zone Load Balancing is always DISABLED
+- if Cross-Zone Load Balancing = OFF and ALB is in AZ1 then it will send traffic only to EC2 in AZ1
 
 ### Global Accelerator <a id="GlobalAccelerator"></a>
 
@@ -1102,6 +1139,9 @@ The names of availability zones are mapped to different zones for different uses
 
 Components of a VPC:
 - __subnet__: segments of a VPC's IP range where you can place groups of isolated resources and they map toa single AZ.
+  - AWS subnet is alswys in one AZ
+  - Azure subnet can span multiple AZ
+  - By default 2 subnets are connected to each other via Route Table and EC2 can communicate with private IP
 - __Internet gateway__ is the VPC side of a connection to the public internet.
 - A __NAT gateway__ is a highly available managed network address translation service for enabling access to the internet from private instances.
 - The __VPC router__ performs all the routing functions in your VPC.
@@ -1117,6 +1157,7 @@ Rules for your IP CIDR blocks:
 - the __size can vary between /16 and /28__.
 - The CIDR block cannot overlap with any existing CIDR block that's associated with the VPC.
 - you __cannot increase or decrease the size of an existing CIDR block__.
+- max = 5 VPCs per region
 - The first four and last IP addresses in a subnet are not available for use.
 - AWS recommend you use the RC 1918 ranges.
 - Ensure you have enough networks and hosts.
@@ -1133,6 +1174,7 @@ Security Group:
 - One security group can protect many EC2: SG -- n:n -- EC2
 - Stateful: do not check 'inbound' if session has been initiated and this is returning traffic
 - One security group can protect EC2s in different AZs.
+- can be attached to __anything with NIC__ (network interface)
 
 Security groups versus network ACLs:
 - __Security groups__:
@@ -1160,12 +1202,19 @@ Network ACL – Fix Allow Local Traffic
 ![ Fix Allow Local Traffic ](./images/fix_allow_local_traffic.jpg)
 
 ### Connecting to a VPC <a id="ConnectingToVPC"></a>
+
 - AWS __managed VPN__
-  - What: an IPSec VPN connection over the Internet.
+  - What: an IPSec VPN connection __over the Internet__.
   - When: a quick and easy way to set up a VPN tunnel to a VPC, can be used as a redundant link for some other connection like Direct Connect
   - Pros: supports static routes or BGP peering and routing.
   - Cons: is dependent on an Internet connection.
   - How: create an AWS managed VPN by creating a virtual private gateway, also known as a VWG on AWS and a customer gateway on the on-premises side.
+  - Setup:
+    - Customer Gateway
+    - VPN Gateway, attach to VPC
+    - Site-to-site VPN
+    - Download and setup configuration file on on-premises router
+    - add route in route table in 2 places: aws and on-premises)
   - VPN Site-to-Site , HA AWS-OnPrem:
     - Two Customer Gateway devices preferably in different data centers
     - Two VPN connection from the same VGW but to different CGWs
@@ -1173,7 +1222,9 @@ Network ACL – Fix Allow Local Traffic
   - VPN using Transit Gateway:
     - Use Transit Gateway to terminate VPN Connection
     - Share the same VPN connection with multiple VPCs
+
 - __Direct Connect__:
+  - faster than VPN, no internet
   - What: dedicated network connection over private lines straight into the AWS backbone.
   - When: requires a large network link into AWS. When you have a lot of resources and services being used by corporate users in your data center or your office.
   - Pros: predictable network performance and potential bandwidth cost reduction if you use the right volume of traffic. And you get up to 10 or 100 gigabits per second of provisioned connections. Supports BGP peering and routing.
@@ -1183,11 +1234,15 @@ Network ACL – Fix Allow Local Traffic
   - Cloud is an extension of your datacenter – access using private IP
   - Consistent network performance and throughput
   - For HA, use multiple DX Locations or use a backup VPN over the internet
+  - cost of transferring data from aws to data center is significantly lower than transferring data over the public internet
+  - __no encryption__
   - Complex setup:
     - AWS has 100+ Direct Connect locations worldwide. Choose the one closest to your data center.
     - Access resources in any of the AWS regions
     - For Critical workloads, use two Direct Connect locations (location or device failure)
+
 - __Combine Direct Connect and a VPN connection__: In this case, you're actually using a VPN connection over your Direct Connect link. Why would you do that? Well, you get an encrypted tunnel over your Direct Connect connection. So, it's more secure in theory at least than Direct Connect alone.
+
 - __VPN CloudHub__
   - What: connect your locations in a hub and spoke manner using AWS's Virtual Private Gateway. So, it's VPN connections from multiple office locations or multiple data centers that you might have.
   - When: linking your remote offices for backup or primary WAN access to AWS resources and to each other because it will route between them as well.
@@ -1211,7 +1266,8 @@ Network ACL – Fix Allow Local Traffic
   - Whan: Multiple VPCs need to communicate.
   - Pros: use the AWS backbone without traversing the Internet
   - Cons: no transitive peering supported.
-  - How: VPC peering request created, accepted
+  - How: VPC peering request created, accepted,
+    - you need to create a route
 - __VPC Endpoints__:
   - __Interface Endpoint__
     - What: it's an elastic network interface with a private IP.
@@ -1228,17 +1284,32 @@ Network ACL – Fix Allow Local Traffic
     - Security: You can't use security groups, but you can use VPC endpoint policies.
 - __Flow Logs__:
   - can capture information about the IP traffic going to and from network interfaces in a VPC.
-  - The flow log data is stored using CloudWatch logs or Amazon S3.
+  - The flow log data is stored using CloudWatch logs or Amazon S3 or Kinesis
   - can be created at different levels: The VPC level, subnet level, or the network interface level.
+
+__VPC Transit Gateway__
+- can connect many: VPCs, VPNs, Direct Connect, peering connections.
+- must be in the same AWS account and region
+- multiple regions: setup Transit Gateway in each region
+- add transit gateway attachment for each VPC
+- add route table entries
 
 The VPC router connects different AZs together and connects the VPC to the Internet Gateway
 
 Internet Gateways (IGW) must be created and then attached to a VPC, be added to a route table, and then associated with the relevant subnet(s)
 IGW is horizontally scaled, redundant and HA and performs NAT between private and public IPv4 addresses
+Internet Gateway requires public IP. Else not traffic will go in or out.
 
 Public subnet:
 - Auto-assign public IPv4 address” set to 'Yes'.
 - If your subnet is associated with a route to the Internet
+
+You have to create Route Table
+- main route table is created when you create VPC. It is automatically associated with all subnets
+- separate route table for public (create new) and private subnets (main route table)
+- associate public subnet with public route table and
+- add route to Internet Gateway (destination: 0.0.0.0/0; target: InternetGateway)
+
 
 To enable access to or from the Internet for instances in a VPC subnet, you must do the following:
 - Attach an Internet Gateway to your VPC
@@ -1246,11 +1317,30 @@ To enable access to or from the Internet for instances in a VPC subnet, you must
 - Ensure that instances in your subnet have a globally unique IP address
 - Ensure that your network access control and security group rules allow the relevant traffic to flow to and from your instance
 
+Managed Prefix List
+- one or more CIDR blocks
+- use it in VPC security groups, subnets, transit gateway tables, firewall etc
+- use it for outboud traffic
+
+#### VPC Endpoint
+
+- powered by PrivateLink: provides private connectivity between VPCs, AWS services and on-premises aapplications using amazon network (not internet)
+- Gateway endpoint ( Dynamodb or S3): you need to define route table target in route table
+- Interface endpoint: ENI with private IP
+- Gateway Load Balancer endpoint:
+- Limits to access specific service (through load balancer). VPC Peering - access everything
+- Endpoint is always in the same region
+- To access endpoint from another region use VPC peering
+
 Interface Endpoint:
 ![ Gateway endpoints ](./images/interface_endpoints.jpg)
 
 Gateway endpoints:
 ![ Gateway endpoints ](./images/gateway_endpoints.jpg)
+
+DHCP - dynamic host connection protocol
+- router provides IP for host
+- you can have custom DHCP option set
 
 ### Architecture Patterns
 
@@ -1694,6 +1784,12 @@ Not correct:
 
 ## DNS, Caching and Performance Optimization <a id="DNS"></a>
 
+DNS components / architecture:
+- DNS resolver: ISP provider, caches entries or forwards
+- DNS root server: knows about domain suffixes like ".com" and forwards to TLD server
+- TLD server: knows about specific domain suffix like .com and forwards to DNS authoritative server for a given FQDN
+- DNS authoritative server: forwards to specific server for FQDN like: facebook.com
+
 ### Route 53 <a id="Route53"></a>
 
 - Route 53 gives you:
@@ -1701,6 +1797,7 @@ Not correct:
   - __DNS resolution__,
   - __health checking__ of resources.
 - It is __located along side edge locations__.
+- private hosted zone vs public hosted zone
 - Route 53 becomes the authoritative DNS server for registered domains and will create a public hosted zone for you.
 - Amazon Route 53 automatically creates the Name Server (NS) and Start of Authority (SOA) records for the hosted zones.
 - private DNS, lets you have an authoritative DNS server within your VPCs without exposing your DNS records.
@@ -1727,17 +1824,18 @@ Health checks:
 - Endpoints can be IP addresses or domain names.
 
 Two types of DNS record:
-- CNAME
+- __CNAME__
   - Route 53 charges for queries.
   - You can't create CNAME a record at the top node of DNS namespace,
   - If you have the domain namespace example.com, you can't create a CNAME for example.com, but you can for www.example.com because that's a subdomain. So, not the zone apex.
   - A CNAME can point to any DNS record hosted anywhere.
   - __CNAME records must point to a domain, never to an IP address__
   - Example: use CNAME records to point ftp.example.com and www.example.com to the DNS entry for example.com
-- A record:
+- __A__ record:
   - __maps a domain name to an IP address__
   - Example: "google.com" pointing to the IP address "74.125.224.147"
-- Aliases:
+- __AAAA__: name -> IP for IPv6
+- __Aliases__:
   - Route 53, doesn't charge for queries to AWS resources.
   - You can create an alias record at the zone apex, which is what you can't do with CNAME, so it's a key difference.
   - An alias record can only point to CloudFront, Elastic Beanstalk, ELB, S3 buckets configured as static websites or to another record in the same hosted zone.
@@ -1748,8 +1846,20 @@ Two types of DNS record:
   - A CNAME record canʼt be used for resolving apex / naked domain names.
   - Examples:
     - Domain: www.mywebsite.com  -> Value: myelb.us-east-2.amazonaws.com
+- __MX__: email
+- __PTR__: IP -> name
 
 Routing policies:
+- __simple__ routing (only one IP)
+- __weighted__ routing policy + health-check
+- __geolocation__: create one A record per regions + IP and default. dnschecker.org
+- __latency__: create many A records in different regions
+- __geoproximity__: need to __create traffic policy_- (provide exact geo area coordinates + bias)
+- __failover__: need to __create health-check__ , decrease __TTL__
+- __multivalue__: __returns many IP addresses__ in different order (round robin): same A record can have many IP addresses: Used for load balancer. Can add health-check
+    - issues: cannot send traffic to private subnet, no https, slow TTL (min 60s)
+- __ip based__ routing: different IP depending on source IP
+
 ![ Routing policies ](./images/route_53_routing_policies.png)
 
 
