@@ -180,6 +180,27 @@ You must configure permissions to allow an IAM entity (user or role) to view or 
 - iam:DeleteAccountPasswordPolicy
 - iam:UpdateAccountPasswordPolicy
 
+Example: Read-Only Access to All S3 Buckets
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::*",
+        "arn:aws:s3:::*/*"
+      ]
+    }
+  ]
+}
+
+```
+
 Type of Identities:
 
 ![ Type of Identities ](./images/Identity_types.jpg)
@@ -212,18 +233,18 @@ Example of Principal:
 |                       | "Principal":{"AWS":"arn:aws:sts::123456789012:assumed-role/role-name/role-session-name"}
 
 Role Based Access Control (RBAC):
-- “Traditional authorization model used in IAM is called role-based access control. This is based on a person's job-role.” [in AWS context, role refers to IAM-role]
-- “In RBAC model, you implement different policies for different job functions.”
-- “As best policy, you grant the minimum permissions necessary for the job function. this is known as "granting least privilege".”
-- “The disadvantage of RBAC model is that when employees add new resources, you must update policies to allow access to those resources.”
+- Traditional authorization model used in IAM is called role-based access control. This is based on a person's job-role. [in AWS context, role refers to IAM-role]
+- In RBAC model, you implement different policies for different job functions.
+- As best policy, you grant the minimum permissions necessary for the job function. this is known as "granting least privilege".
+- The disadvantage of RBAC model is that when employees add new resources, you must update policies to allow access to those resources.
 
 Attribute Based Access Control (ABAC):
-- “ABAC is an authorization strategy that defines permissions based on attributes (also known as Tags)”
-- “Tags can be attached to IAM Principals (users or roles) and to AWS resources”
-- “With ABAC, policies can be designed to allow operations when the principal's tag matches the resource tag.”
-- “ABAC is useful in environments that are growing rapidly and helps with situations where policy management becomes cumbersome”
-- “With ABAC, permissions scale - it is no longer necessary for administrator to update existing policies.”
-- “ABAC requires fewer policies”
+- ABAC is an authorization strategy that defines permissions based on attributes (also known as Tags)
+- Tags can be attached to IAM Principals (users or roles) and to AWS resources
+- With ABAC, policies can be designed to allow operations when the principal's tag matches the resource tag.
+- ABAC is useful in environments that are growing rapidly and helps with situations where policy management becomes cumbersome
+- With ABAC, permissions scale - it is no longer necessary for administrator to update existing policies.
+- ABAC requires fewer policies
 
 ### Architecture Patterns
 
@@ -307,7 +328,42 @@ The storage is either Amazon EBS, which is persistent storage, or Instance Store
 
 __Instance metadata__ is the data about your instance that you can use to configure or manage the running instance. Instance metadata is available at this URL: http://169.254.169.254/latest/meta-data
 
+Example Instance metadata response:
+```
+curl http://169.254.169.254/latest/meta-data
+
+ami-id
+ami-launch-index
+ami-manifest-path
+instance-id
+instance-type
+local-ipv4
+mac
+network/
+placement/
+profile/
+public-ipv4
+public-hostname
+security-groups
+
+curl http://169.254.169.254/latest/meta-data/instance-id
+
+i-0abcd1234efgh5678
+
+```
+
 __User data__ is data that gets supplied in the form of a script and that runs at system startup. Instance user data is available at this URL: http://169.254.169.254/latest/user-data
+
+Example User data response:
+```
+curl http://169.254.169.254/latest/user-data
+
+#!/bin/bash
+yum update -y
+yum install -y httpd
+service httpd start
+chkconfig httpd on
+```
 
 Benefits of Amazon EC2 include:
 - __elastic computing__. You can easily launch hundreds to thousands of EC2 instances within minutes.
@@ -347,12 +403,15 @@ __Storage__:
 - Object (S3)
 
 __EC2 instance endpoint__
+- network endpoint that allows communication with an EC2 instance
+  - public: This is the instance’s public IP address, which can be used to communicate with the instance over the internet.
+  - private: allows communication between EC2 instances within the same VPC or across VPCs using VPC peering
 - uses aws username and password
 - easy to connect from aws console
 
 ### AMI <a id="AMI"></a>
 
-An Amazon Machine Image provides the information required to launch an instance.
+An Amazon Machine Image provides the __information required to launch an instance__.
 
 If you create custom AMI then to use it and create new EC2 from it, you need to change the administrator password. Else you will not be able to login to this new EC2.
 
@@ -413,15 +472,6 @@ Process:
 - Pick an appropriate size [small, large, 2xlarge and so forth]
 - Run performance tests to right-size
 
-SSD:
-- __gp__
-  - gp2: 3 IOPS/GB, max 16 000 IOPS, burst capacity, throughput: 250 MiB/s
-  - gp3: __constant 3000 IOPS__, max 16 000 IOPS, __throughput: 1000 MiB/s__
-- __io__
-  - io1: 64 000 IOPS, multi-attach, throughput: 1000MiB/s
-  - __io2: 64 000 IOPS + 256 000 with block express__, __multi-attach__, __throughput: 4000 MiB/s__, 99.99% durability
-
-__HDD__: __500 IOPS__, throughput: __500 MiB/s__
 
 ### IP addresses <a id="IP"></a>
 
@@ -444,23 +494,38 @@ elastic IP address:
 
 ### How to Log in to Private instance <a id="LoginToEC2"></a>
 
-Bastion Host:
+1. __Bastion Host__:
 - For HA, reassign Elastic IP to new Bastion Host instance
 - Client can use existing Elastic IP to connect to new instance
 - Issues: extra servers to manage
 
-Systems Manager:
+2. __Systems Manager__:
 - Automated patching of servers and Automation of routine administrative tasks
 - interactive remote shell for Linux and Windows, macOS
 - Agent required: AWS preinstalls in many instances
 - Simpler and Safer when compared to Bastion Host
 - Close SSH and RDP ports in Security Group
 
+3. __VPN or Direct Connect__
+- Set Up a VPN Connection: Establish a VPN connection between your on-premises network and your AWS VPC
+- Connect to the VPC: your local network will be able to reach the private IP of the EC2 instance within the VPC
+- SSH or RDP: From your local machine (now part of the VPN), you can SSH into your EC2 instance
+
+4. __VPC Peering__
+- Set up VPC Peering between two VPCs.
+- Update route tables in both VPCs to allow routing between them.
+- Update Security Groups to allow access to EC2 instances across VPCs.
+- SSH to EC2 Instance using its private IP from another EC2 instance in the peered VPC.
+
 ### Block Storage for EC2 <a id="BlockStorage"></a>
 
 #### Instance Store
 
 - Highest Performance
+- IOPS depends on the instance type and the type:
+  - i3.large: 70,000 IOPS
+  - i3.16xlarge: 1,000,000 IOPS
+  - d2, h1: 3,000 IOPS
 - Data persists only for the lifetime of the instance
 - Reboot – Data Persists
 - Data is lost – when underlying hardware fails, instance stops, or instance terminates
@@ -488,12 +553,10 @@ NAT instances versus NAT gateways:
 - __NAT gateway__ is likely to be the best solution in most use cases.    
   - It's fully managed by AWS.
   - You get more scalability over NAT gateway.
-  - You get automatic high availability as well.
   - The only real limitations of the NAT gateway are things like you can't use it as a bastion host, but you should probably separate that into a different instance anyway.
-  - There are also no security groups with a NAT gateway, whereas there are with a NAT instance.
-  - NAT gateway is deployed inside a subnet and it can scale only inside that subnet. For fault tolerance, it is recommended that you deploy one NAT gateway per availability zone
-  - Deployed in Public Subnet in specific AZ
-  - High Availability – Deploy one per AZ
+  - There are also __no security groups with a NAT gateway__, whereas there are with a NAT instance.
+  - __NAT gateway is deployed inside a subnet and it can scale only inside that subnet in specific AZ__. 
+  - For fault tolerance, __it is recommended that you deploy one NAT gateway per availability zone__
 
 ### EC2 instance lifecycle <a id="Ec2_lifecycle"></a>
 
@@ -543,10 +606,13 @@ The __Nitro__ system:
 - The __performance is close to bare metal__, even for virtualized instances.
 - It gives you the ENA and the EFA.
   - ENA (Elastic Network Adapter) allows: 200 Gbps / network card etc.
+    - To enable EFA: In the Network Interface section of the EC2 launch wizard, you will see an option to enable Elastic Fabric Adapter under the Elastic Network Adapter (ENA) options.
   - EFA (Elastic Fabric Adapter): lower and more consistent latency and higher throughput than the TCP transport traditionally used in cloud-based HPC systems
 - You have more available bare metal instance types you can use, and it gives you higher network performance.
 - It's also good for HPC because there's more optimizations for high performance computing.
 - It can also have dense storage instances as well.
+- To create a Nitro-based EC2 instance, you need to use an instance type that is powered by the AWS Nitro System:  It is used by modern EC2 instances such as M5, M5a, C5, C5a, R5, R5a, and others.
+- When creating EC2 choose an Instance type that is Nitro-based. For example: M5 (General Purpose), C5 (Compute Optimized), R5 (Memory Optimized)
 
 __Nitro enclaves__:
 - are __isolated compute environments__ that run on hardened virtual machines.
@@ -560,6 +626,9 @@ __Nitro enclaves__:
 EC2 pricing options:
 - __on-demand__, which is the standard rate, there's no discount, there's no commitment. It's very good for any kind of short-term requirements or unpredictable workloads.
 - __reserved__ one or three year commitment, but you get a good discount.
+  - Provides a capacity reservation when used in a __specific AZ__,
+  - __Can switch AZ within the same region__
+  - Can change the instance size within the __same instance type__
 - __spot__ instances, you get a very low price because you're essentially using unused capacity. So you can get a large discount, but you can also be terminated at any time.
 - __Dedicated instances__ offer physical isolation at the host hardware level from instances belonging to other customers. And you pay per instance. __Hardware dedicated to you__ (account), but you don’t control the physical server.
 - __Dedicated host__ is physical servers dedicated for your use, so you get the actual hardware dedicated for you. There's no sharing going on there. You control what EC2 instances run on it
@@ -567,17 +636,9 @@ EC2 pricing options:
   - required for bring-your-own-license (__BYOL__) scenarios
   - You __pay per host__, not per instance.
 - __savings plans__ where you can commit to a certain amount of usage for various compute services. You have a one or three-year commitment.
-
-#### Reserved instances:
-- Provides a capacity reservation when used in a __specific AZ__,
-- __Can switch AZ within the same region__
-- Can change the instance size within the __same instance type__
-
-#### Savings Plan
-With Compute Savings Plan, you can get a significant discount (up to 66%) on any compute services such as EC2, Lambda, and Fargate Containers.
-
-So, the compute savings plan applies to both server-based and serverless computing. 
-Reservation applies only to EC2 instances and does not cover serverless usage.
+  - With Compute Savings Plan, you can get a __significant discount (up to 66%)__ on any compute services such as __EC2, Lambda, and Fargate__ Containers.
+  - So, the compute savings plan applies to both __server-based and serverless computing__. 
+  - __Reservation applies only to EC2 instances and does not cover serverless usage.__
 
 
 ### Architecture Patterns
@@ -641,7 +702,7 @@ To prevent this situation, you can enable the new “unlimited” mode in bursta
 
 System status check would identify AWS infrastructure related issues. Instance status check would also fail if a system status check fails. So, either one can be used
 
-#### ou need to allow remote SSH login to the private EC2 instances from the on-premises network.
+#### You need to allow remote SSH login to the private EC2 instances from the on-premises network.
 
 Using the Session Manager (part of the system manager service), authorized employees can log in to their EC2 instances using IAM credentials. 
 Session Manager does not use SSH or RDP ports. 
@@ -2107,13 +2168,22 @@ However, you cannot decrease an EBS volume size.
 
 volume types:
 - SSD:
+  - __gp__
+    - gp2: 3 IOPS/GB, max 16 000 IOPS, burst capacity, throughput: 250 MiB/s
+    - gp3: __constant 3000 IOPS__, max 16 000 IOPS, __throughput: 1000 MiB/s__
+  - __io__
+    - io1: 64 000 IOPS, multi-attach, throughput: 1000MiB/s
+    - __io2: 64 000 IOPS + 256 000 with block express__, __multi-attach__, __throughput: 4000 MiB/s__, 99.99% durability
+
 ![ SSD ](./images/ebs_ssd_volume_types.png)
 
 - HDD backed:
-![ HDD ](./images/ebs_hdd_volume_types.png)
-
+  - __500 IOPS__, throughput: __500 MiB/s__
   - extremely cheap in comparison to the SSD-backed volumes.
   - Key thing to note here, there's no Multi-Attach enabled and you cannot use these as boot volumes.
+
+![ HDD ](./images/ebs_hdd_volume_types.png)
+
 
 #### Data Lifecycle Manager:
 - automates the creation, retention, and deletion of EBS snapshots and EBS-backed AMIs.
