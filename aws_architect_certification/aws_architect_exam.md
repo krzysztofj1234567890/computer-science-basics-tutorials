@@ -1,6 +1,10 @@
 # AWS Architect exam
 
 - [IAM](#IAM)
+  - [IAM Policies](#IAMPolicies)
+  - [IAM Entities](#IAMEntities)
+  - [IAM Reports](#IAMReports)
+  - [IAM Identities](#IAMIdentities)
 - [EC2](#EC2)
   - [AMI](#AMI)
   - [Instance Types](#InstanceTypes)
@@ -27,6 +31,13 @@
   - [Security Groups](#SecurityGroups)
   - [Connecting To VPC](#ConnectingToVPC)
 - [S3](#S3)
+  - [S3 Storage Classes](#S3StorageClasses)
+  - [S3 Access](#S3Access)
+  - [S3 Object Lock](#S3S3ObjectLock)    
+  - [S3 Transfer Acceleration](#S3StorageClasses)
+  - [S3 Encryption](#S3Encryption)
+  - [S3 Static Website](#S3StaticWebsite)
+  - [S3 CRR](#S3CRR)
 - [DNS](#DNS)
   - [Route53](#Route53)
   - [CloudFront](#CloudFront)
@@ -119,23 +130,43 @@ Server certificates and certificate-based authentication:
 - CBA requires a private certificate authority (CA) to create private certificates to identify users.
 - Short-lived certificates are used with CBA to reduce the potential impact of a compromised credential.
 
-IAM users:
+### IAM Policies <a id="IAMPolicies"></a>
+
+- IAM AWS Managed policy: 
+  - created and managed by aws (can update at any time), common use cases, might add policies to other related aws services.
+  - cannot specify specific resource, no customization, broad range
+- Customer Managed Policies:
+  - created and managed by users, total control on a permission, fine grained
+  - contains many permissions
+- Inline policy: 
+  - direct association to user, group or role, does not have ARN
+  - use it when ou have specific job needs, short term project
+- Use IAM Policy Similator to check the policy
+
+### IAM Entities <a id="IAMEntities"></a>
+
+__IAM users:__ individuals
 - IAM user is an entity that represent a person or a service.
 - By default, they cannot access anything in the account.
 - The root user credentials are the email address used to create the account, and there's a password associated with that account.
 - The __root account has full administrative permissions and they cannot be restricted__.
 - IAM users can be created to represent applications, and those are known then as __service accounts__.
 - You can have up to 5,000 users per AWS account.
+- access:
+  - username/password. Use user password policy to enforce strong password
+  - access keys id and secret
+- add policy (with many permissions)
 
-IAM groups:
+__IAM groups:__ collection of IAM users (can belong to many groups)
 - IAM groups are __collections of users__ and have policies attached to them.
 - A group's not an identity in itself, so it can't be identified as a principal in a policy.
 - use groups to assign permissions to users.
 - Always follow the principal of least privilege when assigning permissions.
 - You __can't nest groups__
 - __Groups cannot be specified in the policy document__. Only users and roles
+- add policy (with many permissions)
 
-IAM Roles:
+__IAM Roles:__
 - Roles are created and then __assumed by trusted entities__.
 - They are a __way of delegating permissions to resources for users and services__.
 - __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
@@ -145,15 +176,30 @@ IAM Policies:
 - Policy documents are written in JSON and include key value pairs that consist of an attribute and a value.
 - __All permissions are implicitly denied by default__.
 - The most restrictive policy is applied if there's multiple policies with conflicting statements.
+  - it gives you tempoarary credentials
+  - delegate access to users, applications, services
+  - __attach role to aws service__ (EC2: IAM instance profile)
+  - __assume role__: allows an IAM entity to temporarly (1 hour) use permissions of IAM role. Use aws console 'switch role'
+    - centralized, auditing
+    - can access same aws or different aws account (trusted account)
+  - __web identity__ : enables secure access to AWS resources using temporary credentials obtained through external identity provider (IDP) - like github
+    - uses OAuth 2.0 (authorization) + OpenID Connect (authentication)
+    - uses JWT token to access other web services
+  - __SAML 2 federation__: similar to web identity but SAML
+    - SAML 2.0 (for AD)
+    - Allows SSO: one authentication and access to multiple applications
+    - uses XML assertions
+  - Custom trust policy: you can create a policy thed defines who can assume the role and under what circumstances
+    - example: must have MFA, specific email or department, source IP
 
-Types of IAM policy:
+__Types of IAM policy__:
 - __identity-based policies__ which you can attach to users, groups, or roles.
 - __resource-based policies__. They get attached to resources like S3 buckets, and you can define permissions for principals accessing the resources using a resource policy.
 - __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity.
 - __organizations service__ control policies. These specify the maximum permissions for an organization or an OU.
 - __session policies__ that are used with Assume Role API actions.
 
-IAM best practices:
+__IAM best practices__:
 - __lock__ away your account __root user__ access keys,
 - create individual users,
 - use __groups__ to assign __permissions to users__,
@@ -170,6 +216,16 @@ IAM best practices:
 - remove any unnecessary credentials.
 - use policy conditions for extra security when you're writing your IAM policies.
 - monitor activity in your account to see what's actually happening.
+
+
+__IAM Root user best practices:__
+- never use root user for everyday tasks
+- only use root to: close aws account, update email /password, restore IAM permissions, configure aws shield, billing, increase service limits, transfet support plans, GovCloud
+- enable MFA
+- create admin user
+- delete or rotate access keys
+- secure email address
+- create alias (so account name is not visible in url)
 
 Set a custom password policy on your AWS account to specify complexity requirements and mandatory rotation periods for your IAM users' passwords
 
@@ -201,17 +257,37 @@ Example: Read-Only Access to All S3 Buckets
 
 ```
 
-Type of Identities:
+### IAM Reports <a id="IAMReports"></a>
+
+- IAM Credential Reports: csv files, overview of IAM user __credentials status__ (password rotation, dates, MFA devices, access keys
+- IAM Advisor Reports: aws report, __lists services accessible to given user/group/role__
+- IAM Access Analyzer: aws report, improve security of your AWS setup by analyzing __resource permissions__, __seeresources shared with external identity__ per region
+  - see used and unused findings
+
+### Type of Identities <a id="IAMIdentities"></a>
 
 ![ Type of Identities ](./images/Identity_types.jpg)
 
-Corporate Identity Federation:
+__AWS Organizations__
+- management, billing, compliance enforcement for multiple aws accounts
+- define central configuration and __resource sharing__, __consolidated billing__ (volume discounts)
+- automated account creation, __service control policies__ (SCP)
+  - works at organization level: root, organizational units (OU) or individual accounts
+  - can only limit
+  - affects only member accounts in the OU. Have no effect on the management account
+  - aws evaluates SCPs in conjunction with IAM policies. Action must be allowed in IAM policy and not denied in SCP.
+  - The __default FullAWSAccess managed policy__ is attached to all services - it allows all (no restrictions)
+  - if SCP is missing (in OU) then it means deny
+  - for it to work you send invitation to other aws accounts that must accept invitation
+  - SCP is to control permissions, not to add permisions (to User)
+
+__Corporate Identity Federation__:
 - SAML 2.0 (Security Assertion Mark Up Language) to exchange identity and security information between identity provider and application
 - AWS IAM Federation – enables users sign-in to their AWS account with existing corporate credentials
 - Non-SAML options – AWS Directory Service for Microsoft Active Directory
 - AWS Organizations – Use AWS Single Sign On (SSO) to scale to multiple AWS Accounts (centrally manage access)
 
-Cognito Identity Federation:
+__Cognito Identity Federation__:
 - Users can sign-in to mobile and web apps using social identity providers like Facebook, google, amazon
 - Support for corporate identity federation using SAML 2.0
 - Open Standards Support - Oauth 2.0, SAML 2.0, OpenID Connect
@@ -792,6 +868,21 @@ Scaling Policies:
 - You can __scale based on demand, performance or on a schedule__.
 - __Scaling policies__ will define how to respond to changes in-demand.
 - Auto Scaling groups define collections of EC2 instances that are scaled and managed together.
+- __auto-scaling group__: allows to manage collection of EC2 as a single unit. Defines VPC and subnet, health check, capacity, max, min, scaling policiies:
+  - manual
+  - scheduled scaling: runs scaling policy. When you create a scheduled scaling policy, you can define:
+    - Start Time (StartTime): The time the action begins.
+    - End Time (EndTime): (Optional) The time the action should stop being valid.
+  - dynamic scaling: define parameters that control rge auto-scaling process (uncertain workload). __Uses CloudWatch Alarm__
+    - simple: single threashold (add 1 ec2 when cpu utilization>50%)
+    - step: multiple threasholds
+    - target tracking: use metric type (cpu utilization, network bytes out or request count per target) to automatically add capacity. Set __instance warup time__
+  - predictive scaling: based on predicted traffic (needs 3 weeks)
+  - instance Maintenance policy: after added a new template. Use 'instance refresh' to start:
+    - terminate and launch
+    - launch before terminating
+    - no policy (mixed)
+    - custom
 
 Auto scaling monitoring:
 - __Group metrics__:
@@ -819,6 +910,25 @@ There are some additional scaling settings:
 An __ELB distributes incoming traffic across__ multiple targets such as __EC2 instances__, __containers__, and __IP addresses__, and also __Lambda functions__.
 
 It provides fault tolerance for applications.
+
+- __launch template__: standardizes setup of EC2 instances (os, ec2 type, security-group etc.). Can use used with outher aws services (other then auto-scaling group
+- you can dynamically changing scaling policies
+- instance purhcase option: on demand or spot
+- allocation strategies: lowest price, price capacity optiized, 
+- termination policy: defines what instances are terminated first
+  - default: even distribution accross AZ, except if instance is in 'protected' status, oldest template first, closest to next billing hour
+  - other: terminate instances based on allocation strategy: spot or on-demand, new instance type
+  - custom: total control what instance terminates, __needs lambda__. Use it when:
+    - better control what to terminate
+    - custom checks (based on labels or some other metric)
+    - graceful shutdown of application
+    - data backup
+    - integration with external systems 
+
+- auto-scaling timers: 
+  - warm-up time: time needed to initialize and ready to handle requests, needs dynamic scaling (metrics)
+  - cool-down period (default 300s): period before other scaling activity starts
+  - health-check grace period: amount of time before performing health check on new instances
 
 ### Health checks <a id="HealthChecks"></a>
 
@@ -982,6 +1092,11 @@ Cross-region load balancing
 - AWS Shield Standard and Advanced Protection
 
 ![ Global Accelerator ](./images/global_accelerator.jpg)
+
+### Auto scaling vs ELB
+
+- ELB automatically routes incoming traffic to all instances in auto-scaling group
+- ELB is used to monitor health
 
 ### Architectural Patterns
 
@@ -1483,6 +1598,17 @@ There's __no hierarchy__ for objects within a bucket.
 
 S3 delivers __strong read-after-write consistency__.
 
+- HA: 99.99% (standard)
+- Max file size 5TB
+- Data Consistency: 
+  - read-after-write for PUTS of new objects
+  - eventual consistency for overwrite PUTs and DELETE
+- NOT GOOD for:
+  - low latency access
+  - many small files
+  - frequent updates
+  - data transactions
+
 S3 Buckets:
 - Files get stored in buckets
 - the bucket can be viewed as a container for the objects.
@@ -1491,6 +1617,12 @@ S3 Buckets:
 - 100 buckets per account by default as a limit,
 - you can store unlimited objects in your buckets.
 - cannot create nested buckets, so a bucket will never go inside another bucket.
+- globally unique
+- 3-63 chars long
+- lowercase, numbers, hyphens, dots
+- must start with letter or number
+- cannot look like IP
+- Bucket type: __general purpose__ (choose region) OR __directory__ (choose Region+AZ)
 
 S3 objects:
 - Objects are the files that you upload to S3.
@@ -1502,6 +1634,81 @@ S3 objects:
 
 S3:__PutObjectLegalHold__ permissions privileges are limited to people with a business need
 
+S3 Versioning
+- enable in bucket (default disabled) or object
+
+S3 Lifecycle rules
+- automated changing storage class 
+- applied to filtered objects: prefix, tags, object size (range)
+- you can setup for versioned and not versioned objects
+
+
+By default __bucket owner__ pays for: storage, data transfer, PUT or GET user requests
+__Requester__ if authenticated (must have aws account) can be made to pay for: data transfer and request cost. Requested must have a specific http header. To enable it you must:
+- make S3 bucket public
+- create bucket policy to everyone to access
+- set 'requester pay' option in 'properties'. It makes the bucket not available to anonymous access.
+- requested must use x-amz-request-payer header.
+
+__S3 pre-signed url__: __allow access to private S3 objects for limited time__
+- downloading and uploading
+- create it using:
+  - aws sdk
+  - aws cli
+  - aws console
+
+S3 MFA delete for bucket: must aws cli and you must have MFA on for your aws user.
+
+
+__S3 Multipart Upload__ (mandatory for files >5GB)
+- get uploadId: 
+```
+aws s3api create-multipart-upload --bucket kjbucket --key kjfilename
+```
+- compress + split file ( 7-zip )
+- upload file parts <5MB
+```
+aws s3api upload-part --bucket kjbucket --key kjfilename --part-number1 --upload-id <id> --body .\you_file_name_part
+```
+- get ETag to track
+- send request with uploadID and ETAGs to assemble file
+```
+aws s3api complete-multipart-upload --bucket....
+```
+
+
+__VPC Gateway Endpoint for S3__
+- only S3 and DynamoDB
+- no additional cost
+- integrates directly into VPC route table (creates entry)
+
+__S3 Access Point__
+- you can always use url to s3
+- S3 access point help you to control who and how they can access S3 bucket
+- Useful if bucket is accessed from many (like 500) applications/users  (doing it in bucket policy will be complex)
+- Simplified bucket policy
+- ability to restrict access from specific VPC of IP address
+- support network based restrictions
+- you have to delegate your __bucket policy__ to delegate the management to access point
+
+
+### Storage classes <a id="S3StorageClasses"></a>
+
+
+S3 storage classes:
+- Standard
+- Infrequent access: accessed 1/month, HA 99.9, retrieval fees, >128KB, at least 30 days
+- Intellingenmt tiering: unknown access pattern, HA 99.9, 30 days
+- IA One zone: use for data that can be re-created. HA: 99.5%, retrieval fees, >128KB
+- Express one zone: high performance, single zone to deliver consistent single-digit millisecond latency. AI. 10* faster then Standard, Requires 'directory' bucket
+- Glacial Instant retrival: long lived, few times per year fast retrival. >90days. Good for backup
+- Glacier flexible retrival: rarely accessed: good for archive or backup. >90days. Retrival within min-hours
+- Glacier Deep Archive: rarely accessed, use for archive. retrival in >12 hours, >180 dyas
+
+S3 storage Use cases:
+- Backup storage: disaster recovery, potentially frequent access, fast retrival speed
+- Archive: long term data preservation, infrequent access, slow retrival speed
+
 Data Access Pattern:
 
 | S3 Storage Class  | Standard            | Infrequent Access       | Glacier Deep Archive
@@ -1512,28 +1719,94 @@ Data Access Pattern:
 | Retrieval Fee     | N/A                 | Per GB                  | Per GB
 | Redundancy        | 3 AZ                | 3 AZ                    | 3 AZ
 
-Storage classes:
 
 ![ Storage classes ](./images/s3_storage_classes.png)
 
 ![ Storage classes comparison ](./images/s3_comparison.jpg)
  
-__IAM / Bucket policies__:
+### Controlling access to AWS S3 Buckets <a id="S3Access"></a>
+
+__IAM Policy__
+- applies to all AWS services
+- __attached to IAM users, groups, roles__
 - IAM policies are identity-based policies.
 - The principal is not defined within an IAM policy.
+- complex for cross-account access
+- cannot deny public access to bucket
+- IAM policies if you need to control access to AWS services other than as S3.
+- numerous S3 buckets, each with different permissions requirements, IAM policies will turn out to be a lot easier to manage.
+- if you prefer to keep access control policies in the IAM environment.
+- example custom policy for IAM user:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowFullAccessToTestBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::test-bucket",
+        "arn:aws:s3:::test-bucket/*",
+        "arn:aws:s3:::my-bucket-name/my-folder/specific-file.txt"
+      ]
+    }
+  ]
+}
+
+```
+
+__Bucket Policy__
+- used only for S3 resources
+- __attached to S3 buckets__
+- simple __cross-account access__
+- explicit public access control like: Fine-grained IP or condition-based rules
+- you have to provide principal
 - Bucket policies are resource-based policies.
 - Bucket policies, they can only be attached to Amazon S3 buckets.
-- Use them when:
-  - IAM policies if you need to control access to AWS services other than as S3.
-  - numerous S3 buckets, each with different permissions requirements, IAM policies will turn out to be a lot easier to manage.
-  - if you prefer to keep access control policies in the IAM environment.
+- example of bucket policy that will protect S3 bucket:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowReadOnlyToSpecificUser",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:user/krzysztof"
+      },
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::test-bucket",
+        "arn:aws:s3:::test-bucket/*",
+        "arn:aws:s3:::my-bucket-name/documents/myfile.txt"
+      ]
+    }
+  ]
+}
+```
 
-__S3 Access Control Lists__:
+
+__S3 ACL = Access Control Lists__ - disabled by default
 - These are a legacy access control mechanism.
 - AWS will generally recommend using S3 bucket policies or IAM policies rather than ACLs.
 - They can be attached to a bucket or directly to an object,
 - limited options for the grantees and the permissions that you can apply.
 - Not as good as JSON-based IAM policy.
+- provides way to grant access to specific account or authenticated group (created by aws like: everyone or authenticated only)
+- cannot be used to grant access to IAM resources
+- can be attached to bucket or specific object
+- __can setup different owner of S3 bucker and different for S3 object__
+- __Applied in the order above__. Access policies must be attached explicitly.
 - Use it when:
   - simple way to grant cross account access to S3 without using IAM roles.
   - if your IAM policies are reaching the size limits,
@@ -1569,11 +1842,6 @@ Protected API access with MFA:
 - This is used to enforce another authentication factor, an MFA code when accessing resources and not just S3.
 - It's enforced using the AWS MultiFactorAuthAge key in a bucket policy.
 
-S3 encryption:
-- SSE-S3, using S3's existing encryption key for AES 256 encryption.
-- SSE-C you're uploading your own AES 256 encryption key, which S3 then uses for you.
-- SSE-KMS is where you're using KMS keys
-- client-side is where you have your own encryption keys and you're managing the encryption as well. There's no encryption happening on AWS you're doing it before you upload your objects.
 
 Event notifications:
 - this is where S3 sends notifications when an event happens in an S3 bucket.
@@ -1604,13 +1872,14 @@ Server Access Logging:
 - you can specify a prefix if you want to.
 - You must also grant write permission to the Amazon S3 Log Delivery group on the destination bucket.
 
-CORS with Amazon S3:
-- is enabled through setting:
-  - the access-control-allow-origin,
-  - access-control-allow-methods,
-  - access-control-allow-header.
-- These settings are defined using rules
-- the rules are added using JSON files in Amazon S3.
+__S3 server access logging__: __summary level__ record of requests in plain text made to S3 bucket
+
+__Cloud Trail events__: logs in json of all cations on your objects - __all details__ like: requestor, operation
+
+S3 Event Notification:
+- destination: SNS, SQS, Lambda
+- created when: object deleted, created, updated
+- good for: automated workflows, real-time notification
 
 Cross Account Access Methods:
 - Resource-based policies and IAM policies can be used for programmatic access to S3 bucket objects,
@@ -1625,7 +1894,7 @@ Performance optimizations:
 - you can combine S3 and EC2 in the same region for better performance.
 - you can use Amazon S3 Transfer Acceleration to minimize any latency caused by long distances.
 
-### Amazon S3 and Glacier
+#### Amazon S3 and Glacier
 
 A bucket owner can grant cross-account permissions to another AWS account (or users in an account) to upload objects.
 - The AWS account that uploads the objects owns them.
@@ -1637,7 +1906,7 @@ You can use the AWS Policy Generator to create a bucket policy for your Amazon S
 
 Bucket and object permissions are independent of each other.
 
-### Transfer acceleration
+### Transfer acceleration <a id="S3TransferAcceleration"></a>
 
 Amazon S3 Transfer Acceleration enables fast, easy, and secure transfers of files over long distances between your client and your Amazon S3 bucket.
 
@@ -1651,17 +1920,59 @@ Transfer acceleration is as secure as a direct upload to S3
 - Transfer Acceleration is as secure as a direct upload to S3,
 - you're charged only if there's a benefit in the transfer time.
 - You need to enable Transfer Acceleration on the S3 bucket. It cannot be disabled after that, but only suspended.
+- it is using aws global network and edge locations
+- speeds-up 50-500% faster
+- enable it and get new url
+
 
 Must use one of the following endpoints:
 - .s3-accelerate.amazonaws.com.
 - .s3-accelerate.dualstack.amazonaws.com (dual-stack option)
 
-__Cross Region Replication requires versioning__ to be enabled on the source and destination buckets.
 
-__Replication is 1:1__ (one source bucket, to one destination bucket).
-You can configure __separate S3 Lifecycle rules on the source and destination buckets__.
 
-### Static Websites
+### S3 encryption <a id="S3Encryption"></a>
+
+S3 encryption:
+- SSE-S3, using S3's existing encryption key for AES 256 encryption.
+- SSE-C you're uploading your own AES 256 encryption key, which S3 then uses for you.
+- SSE-KMS is where you're using KMS keys
+- client-side is where you have your own encryption keys and you're managing the encryption as well. There's no encryption happening on AWS you're doing it before you upload your objects.
+
+- uses symmetric encryption
+- SSE (server side): happens on server side
+  - key management: 
+   - aws managed keys (SSE-S3, KMS)
+     - SSE-S3 - aws manages the keys , you can change encryption per object, uses AES0256, __automatic key rotation__, no audit logging
+     - KMS - aws managed or customer managed key. rotation manual or automatic when you schedule, Auditing using cloud-trail. Objects can be accessed only by user who created/owns KMS key
+       - access control: you can add key users
+       - custom key rotation
+    - Dual layer SSE with KMS: data encrypted twice: S3 + AWS KMS. FIPS requires it.
+   - you provide keys (SSE-C): 
+     - you manage they keys outside of aws
+     - provide keys when uploading/downloading the object
+     - create key using OpenSSL: 
+```
+# create key
+openssl rand 32 > sse-c.key 
+# encode it to base64
+key=$(cat sse-c.key | base64)
+# create md5 hash
+keymd5=$( cat sse-c.key | openssl dgst -md5 -binary | base64)
+```    - aws console cannot open this file
+
+- CSE (client side)
+  - need to use AWS encryption SDK or OpenSSL or other to encrypt
+
+S3 Public access:
+- set 'block all public access' on the bucket: account level or bucket level
+- set one of:
+  - set 'ACL':
+    - set 'everyone public access'
+  - 'Bucket Policy' (recommended):
+    - create bucket policy (see above): PublicReadGetObject, Principal: *
+
+### Static Websites <a id="S3StaticWebsite"></a>
 
 You can use a custom domain name with S3 using a __Route 53 Alias record__.
 
@@ -1683,13 +1994,69 @@ To enable website hosting on a bucket, specify:
   - Add __alias records__ for your domain and subdomain
 - __only http__ (no s). if you want https: use cloudFront
 
-### S3 Object Lock
+- register domain name: krzysztof.pl
+- __create S3 bucket__: bucket name: web.krzysztof.pl
+- __upload files__: index.html etc.
+- S3 bucket: __make s3 bucket public__: 'public access off'
+- __create bucket policy__
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::your-bucket-name/*"
+    }
+  ]
+}
+```
+- S3 bucket: __enable static website hosting__ and specify index.html etc. page
+- __change DNS record__ in domain registrar and __change name servers__
+- __Create public hosted zone in Route 53 with A or CNAME record__ and point DNS to S3 website endpoint
+- Use Amazon __CloudFront for HTTPS support__ 
+
+AWS S3 Cross-origin resource sharing (CORS)
+- it is a way to request resources from different domain (javascript 'fetch')
+- browsers will block it
+- with Permissions -> CORS you can still do it by adding CORS rules to the bucket:
+```
+<CORSConfiguration>
+  <CORSRule>
+    <AllowedOrigin>https://example.com</AllowedOrigin>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+  </CORSRule>
+</CORSConfiguration>
+```
+
+CORS with Amazon S3:
+- is enabled through setting:
+  - the access-control-allow-origin,
+  - access-control-allow-methods,
+  - access-control-allow-header.
+- These settings are defined using rules
+- the rules are added using JSON files in Amazon S3.
+
+### S3 Object Lock <a id="S3ObjectLock"></a>
 
 S3’s Object Lock feature allows you to enforce the “Write Once Read Many” (WORM) paradigm. 
 In this paradigm, an object version cannot be modified or deleted; however, it is available for reading.
 
 S3 Object Lock protects your data from accidental and malicious deletion Object Lock needs to be enabled at Bucket Level. 
 This feature also automatically enables versioning.
+
+Prevent deletion of objects (even life cycle policy cannot delete it)
+- retention mode: rules that define how strictly the object is protected
+  - Governance Mode
+  - Compliance Mode
+- retention period
+- Legal hold: indefinite time.
+- Versioning must be enabled
+- one S3 object lock is enabled, it cannot be disabled or versioning cannot be suspended.
+- can be set on bucket or individual object
 
 Why can’t you enforce the WORM paradigm using IAM policies?
 The issue with IAM policies are:
@@ -1709,6 +2076,23 @@ There are three ways in which you can use Object Lock:
   In __Governance Mode__, anyone with __S3:BypassGovernanceRetention__ permission can override retention configuration and delete the object version
   In __Compliance Mode__, the __Object version cannot be deleted by anyone__ (including the root user) until the retention period expires.
 
+### AWS S3 Cross-region replication (CRR) <a id="S3CRR"></a>
+
+__Cross Region Replication requires versioning__ to be enabled on the source and destination buckets.
+
+__Replication is 1:1__ (one source bucket, to one destination bucket).
+You can configure __separate S3 Lifecycle rules on the source and destination buckets__.
+
+- automatically replicates every object in another region in the __same or different account__
+- inserts or updates are replicated
+- you __can change storage class__ in the destination
+- you must have __versioning enabled__
+- must have __IAM role with permissions__ to perform replication (read from source bucket and write to destination bucket)
+- __Define rules__ how to do replication
+  - __replication time control__: guarantee replication time, include SLA, metrics
+  - __replication metrics__: detailed monitoring
+  - __delete marker replication__: object will not be deleted (replication marker) in destination - good for backup
+  - __replica modification sync__: changes made to replicated copies are sync back to source bucket
 
 
 ### Architecture Patterns
@@ -4158,12 +4542,24 @@ Identity providers and federation :
 - __External users sign in for a well known IDP such as login with Facebook, Amazon or Google__,
 - IAM supports IDPs that are compatible with openID Connect or SAML 2.0.
 
-IAM Identity center:
+__IAM Identity center__ = SSO for aws
 - centrally manage access to multiple AWS accounts and business applications
 - easily manage SSO access and user permissions to all your accounts in organizations centrally,
 - IAM Identity Center also includes built in integrations to many business applications like Salesforce, Box and office 365.
 - You can create and manage user identities in IAM Identity Center
 - you can connect to existing identity stores such as Ad or Azure
+- connect multiple AWS Account to Identity center and create IAM user in Identity center
+- supports connectivity with AD and SAML 2.0
+- Workforce Identity - any user who can access multiple AWS accounts. It can be:
+  - IAM Identity center
+  - AD
+  - Saml 2.0
+- AWS IAM Identity Center supports __one identity source at a time__
+- You can use AWS IAM Identity Center and also have IAM users in your AWS accounts at the same time. They are independent identity management systems and can coexist.
+- you can use AWS IAM Identity Center without AWS Organizations, but with limited functionality
+  - Multi-account access management is not available.
+  - You cannot assign users to other AWS accounts
+- AWS Cloud Trail - logs everything
 
 ### KMS <a id="KMS"></a>
 
