@@ -2332,14 +2332,66 @@ Instead of using this provided domain name, you can use an alternate domain name
   - forward all headers to your origin, which means the objects are not cached.
   - forward a whitelist of headers that you specify.
   - forward only the default headers and then it doesn't cache the objects based on values in the request headers.
+- low latency, high transfer
+- uses edge locations
+- Origin domain: source of the content: s3, ec2, lambda, lb, api gateway
+- Origin path
+- Custom header: additional header you want to pass to origin (authentication)
+- Origin shield: additional layer of caching (edge locations + regional cache already does caching)
+  - origin shield adds 3 layer of caching (last one) to reduce the load
 
-To secure Amazon CloudFront:
+__CloudFront setup__:
+- setup static website
+- create CloundFront Distribution (in CloudFront)
+  - origin is the static website
+- all edge location as Price class
+- use the new CloudFront url
+
+__CloudFront Cache__ behavior:
+- path pattern: what content you want to cache (* means all)
+- compression
+- viewer protocol: HTTP or HTTPS or both
+- for __custom domain name__, you need to configure CNAME and setup SSL/TLS certificate:
+  - use AWS __Certificate Manager__ to create the SSL/TLS certificate
+  - CloudFront needs the certificate in Virginia region
+  - Create A-Alias record for your domain in Route53
+- to make your website secure, you do not want the user to access it using http from S3
+  - __S3 bucket must be private and CloundFront origin access = 'Origin Access Control'__
+  - you still have to create bucket policy on your S3
+- Use header or cookie to understand request
+- Create cache policies, compression, TTL
+
+To __secure Amazon CloudFront__:
 - enable HTTPS,
 - restrict access with signed URLs/cookies,
 - AWS WAF,
 - implement field-level encryption,
 - consider geographic restrictions,
 - leverage CloudFront's security policies
+
+Create a __secure HTTPS website__ and preventing users from accessing the S3 bucket directly 
+- Host Website Content on S3 (Private)
+  - Create an S3 bucket (e.g., mywebsite.com).
+  - Upload your website files (HTML, CSS, JS, etc.).
+  - Disable public access to the bucket:
+  - Do not enable static website hosting on the bucket directly
+- Create CloudFront Distribution
+  - Use Amazon CloudFront as the CDN and secure HTTPS entry point.
+  - Origin domain: Set it to your S3 bucket’s regional endpoint 
+  - Restrict access: Enable Origin Access Control (OAC) or Origin Access Identity (OAI) to let only CloudFront access the S3 bucket.
+  - Viewer protocol policy: Set to Redirect HTTP to HTTPS or HTTPS only.
+  - Enable custom domain name if using your own domain.
+  - Attach an SSL certificate
+- Request SSL Certificate (HTTPS)
+  - Use AWS Certificate Manager (ACM).
+  - Go to ACM and request a public certificate (e.g., www.mywebsite.com, mywebsite.com).
+  - Validate domain ownership
+- Configure Domain Name (Optional via Route 53)
+  - If using your custom domain:
+    - Use Route 53 or your domain registrar.
+    - Create an A (Alias) record pointing to the CloudFront distribution.
+- Secure S3 Bucket (Restrict Direct Access)
+  - Use Bucket Policy to allow access only from CloudFront
 
 While CloudFront primarily uses ports 80 (HTTP) and 443 (HTTPS), you can configure it to communicate with your origin server on other ports (1024-65535).
 
@@ -2349,6 +2401,23 @@ CloudFront is not a service supported by DNS-Route-53 health checks and it does 
 
 With CloudFront’s Origin Failover capability, you can setup two origins for your distributions - primary and secondary, such that your content is served from your secondary origin.
 If CloudFront detects that your primary origin is unavailable
+
+
+CloudFront __Response Headers policy__:
+- piece of info sent from web server to web browser
+- use it to increase security, protect sensitive data
+
+CloudFront __Function Associations__
+- allows you to execute custom code to modify request or response as they pass-through CloudFront
+- viewer request, origin request, origin response, viewer response
+- url reqrites, redirects, request validation, adding custom headers
+- you want to redirect users to different version of your website based on geo-location
+- __CloudFront functions__: lightweight, high-performance, javascript, must be in Virginia.
+- __Lambda at Edge__: complex, higher latency, many lanuages
+
+__CloudFront Origin groups__
+- Primary and secondary origin = automatic failover
+- EC2 and S3 failover
 
 __S3 Transfer Acceleration__ leverages Amazon CloudFrontʼs globally distributed AWS Edge Locations
 
@@ -2376,6 +2445,10 @@ CloudFront __does not support region-specific origins__.
   - they can also be used when you want to provide access to __multiple restricted files__, that's a key difference.
   - A signed URL is for a single object, whereas if you want multiple objects to be included, then you should use signed cookies.
 
+Restrict Behavior User Access (for paid content)
+- can be activated using __signed url__ or __signed cookies__
+- trusted key groups: you need to created public+private keys to create 
+
 #### Lambda@edge
 
 Lambda functions at edge locations.
@@ -2389,6 +2462,23 @@ Customize application behavior – without touching origin systems
   - __after CloudFront receives the response__ from the origin, origin response,
   - __before CloudFront forwards the response__ to the viewer and that's called the viewer response.
 
+#### Global Accelerator
+
+- improves availability: automatically reroutes traffic to healthy endpoints ensuring your apps stay available
+  - can send load balance traffic across different aws regions - __multi-region__
+  - weight based routing
+- improve performance: uses aws network
+- provides 2 public IP addresses that you later used in DNS
+- health check
+- tcp/udp support
+- integrates with security services like WAF
+- custom routing: if user x comes from country Y then send it to EC2 in region Z
+- supports any static IP address
+
+__Global Accelerator Setup__
+- no region selection
+- listener setup: tcp:port or udp:port
+- endpoint group: define region and weight, health checks and muliple targets (ALB, NLB, EC2, Elastic IP)
 
 
 ### Architecture Patterns
@@ -3328,6 +3418,35 @@ Different options:
 - Read replicas are an option for read heavy workloads and that scaling out your reads.
 - Disaster recovery with the Multi-AZ option.
 
+- Configuration
+  - instance classes: db.*: standard, memory optimized and compute optimized
+  - pricing
+
+__RDS DB Parameter group__: controls database settings: memory, max_connections, query_cache_size
+
+__RDS Option Group__: add extra features or extensions that are not part of database: oracle OEM plugin, SQL Server transparent data encryption, MySQL MemCached etc.
+
+
+#### RDS HA
+- Single DB Instance: single AZ without replica or auto-failover. You have to do manual restore from backup and failover
+- Multi-AZ DB Instance: 2 db instances in 2 AZ in the same region. 
+    - __Primary__ and __Standby__ accessible via db endpoint that points to primary. 
+    - Uses EBS that is replicated to secondary EBS, __synchronous__, no data loss
+    - Failover: Automatic. Standby becomes primary and new secondary is created within 60s
+    - No performance gain (standby is down), small latency increase because of sync to secondary
+    - No scaling benefit
+- Multi-AZ DB Cluster: 3 db instances in 3 AZ: __1 writer+read and 2 read standby__ DB Instances
+    - Better performance for read workloads and lower write latency
+    - sync process to copy data to read-instance: The transaction is committed only after it has been replicated to at least one standby in another AZ
+    - failover time: 10s
+    - performance gain and scaling gain, but cannot scale to more nodes
+- read replica: read-only, in sync with primary
+  - read replica cannot automatically take over during failover event. __Cannot provide failover benefit__
+  - __can be created in another region__. 
+  - The replication process is always __asynchronous__ (same or different region). There is a replication lag — the replica may be slightly behind the primary
+  - __you can promote it to primary manually__.
+
+
 Multi-AZ versus read replica
 
 ![ Multi-AZ versus read replica ](./images/rds_multi-az-vs-replica.png)
@@ -3364,6 +3483,22 @@ RDS Maintenance Windows:
 - Read replicas of encrypted primary instances are encrypted and the same KMS key is used if in the same region as the primary, or if it's in a different region, a different KMS key is used.
 - You can't restore an unencrypted backup or snapshot to an encrypted DB instance.
 
+- authentication and access controls
+  - use AWS Secrets Manager to handle management of master credentials automatically. It automatically rotates credentials (and updates db credentials)
+  - __password authentication__: db users only
+  - password and __IAM database authentication__: IAM users and db users. Enables centralized user management. Uses IAM role to access db. Uses tokens (temp access)
+  - password __Kerberos authentication__ - when using AD
+- network encryption: to encrypt traffic between ec2 and database - use __certificate authority__  to create __certificate_ and install it in ec2 application server.
+- data encryption: enable during instance creation. 
+  - when set, the data is encrypted at rest.
+  - it uses KMS to encrypt database, backup, snapshot, replica, db logs
+  - to encrypt data in transit: create server certificate (asymmetric key) use SSL/TLS for connections.  
+    - Certificate: Contains the public key and is signed by a trusted Certificate Authority (CA).
+  - to encrypt an unencrypted database you need to:
+    - create unencrypted snapshot
+    - copy the snapshot with encryption enabled
+    - restore the database from encrypted shapshot
+
 Recomendations:
 - Deploy RDS in __Private Subnet__ (unless your requirement is a publicly accessible RDS instance)
 - __Configure RDS Security Group__ to allow access from Web Server or Application Server Security Groups
@@ -3374,6 +3509,18 @@ Recomendations:
 Automated backups and patching are applied in customer- defined maintenance windows.
 
 By default, Amazon RDS creates and saves automated backups of your DB instance securely in Amazon S3 for a user-specified retention period. 
+
+- automated backups: daily, incremental shanpshhots. First backup is full snapshot. Sored in S3 in the same region as db. Retention period:1-35 days (default 7)
+  - backup window - to minimize performance impact
+  - backup replication - in another region
+  - cost: free up to rdb allocated size
+  - use manual if you want to  keep backups for longer than 35 days or do it when you want.
+- snapshots
+- restoring from backups/snapshots: use RDS console
+  - restoring to latest backup
+  - restore to Point-in-time (PTR)
+  - restore from S3: instead of creating database and importing the data, you can do it in one step. Only restores exported .dump file) = offline migration
+  - to migrate life database use AWS DMS
 
 Automated Backups:
 - they backup the __entire DB instance, not just individual databases__.
@@ -3420,6 +3567,65 @@ Read Replicas:
 - Read replicas are created from a snapshot of the master instance.
 - Read replicas are available for MySQL, PostgreSQL, MariaDB, Oracle, Aurora, and SQL Server.
 - In a multi-AZ failover the read replicas are switched to the new primary.
+
+#### RDS Storage
+
+  - uses EBS
+  - storage types: gp2, gp3 (general purpose), io1, io2 (provisioned), magnetic. Max storage is 65TB depending of database enging and storage type)
+  - RDS data stiping: improves performance of reads and writes. Configured automatically
+  - Storage Auto-scaling: scales beyond 'allocated storage'. Storage increased afher threashold is reached. Not available for Multi-AZ Cluster or for read-replica.
+
+#### RDS Performance and monitoring
+
+- __Performance Insights__: tool in RDS to understand how db engine is workng: top sql quesries, wait events, database load, user sessions, load by query type etc. Real-time
+- __Enhanced Monitoring__: of OS like: cpu usage, memory usage, disk IO, file system usage, network throughput, 1s granularity, connect to CloudWatch Logs
+- __CloudWatch__: general monitoring for AWS. Combines data from database angine and OS. 1-5 min delay. Can set alarms, automatic response, track logs
+- RDS __Log Exports__: contains database activity (error logs, audit logs, slow query log, general log). You can store them only in AWS CloudWatch Logs (from database server)
+  - for long term retention you can export these logs from CloudWatch Logs to S3
+  - You need a IAM role. It will be created automatically.
+
+#### Maintenance: security pathces, minor upgrades (5.4.3->5.4.4)
+
+- you need to enable it
+- you can select maintenance window
+- major upgrades (5.4.3->5.5.1) are manual
+- the maintenance depends on deployoemt type: Single AZ - there will be downtime.. Multi-AZ - has failover, Cluster - no downtime
+- deletion prodection - use it for prod databases
+
+#### Blue-Green deployment (blue: current, green: duplicate of prod, staging, test schema changes, test engine major upgrades)
+
+- use it for major database upgrades
+- one green is fully tested, fraffic will switch from blue to green
+- if green fails then rollback
+
+#### RDS Proxy
+
+- manages database connections - connection pooling
+- improves failover handling
+- especially useful for __aws lambda__: solves connection overload 
+- makes db more secure and simple: RDS Proxy uses __AWS Secrets manager__ and you do not need to add db credentials in EC2 or Lambda
+- RDS Proxy runs in __multiple AZs__ simultaneously
+- Scalability: RDS Proxy automatically adjusts capacity to accommodate changes
+
+#### RDS Zero-ETL Integration
+
+- automatically replicates data __from RDS to Redshift__
+- near real-time
+- now only MySQL
+
+#### ElastiCache Cluster for RDS
+
+- shard: logical partition of your database, consists of one primary and multiple replica nodes, can do reads
+- cluster mode: define number of shards and number of replicas, supported my redis not memcached
+- if cluster mode disabled = 1 shard, fixed replicas, all data in one shard, supported by redis and memcached
+- __redis supports: geospatial indexing, real-time notifications (pub-sub), sorted sets for leaderboards, persistence, multi-az, auto-failover, auth token, encryption__
+- __memcached__: simple cases, one shard, one az, does not have redis features above
+- __replication group__ = primary node + replica nodes = cluster
+- Cache strategies:
+  - __read-through cache__: cache automatically fetches the data on cache misss
+  - __cache-aside cachine (lazy loading)__: application checks cache and in miss then gets the data and updates cache
+  - __write-Though caching__: update cache all the time the data is written to db
+
 
 #### Aurora <a id="Aurora"></a>
 
@@ -3597,19 +3803,7 @@ Multi-AZ failover:
 - On-Demand Backup/Snapshot for long term retention
 - Automatic deletion of expired items – Time To Live
 - Limits - Item size cannot exceed 400 KB
-
-DynamoDB streams:
-- captures a time mode sequence of item level modifications in your table,
-- stores them in a log file for up to 24 hours,
-- you can process that data.
-- you can configure what data is actually written. Keys only, new image, old image, or new and old images.
-      
-DynamoDB Accelerator:
-- fully managed in-memory cache for DynamoDB,
-- will reduce latency from milliseconds to microseconds.
-- can be both a read-through cache and a write-through cache.
-- DAX is updated only if DynamoDB is successfully updated first.
-- you don't need to modify any application logic, DAX is fully compatible with the DynamoDB APIs.
+- cost based on: data storage, read/write operations
 
 Data is synchronously __replicated across 3 AZs in a region__
 
@@ -3627,6 +3821,87 @@ DynamoDB supports:
   - may have higher latency than eventually consistent reads.
   - are not supported on global secondary indexes.
   - use more throughput capacity than eventually consistent reads.
+
+#### DynamoDB Storage Architecture
+
+- split data into multiple units called __partitions based on Hash(Partition key)__
+- Each partition is small, manageable
+- partitions are distributed across multiple nodes (servers): leader server and replica nodes in many AZ
+- __Leader node__ handles writes, strongly consisted reads
+- __Replica nodes__ handle eventually consistent reads
+
+#### Read Consistency
+
+- eventually consistent, 
+- strongly consistent read (3 items - 3 queries), 
+- transactional read (3 items - 1 query)
+- __RCU__ (read capacity unit): how much data can you read per s
+  - item size: block = 4KB
+  - read consistency type: eventual: 0.5, strongly_consistent: 1, transactional: 2 
+  - __RCU formula = ceil(item_size_KB/4) * reads_per_s__ / consistency_type
+
+#### Write Consistency: standard, transactional (2 updates in 1 request)
+
+- __WRC__ (Write Capacity Unit): how much data can we write /s
+  - item size: block = 1 KB
+  - write consistency type: standard: 1, transactional: 2 
+  - number of writes / s
+  - __RCU formula = ceil(item_size_KB) * writes_per_s * consistncy_type
+
+#### Capacity Mode
+
+- On-Demand: you do not need to setup RCU,WRC. Automated elastic scaling. Can set max capacity.
+- Provisioned: must set RCU and WCU. You pay for allocated capacity. Traffic will be throttled. Autoscaling: min, max, utilization
+- Warm Throughput: scale capacity without throtteling or delay
+- there can be a significant cost benefit to using Provisioned Capacity Mode in Amazon DynamoDB if your workload is predictable and stable: 
+  - Provisioned: cost of 1 month of 100 read requests/s of eventual RCU: 4.68 USD
+  - On Demand: cost of 1 month of 100 read requests/s of eventual RCU: 64.8 USD
+
+#### Table Settings
+
+- table class: standard vs standard-IA (infrequent access): define how storage cost is calculated:
+  - standard: frequent access, storage cost: higher, request cost: lower
+  - standard-IA: infrequent access, storage cost: lower, request cost: higher
+  - you can change the class at will
+- capacity mode:
+- max read capacity units:
+- max write capacity units:
+- local secondary indexes
+- global secondary indexes:
+
+#### DynamoDB streams
+
+- captures a time mode sequence of item level modifications in your table,
+- stores them in a log file for up to 24 hours,
+- you can process that data.
+- you can configure what data is actually written. Keys only, new image, old image, or new and old images.
+- data added, updated, deleted - creates event available for 24 hours. Streams captures changes, who and when, cost included in DynamoDB
+
+__DynamoDB Trigger__: action triggered by a stream and connects to AWS Lambda
+
+__DynamoDB Kinesis Data Stream:__ integrates with many aws services, separate cost, retention up to 365 days, supports advanced processing like aggregation, windows
+
+      
+#### DAX = DynamoDB Accelerator
+
+- fully managed in-memory cache for DynamoDB,
+- will reduce latency from milliseconds to microseconds.
+- can be both a read-through cache and a write-through cache.
+- DAX is updated only if DynamoDB is successfully updated first.
+- you don't need to modify any application logic, DAX is fully compatible with the DynamoDB APIs.
+- can improve reads up to 10 times: millisecond -> microsecond
+- read-through cache
+- write to DAX: write to DynamoDB and update cache
+- Setup:
+  - node family = compute
+  - cluster size = number of nodes
+  - VPC, subnet
+  - Security Group
+  - AZ
+  - Permissions to access DynamoDB
+- Each table has endpoint
+- Clients use DAX client (or DynamoDB client) and uses 'table' endpoint
+
 
 #### DynamoDB Transactions
 
@@ -3689,6 +3964,20 @@ You select columns that you want included in the index and run your searches on 
   - You can create when you create your table or at any time later.
   - A GSI has a different partition key as well as a different sort key
 
+__DynamoDB Global vs Local Indexes__:
+- GSI:
+  - new partition and sork keys
+  - replicates data from main table
+  - no sharing storage with main table.
+  - dedicated capacify without affecting main table
+  - can be created long after table was created
+  - eventually consistent
+- LSI
+  - same partition key but different sort key
+  - uses capacity of main table
+  - must be created at table creation time
+  - updated at the same time as main table. no delay. always strongly consistent
+
 #### Global Tables
 
 Provide a fully managed solution for deploying a __multi-region__, __multi-master__ database.
@@ -3706,6 +3995,41 @@ If your application requires strongly consistent reads, then it must perform all
 strongly consistent reads across AWS regions.
 
 Conflicts can arise if applications update the same item in different Regions at about the same time. To help ensure eventual consistency, DynamoDB global tables use a “last writer wins” method to reconcile between concurrent updates.
+
+- data is replicated from one region to another
+- 2 way replication
+- HA: if 1 region is down, customers who connect to other regions are fine
+- Global Table uses 'DynamoDB Streams'
+- Conflict resolution: last writer wins based on timestamps
+
+
+#### DynamoDB Encryption
+
+- at rest: automatic, 
+  - key management: KMS, 
+  - owned by: 
+    - DynamoDB, 
+    - AWS Managed Key (stored in your KMS in your account): limited audit logs
+    - Customer Managed key (you create it in KMS): you define rotation, see audit logs, monitoring, strict compliance requirements
+- in transit 
+
+#### DynamoDB Resource Policies:
+- defines who (aws account, user, services) can access your table/index and pwrform what operations (getItem, PutItem, Query)
+- Extra rules: specific IP or time range
+
+#### DynamoDB Backup
+
+- backup saves: table data, indexes, settings
+- does not affect performance of DynamoDB
+- PITR (point in time recovery): continuous, automated, up to 35 days back, stored for 35 days, DR
+- On Demand backups: manual, point-in-time, archival, migration
+
+__DynamoDB Export to S3__: you want to analyze it  or share data
+- no performance impact
+- PITR must be on
+- Full Export: all data as is or up to 35 days back
+- Incremental Export: export data that has changed within specific time period
+- file format: __dynamodb json__ (contains data type, better if you want to import it back) or __Amazon Ion__ (better if you want to analyze the data: glue, athena)
 
 
 
