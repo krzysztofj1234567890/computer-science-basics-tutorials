@@ -70,7 +70,16 @@
   - [SNS](#SNS)
   - [Step Functions](#StepFunctions)
   - [Event Bridge](#EventBridge)
+  - [Simple Workflow](#SWF)
 - [Deployment](#Deployment)
+  - [CloudFormation](#CloudFormation)
+  - [Elastic Beanstalk](#ElasticBeanstalk)
+  - [SSM Parameter Store](#SSMParameterStore)
+  - [AWS Config](#AWSConfig)
+  - [Secrets Manager](#SecretsManager)
+  - [OpWorks](#OpWorks)
+  - [Resource Access Manager](#ResourceAccessManager)
+  - [Billing and Cost Management](#Billing)
 - [Observability](#Observability)
   - [CloudWatch](#CloudWatch)
   - [CloudWatch Alarms](#CloudWatchAlarms)
@@ -86,6 +95,9 @@
   - [WAF](#WAF)
   - [Shield](#Shield)
   - [Cognitio](#Cognitio)
+  - [Inspector](#Inspector)
+  - [Trusted Advisor](#TrustedAdvisor)
+  - [STS = security token service](#STS)
 - [Migration](#Migration)
   - [SMS](#SMS)
   - [DMS](#DMS)
@@ -2818,21 +2830,35 @@ Replication:
 - To __back up__ data from FSx to __S3__, you can leverage __AWS Backup__ or you can create a Data Repository Association (DRA) to link your FSx file system to an S3 bucket
 - In case of a failure, FSx __automatically fails over__ to a standby file server, ensuring minimal downtime and continued operation
     
+#### Storage gateway
 
-#### Storage gateway – File gateway
+- __connects on-premises software appliance with cloud-based storage__
+- it is __virtual machine__ image that you install on premises
+- Common targets: S3
+- Use AWS S3 as a local file share backend
+- when you need to access AWS storage locally, with low-latency and caching.
 
+##### Storage gateway – File gateway
+
+- NFS, SMB support, mount shares, shared folders
 - This provides an __on-premises file server__.
 - You can store and retrieve files as objects in __S3__.
 - You can use it with __on-premises applications and EC2-based applications__ that need file storage in S3 for object-based workloads.
 - File gateway offers SMB or NFS-based access to data in S3 with local caching.
+- local cache
+- Windows ACL support
+- only changes are transfered
 
-#### Storage gateway - volume gateway
+##### Storage gateway - volume gateway
 
+- can have cached volume or shared volume (and schedule task to move to S3)
+- attach ec2 or VMware to gateway
+- features: cache, backup volumes as EBS snapshots, integrates with AWS backup
 - This supports __block-based volumes__. So, it's an iSCSI protocol that you use to connect.
 - __cached volume mode__ where the entire data set is stored on S3, and a cache of the most frequently accessed data is on site.
 - __stored volume mode__ means that the __entire data set is stored on site and asynchronously backed up to S3__
 
-#### Storage gateway - tape gateway
+##### Storage gateway - tape gateway
 
 - used for back up with popular backup software.
 - Each gateway is pre-configured with a media changer and tape drives, all virtual, of course.
@@ -2841,6 +2867,14 @@ Replication:
 - Annotate gateway can have up to 1,500 virtual tapes with a maximum aggregate capacity of one petabytes.
 - All data transferred between the gateway and AWS storage is encrypted using SSL.
 - all data stored by Tape Gateway in S3 is encrypted with server-side encryption using Amazon S3 managed encryption keys, SSE-S3
+
+##### DataSync vs Storage gateway
+- data sync
+  - to transfer data
+  - uses agent (=VM) that is used to read/write data from your storage
+- storage gateway 
+  - storage system store your data in cloud
+  - storage gatway appliance (=VM) 
 
 
 ### Architecture Patterns
@@ -2932,6 +2966,15 @@ Key features of the Elastic Container Service:
 - You get __Elastic Load Balancer integration__ so you can distribute traffic across containers using either an ALB or an NLB.
 - You get Amazon ECS anywhere. It enables the use of the ECS control plane to manage on-premises implementations.
 
+Layers:
+| One computer      | VM             | Docker
+|-------------------|----------------|---------
+| physical          | physical       | physical
+| kernel            | __hypervisor__ | kernel
+| application layer | kernel *n      | __docker daemon__
+| application       | app layer *n   | app layer * n
+|                   | application *n | application * n
+
 ### ECS components <a id="ECS"></a>
 
 - __Cluster__: It's a __logical grouping of EC2 instances__. you can create IAM policies for your clusters to allow or restrict users access to specific clusters.
@@ -2950,6 +2993,41 @@ Key features of the Elastic Container Service:
       - Manually start a task or configure run-task action in response to an event
   - ECS __automatically replaces unhealthy tasks and instances__
 - A __service__ is used to define long running tasks, and you can control how many tasks you want to run. You can also use auto scaling and elastic load balancing.
+- no setup required
+- aws integration (CloudWatch, ALB etc)
+- intelligent scheduling
+- fargate
+- secure, IAM
+- Scalable
+
+ECS cluster = many docker hosts acting as one + container orchestration
+- provides a pool of resources where you can schedule anr run containers
+- Infrastructure:
+  - Fargate - serverless, fast launch time, per per use (cpu, memory), needs VPC
+  - EC2 instances witch auto-scaling, full control over instances
+    - ALB can send traffic directly to containers
+    - needs agent on ec2
+    - Network mode:
+      - host: all container have the same NIC. Containers cannot use same port
+      - bridge: one NIC and bridge sends to different containers, one port
+        - bridge dynamic port mapping: solves this problem
+      - VPC: separate NIC for each container. You can attach security group
+- task definition
+- service: includes load balancer and auto-scaling
+- ECS anywhere: add VMs from your data center. You need to:
+  - install SSM agent to register VM with AWS Systems Manager 
+  - set IAM role
+  - set ECS Agent on this VM
+- ECS cluster level encryption: encrypts the data
+- ECS storage
+  - ephemeral storage: only fargate
+  - managed storage: persists beyond task/container lifetime
+  - EBS, EFS
+- Compute
+  - Fargate and Farget stop - always included
+  - EC2. AWS will automatically create: auto-scaling group, launch template
+    - use ecs optimized AMI else you need to install ESC agent yourself
+
 
 Launch types: determine the type of infrastructure on which your tasks and services are hosted:
 - Amazon __EC2 launch type__
@@ -3163,14 +3241,31 @@ Serverless services:
   - real time streaming processing,
   - building serverless backends for various different use cases.
   - Pricing based on memory, and duration (GB-Seconds). Millisecond Metering
+- event driven
+- pay per execution or usage
+- max execution time: 15 min
+- cold start
+- auto-scaling based on load
+- runs on VPC or direct access to internet
+- available runtimes: java, python, node.js, 
+- lambda_handler(event, content) - in python mandatory function name
+- lambda blueprint: edit written lambdas and save them as your own 
+- lambda execution role
+  - create role that given permission to lambda to do something (write to S3)
+  - add role to your lambda
+  - you need to do it or create 'default execution role' that given lambda permission to write to CloudWatch log
+- Boto3 - library in python to execute aws APIs
+- Lambda trigger:  You have to add a trigger to your lambda function
 
 There is an upper limit on number of __concurrent lambda function executions__ for your account in each region.
 
-Lambda support __versioning__ and you can maintain one or more versions of your lambda function. Each lambda function has a unique ARN.
+Lambda support __versioning__ and you can maintain one or more versions of your lambda function. Each lambda function has a unique ARN. By default latest version is executed
 
-Lambda also supports __Alias__ for each of your functions. 
-Lambda alias is a pointer to a specific lambda function version.
-Alias enables you to promote new lambda function versions to production and if you need to rollback a function, you can simply update the alias to point to the desired version
+Lambda Alias:
+- Lambda also supports __Alias__ for each of your functions. 
+- Lambda alias is a pointer to a specific lambda function version.
+- Alias enables you to promote new lambda function versions to production and if you need to rollback a function, you can simply update the alias to point to the desired version
+- allows you to trigger lambda version you want
 
 __Cold start__: o process new request, Lambda must initialize new instances – slowness in response (Cold Start)
 
@@ -3236,6 +3331,51 @@ Error Handling in Asynchronous execution:
 Lambda@Edge:
 - Customize cached content without routing request to origin
 - Improve security by checking for expired or invalid JWT token and redirect to login page
+
+Lambda container images
+- Specify container image: any OS
+- Specify OS-only Runtime
+  - Amazon Linux + install your runtime
+
+Lambda in VPC
+- by default lambda runs in amazon managed infrastructure
+- use it to access resources from your VPC
+  - ENI is created and attached to your subnet. It has private IP
+  - add NAT or Internet gateway
+  - add security group
+
+Lambda and Amazon Q (AI agent - executes actions on your behalf): use it to write lambdas to start or stop ec2 instances etc
+
+#### AWS Lambda execution environment
+- lambda creates execution environment (container) to process the request
+- aws creates this environment automatically (allocates compute resources)
+- aws loads python runtime 
+- function is injected/loaded into container
+- first time: latency 100-300 ms
+- if started execution environment is busy, aws launches new execution environment (auto-scaling)
+- to reduce cold starts: 
+  - provisioned concurrency: pre-warmed lambda
+  - optimized memory and cpu allocation = faster processing
+  - lambda layers - preloaded dependencies
+- warm start: reuses started execution environment
+- Concurrency: how many lambda instances will run?
+  - default concurrency limit for all lambdas: 1000 / region (all lambdas)
+  - you can increase concurrency limit or use many regions or use many accounts
+  - formula = duration of each request [s] * requests/s 
+  - reserved concurrency: reserve for a given function and no other lambda can use it
+  - types of concurrency:
+    - on demand: automatically spins up environment when request arrives (default), has cold-start problem
+    - provisioned concurrency: pre-initializes execution environment (eliminates cold-starts)
+      - must have version and alias enabled
+      - it creates specified execution environments (no cold start)
+      - check throttles metric
+      - you pay for min
+- lambda layers
+  - module: single file containing code
+  - library: collection of modules packaged together (python boto3). Must be imported
+  - __lambda layers__: allows you to manage common code (modules or libraries) separately from common code
+  - you can attach layer in many lambda functions
+  - built-in and custom libraries
 
 ### Fargate <a id="Fargate"></a>
 
@@ -4348,7 +4488,7 @@ SQS Queue Types
 
 The MessageRetentionPeriod attribute in SQS allows you to set the message retention period, which is the length of time (in seconds) that Amazon SQS retains a message.
 
-Retention: Keep unprocessed messages for up to 14 days
+Retention: Keep unprocessed messages for up to 14 days (default 4 days)
 
 Encryption: At-rest encryption using server-side encryption. Use AWS managed Key or specify your customer master key. Metadata not encrypted.
 
@@ -4360,6 +4500,24 @@ It's not a queue type, it's a configuration of a queue.
 Long polling versus short polling:
 - Long polling as a way to retrieve messages from SQS queues and it waits for messages to arrive. Long polling can lower costs. Long polling is enabled at the queue level or at the API level with the wait time seconds parameter. Long polling is in effect when the receive message wait time is a value greater than zero up to 20 seconds.
 - Short polling returns immediately even if the queue is empty. So that can turn out more expensive from an API cost perspective.
+
+messages can have attributes
+
+you can assign triggers to trigger lambda function
+
+
+Timeouts:
+- __Visibility Timeout__:
+  - message temp. invisible: consumer must explicitly delete the message from the queue
+  - Visibility timeout used for handling failures
+  - Default timeout is 30 seconds, maximum is 12 hours
+  - Queue level configuration
+  - Consumer can increase timeout for a specific message
+- __delivery delay__: delay delivery of the message to the queue. It is invisible until this time
+- __receive message wait time__
+  - short polling: receive message wait time = 0 and you have to poll again
+  - long polling: receive message wait time > 0 (max 20 s)
+
 
 #### Standard Queue
 
@@ -4381,11 +4539,6 @@ Failure scenario:
 5. Message not deleted
 6. Queue unlocked the message and assigns to next consumer
 
-Visibility Timeout:
-- Visibility timeout used for handling failures
-- Default timeout is 30 seconds, maximum is 12 hours
-- Queue level configuration
-- Consumer can increase timeout for a specific message
 
 #### FIFO Queue
 
@@ -4431,6 +4584,7 @@ Push notification and Event Driven Architecture
 - SNS decouples publishers and consumers
 - SNS has __automatic retry__ if subscriber is not online
 - __Filtering__: Use filtering to deliver messages to the correct subscriber
+- cannot change topic name after creation
 
 SNS plus SQS:
 - fan out is where you subscribe one or more SQS queue to an SNS topic. 
@@ -4440,6 +4594,13 @@ SNS plus SQS:
 SNS Topic Types:
 - Standard Topic: Out of order and duplicate messages possible
 - FIFO Topic: Preserves order of messages Message group and deduplication (similar to SQS FIFO)
+
+####  SNS vs SQS
+
+- push (SNS) vs pull (SQS)
+- fanout (SNS) vs decoupling (SQS)
+- no persistence (SNS) vs persistent for max 2 weeks (SQS) 
+- many consumers (SNS) vs 1 consumer (SQS)
 
 ### Step Functions <a id="StepFunctions"></a>
 
@@ -4462,6 +4623,37 @@ SNS Topic Types:
 - Well defined JSON structure for events
 - Schema registry
 - Generate code to process events
+
+### SWF = Simple Workflow <a id="SWF"></a>
+
+- task coordination
+- Base on pooling: your code pulls tasks from SWF API (they wait in queues), recives a task, sends result back to SWF API, SWF keeps history of workflow (state)
+- Tasks can run from aws or on-premises
+- Entities
+  - Domain: isolate executions, tasks
+  - Worker: application that performs a task
+    - Decider: makes decision (flow-chart)
+    - Activity: performs task
+  - Workflow starter: application that initiates workflow
+  - Workflow type
+  - Task: SWF interactis with Workers by providing them unit of work = task
+
+#### AWS Simple Workflow Service (SWF) and AWS Step Functions
+
+| Feature               | AWS SWF (Simple Workflow)                             | AWS Step Functions
+|-----------------------|-------------------------------------------------------|-----------------------
+| Service Type          | Low-level workflow engine                             | High-level state machine/orchestrator
+| Developer Experience  | Code-driven workflows using workers and deciders      | Declarative workflows using Amazon States Language (ASL)
+| Integration           | Manual integration via code                           | Built-in integrations with 200+ AWS services via SDKs
+| Workflow Definition   | Procedural code (e.g., Java, Ruby)                    | JSON/YAML-based state machine
+| Execution Model       | Long-running, externally hosted deciders/workers      | Fully managed, short-to-medium duration flows
+| Use Cases             | Complex, long-running, customizable workflows         | Event-driven, serverless orchestration and automation
+| Retries, Error Handli | Manual (you must code retries and timeouts)           | Built-in error handling, retries, timeouts
+| Visual Workflow Design| ❌ None                                               | ✅ Yes (Visual editor in console)
+| Pricing               | Based on tasks and duration                           | Based on number of state transitions
+| Learning Curve        | Steep (more boilerplate, custom logic)                | Easy (declarative and visual tools)
+
+
 
 ### Architectural Patterns
 
@@ -4527,7 +4719,8 @@ The MessageRetentionPeriod attribute in SQS allows you to set the message retent
 
 ## Deployment and Management <a id="Depolyment"></a>
 
-CloudFormation:
+### CloudFormation <a id="CloudFormation"></a>
+
 - CloudFormation deploys infrastructure using code, and that code is in JSON or YAML.
 - Infrastructure is provisioned consistently with fewer mistakes or less chance of human error.
 - less time and effort than configuring resources manually.
@@ -4540,7 +4733,8 @@ CloudFormation:
   - Stack sets allow you to extend the functionality of stacks across accounts and across regions.
   - Change sets show you the proposed changes to a CloudFormation stack when you upload a new template so you can see what's going to happen before it does.
       
-Elastic Beanstalk:
+### Elastic Beanstalk <a id="ElasticBeanstalk"></a>
+
 - can be used to quickly deploy and manage web applications in the cloud.
 - It's considered to be a platform as a service solution.
 - you upload code to Elastic Beanstalk and then it deploys the environment for you, including capacity provisioning, load balancing, auto scaling, and health monitoring.
@@ -4558,7 +4752,8 @@ Elastic Beanstalk:
   - Workers are specialized applications used for long running background tasks, and they use an SQS queue.
   - Workers should be used for any long running tasks.
 
-SSM Parameter Store:
+### SSM Parameter Store <a id="SSMParameterStore"></a>
+
 - provides secure hierarchical storage for configuration data and secrets.
 - It's highly scalable, available and durable.
 - can store things like passwords, database strings and license codes as parameter values.
@@ -4566,14 +4761,18 @@ SSM Parameter Store:
 - You can reference values by using the unique name you specified when you created the parameter.
 - There's no native rotation of keys with Parameter Store.
 
-AWS Config:
+### AWS Config <a id="AWSConfig"></a>
+
 - evaluates your resource configurations for desired settings.
 - gives you a snapshot of the current configurations of resources that are associated with your account.
 - You can retrieve the configuration of resources that exist.
 - You can also retrieve historical configurations of one or more resources,
 - you can receive a notification whenever a resource is created, modified or deleted.
 - You can view relationships between resources as well.
+- use historical configurations (config history) to rollback or troubleshoot
 - AWS Config – Managed Rule Checks
+  - aws managed rules (ebs encryption by default)
+  - custom rules
   - Access key rotated periodically
   - ALB HTTP to HTTPS redirection configured
   - Unused EBS Volumes, unused Elastic IP
@@ -4581,21 +4780,45 @@ AWS Config:
   - Verify is S3 bucket has bucket-level encryption enabled
   - Check if EC2 instance is managed by systems manager
 
-Secrets Manager:
+### Secrets Manager <a id="SecretsManager"></a>
+
 - This is another way that you can store secrets.
 - it will rotate them for you as well without the need for deploying your own code.
 - Automatic rotation is built in for Amazon RDS with MySQL, Postgres, Aurora, Amazon Redshift, and DocumentDB.
 - For any other services, you have to write your own Lambda function code to perform the automation of the rotation.
 - So when you're comparing Secrets Manager with Parameter Store, you get automatic rotation with Secrets Manager built in for some services or use lambda for others.
 
-AWS OpWorks:
+### AWS OpWorks <a id="OpWorks"></a>
+
 - is a configuration management service providing managed instances of Chef and Puppet.
 - Updates include patching, updating, backup configuration, and compliance management.
 
-AWS Resource Access Manager:
+### AWS Resource Access Manager <a id="ResourceAccessManager"></a>
+
 - You can share resources with RAM across AWS accounts, within organizations or Ous and IAM rules, and IAM users.
 - Resource shares are created with the RAM console, the RAM APIs, the CLIs or the SDKs.
 - RAM can be used to share a variety of AWS services.
+
+
+### AWS Billing and Cost Management <a id="Billing"></a>
+
+- estimate, plan aws cost
+- receive alerts
+- assess biggest investments
+- simplify accounting
+- Services:
+  - Cost Explorer service: reports, graphs: daily spend per filter: az, region, service etc.
+  - AWS Budgets: track budget and cost, notifications
+  - Simple monthly calculator
+  - Simple Pricing Calculator: similar to above
+- Data Transfer cost
+  - inbound: 0
+  - outbound: yes
+    - to internet: yes
+    - between regions: yes
+    - between AZ: cost, but if using endpoint: free
+    - same AZ: free
+
 
 ### Architecture Patterns
 
@@ -4651,6 +4874,12 @@ SecureString parameter uses KMS keys for encryption. Ensure the Application IAM 
 ## Observability = Monitoring, Logging and Auditing <a id="Observability"></a>
 
 ### CloudWatch for monitoring <a id="CloudWatch"></a>
+
+- monitor AWS resources and applications that run on aws
+- you can create alarms, send notifications
+- send events to EventBridge
+- create custom dashboards
+- alarm: watches one metric and performs one or more actions
 
 CloudWatch Use cases and benefits:
 - it collects performance metrics from AWS and on-premises systems.
@@ -4714,9 +4943,24 @@ EC2 metrics:
 ### CloudTrail <a id="CloudTrail"></a>
 
 - logs API activity for auditing.
-- By default, management events are logged and all retained for 90 days.
+- By default, management events are logged and all retained for up to 90 days.
 - You can create a ClaudTrail trail and then your events are logged to S3 with indefinite retention.
 - Trails can be logged within a region or within all regions.
+- actions taken by user, role, aws service are recorded as events
+- events include actions taken in aws management console, aws cli, aws sdk, aws api
+- enables governance, compliance, auditing
+- it records: identity of user, start time, AWS API call, source IP, request parameters, response 
+- you can analyze these events using: AWS EventBridge or AWS CloudWatch Logs
+- 15 min delay
+- by default  AWS CloudWatch Logs are encrypted with KMS
+
+AWS Config vs CloudTrail:
+- Config reports what has changed, CloudTrail reports who and when made the change, from what location
+- Config: what has changed, CloundTrail: who made a change
+
+AWS CloudWatch vs CloudTrail:
+- CloudWatch: monitor and optimise resources vs CloudTrail: action taken and who did it
+
 
 ### CloudWatch events <a id="CloudWatchEvents"></a>
 - can be triggered based on API calls in CloudTrail.
@@ -4892,6 +5136,11 @@ __IAM Identity center__ = SSO for aws
 - It allows you to centrally manage and securely store your
 - KMS keys and it supports symmetric and asymmetric encryption.
 - KMS keys are the primary resources in KMS.
+- AWS Managed: fixed rotation 3 years, you cannot delete it
+- Customer Managed: rotation period: >1 year
+- can encrypt/decrypt up to 4KB
+- can be used to encrypt data keys
+- key is assigned to a region
 
 KMS keys:
 - contain the key material used to encrypt and decrypt data.
@@ -4938,21 +5187,31 @@ KMS key types and how are they rotataed:
   - store the master key for oracle DB transparent data encryption
   - custom key store for KMS, so you can retain control of the HSM that protects the master keys.
 
-### AWS Certificate Manager <a id="CertificateManager"></a>
+### Certificate Manager <a id="CertificateManager"></a>
 
 - create, store and renew SSL/TLS X 509 certificates that supports single domains, multiple domain names and wild cards
 - integrates with several services like elbs, cloudfront, Elastic beanstalk, Nitro enclaves and AWS cloud formation.
 - Public certificates are signed by the AWS public CA.
 - You can also create a private CA with ACM, then you can issue private certificates.
 - You can also import certificates from third party issuers as well.
+- used by: LB, CloudFront, API Gateway, Beanstalk
+- need to provide domain name
+- validate: create provided DNS record
+- configure HTTPS ALB and provide certificate from CM
+- create record in DNS (Route 53)
 
-### AWS web application firewall - WAF <a id="WAF"></a>
+### Wweb Application Firewall - WAF <a id="WAF"></a>
 
 - This service lets you create rules to filter web traffic based on conditions such as IP addresses, http headers and body or custom URIs.
 - It makes it easy to create rules that block common web exploits like sequel injection and cross site scripting.
 -  Web Application Firewall allows you to enforce country-specific rules. You can block or allow traffic from specific countries.
 - Monitor requests to Application Load Balancer, CloudFront, API Gateway (and more)
 - Secure at the edge (with CloudFront, CloudFront query parameter whitelist)
+- Only in fort of (protects): ALB, CloudFront, API Gateway, AppSync API
+- __block: IP (need to create IP Sets), Country, String in request__
+- actions: block all, count, allow all 
+- 1 rule = 1 capacity unit. Max 1500
+- many managed rules - you pay for them.
 - Concepts:
   - __web ACLS__, are used to protect a set of resources
   - __rules__: that define the inspection criteria and actions to take if a web request meets your defined criteria
@@ -5035,6 +5294,26 @@ Identity Pools:
 - Cognito tracks the association between user identity and the various different devices they sign-in from
 - In order to provide a seamless user experience for your application, Cognito uses Push Synchronization to push updates and synchronize user data across multiple devices
 
+### Amazon Inspector <a id="Inspector"></a>
+- automated security assessment service for ec2 instances
+- assesses applications for exposure, vulnerabilities
+- creates a list of security findings and severity
+- performance network 
+- host assessment: requires agent
+- free, can be scheduled
+
+### Trusted Advisor <a id="TrustedAdvisor"></a>
+- inspects AWS environment and makes recommendations: save money, HA, performance, security
+- agent-less
+- broader scope: aws account (not only ec2)
+- real-time, no schedule
+
+### STS = security token service <a id="STS"></a>
+
+- temporary security credentials: max few hours
+- provided dynamically when requested
+- identity federation, supports SAML2
+- web identity federation: Open ID Connect 2
 
 
 ### Architectural Patterns
@@ -5158,6 +5437,9 @@ Tools:
 
  VMware, Hyper-V or Azure -> SMS connector -> Server volumes -> AMIs -> EC2
 
+- automate migration of VM (virtual machine) from on-premises VMWare or Mcrosoft Hyper-V to Azure to AWS Cloud
+- creates AMI
+- up to 50 VMs at a time (concurrently)
 - agentless service for migrating on-premises and cloud-based VMs to AWS.
 - Source platforms can be VMware, Hyper-V or Azure.
 - The Server Migration Service connector is installed on the source's platform.
@@ -5188,10 +5470,13 @@ Application is live, minimizing downtime.
 
 ### DataSync <a id="DataSync"></a>
 
-Moves data (agent) between on-premises storage and AWS service.
-Copy data FROM: NFS, SMB, HDFS, between AWS storage services TO: S3, EFS, or FSx for Windows File Server.
-
-A secure, online service that automatically moves data between on-premises storage and AWS services.
+- Moves data (agent) between on-premises storage and AWS service.
+- Copy data FROM: NFS, SMB, HDFS, between AWS storage services TO: S3, EFS, or FSx for Windows File Server.
+- A secure, online service that automatically moves data between on-premises storage and AWS services. __uses TLS__
+- __schedule a task__
+- __Agent-based data mover__ - it is s a virtual appliance (vm image that you install)
+- good for: data migration, archive, data protection, data movement
+- Common targets: S3, EFS, FSx
 
 It __uses AWS Direct Connect__ to move data between on-premises storage systems and AWS storage services
 
