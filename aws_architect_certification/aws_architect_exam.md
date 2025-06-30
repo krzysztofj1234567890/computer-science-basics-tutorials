@@ -152,6 +152,27 @@ Server certificates and certificate-based authentication:
 - IAM AWS Managed policy: 
   - created and managed by aws (can update at any time), common use cases, might add policies to other related aws services.
   - cannot specify specific resource, no customization, broad range
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::*",
+        "arn:aws:s3:::*/*"
+      ]
+    }
+  ]
+}
+```
+
 - Customer Managed Policies:
   - created and managed by users, total control on a permission, fine grained
   - contains many permissions
@@ -173,6 +194,7 @@ __IAM users:__ individuals
   - username/password. Use user password policy to enforce strong password
   - access keys id and secret
 - add policy (with many permissions)
+- __an IAM user can belong to multiple IAM groups__
 
 __IAM groups:__ collection of IAM users (can belong to many groups)
 - IAM groups are __collections of users__ and have policies attached to them.
@@ -185,14 +207,22 @@ __IAM groups:__ collection of IAM users (can belong to many groups)
 
 __IAM Roles:__
 - Roles are created and then __assumed by trusted entities__.
+  - Trusted Entities are:
+    - AWS Services (e.g., EC2, Lambda, etc.)
+    - IAM Users
+    - IAM Roles (for cross-account access)
+    - Federated Users (users authenticated via external identity providers, like AWS Cognito, Google, or Active Directory)
+    - Accounts (for cross-account role assumption)
 - They are a __way of delegating permissions to resources for users and services__.
 - __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
+- you __can share IAM roles between AWS accounts__ using cross-account IAM role assumption. 
+- you __cannot directly transfer or share IAM users or groups across AWS accounts__, __you can share IAM permissions__ (through roles and policies) between AWS accounts by using cross-account access.
 
-IAM Policies:
+__IAM Policies__:
 - Policies are documents that define the permissions and they can be applied to users, groups, and roles
 - Policy documents are written in JSON and include key value pairs that consist of an attribute and a value.
 - __All permissions are implicitly denied by default__.
-- The most restrictive policy is applied if there's multiple policies with conflicting statements.
+- The __most restrictive__ policy is applied if there's multiple policies with conflicting statements.
   - it gives you tempoarary credentials
   - delegate access to users, applications, services
   - __attach role to aws service__ (EC2: IAM instance profile)
@@ -208,12 +238,32 @@ IAM Policies:
     - uses XML assertions
   - Custom trust policy: you can create a policy thed defines who can assume the role and under what circumstances
     - example: must have MFA, specific email or department, source IP
+    - example:  IAM policy that can be assumed by IAM use with MFA
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::YourAccountID:user/YourIAMUser"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "Bool": {
+          "aws:MultiFactorAuthPresent": "true"
+        }
+      }
+    }
+  ]
+}
+```
 
 __Types of IAM policy__:
 - __identity-based policies__ which you can attach to users, groups, or roles.
 - __resource-based policies__. They get attached to resources like S3 buckets, and you can define permissions for principals accessing the resources using a resource policy.
-- __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity.
-- __organizations service__ control policies. These specify the maximum permissions for an organization or an OU.
+- __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity. Created by IAM Administrators or Users with Necessary Permissions
+- __organizations service__ control policies. These specify the maximum permissions for an organization or an OU. Can be created by AWS Organizations Administrator or  IAM Users/Roles with Explicit Permissions
 - __session policies__ that are used with Assume Role API actions.
 
 __IAM best practices__:
@@ -271,36 +321,23 @@ Example: Read-Only Access to All S3 Buckets
     }
   ]
 }
-
 ```
 
 ### IAM Reports <a id="IAMReports"></a>
 
 - IAM Credential Reports: csv files, overview of IAM user __credentials status__ (password rotation, dates, MFA devices, access keys
 - IAM Advisor Reports: aws report, __lists services accessible to given user/group/role__
-- IAM Access Analyzer: aws report, improve security of your AWS setup by analyzing __resource permissions__, __seeresources shared with external identity__ per region
+- IAM Access Analyzer: aws report, improve security of your AWS setup by analyzing __resource permissions__, __see resources shared with external identity__ per region
   - see used and unused findings
 
 ### Type of Identities <a id="IAMIdentities"></a>
 
 ![ Type of Identities ](./images/Identity_types.jpg)
 
-__AWS Organizations__
-- management, billing, compliance enforcement for multiple aws accounts
-- define central configuration and __resource sharing__, __consolidated billing__ (volume discounts)
-- automated account creation, __service control policies__ (SCP)
-  - works at organization level: root, organizational units (OU) or individual accounts
-  - can only limit
-  - affects only member accounts in the OU. Have no effect on the management account
-  - aws evaluates SCPs in conjunction with IAM policies. Action must be allowed in IAM policy and not denied in SCP.
-  - The __default FullAWSAccess managed policy__ is attached to all services - it allows all (no restrictions)
-  - if SCP is missing (in OU) then it means deny
-  - for it to work you send invitation to other aws accounts that must accept invitation
-  - SCP is to control permissions, not to add permisions (to User)
-
 __Corporate Identity Federation__:
 - SAML 2.0 (Security Assertion Mark Up Language) to exchange identity and security information between identity provider and application
 - AWS IAM Federation – enables users sign-in to their AWS account with existing corporate credentials
+- You can configure IAM Federation with SAML 2.0 without using AWS Directory Service. users can authenticate through a third-party IdP (such as Microsoft Active Directory, Google, Okta, etc.)
 - Non-SAML options – AWS Directory Service for Microsoft Active Directory
 - AWS Organizations – Use AWS Single Sign On (SSO) to scale to multiple AWS Accounts (centrally manage access)
 
@@ -1361,6 +1398,19 @@ Use an Auto Scaling Group with Dynamic Elastic IPs attachment - The option "Use 
 ## AWS Organizations and Control Tower <a id="Organizations"></a>
 
 With __AWS Organizations, you can consolidate multiple AWS accounts__ into an Organization that you create and then centrally manage.
+
+__AWS Organizations__:
+- management, billing, compliance enforcement for multiple aws accounts
+- define central configuration and __resource sharing__, __consolidated billing__ (volume discounts)
+- automated account creation, __service control policies__ (SCP)
+  - works at organization level: root, organizational units (OU) or individual accounts
+  - can only limit
+  - affects only member accounts in the OU. Have no effect on the management account
+  - aws evaluates SCPs in conjunction with IAM policies. Action must be allowed in IAM policy and not denied in SCP.
+  - The __default FullAWSAccess managed policy__ is attached to all services - it allows all (no restrictions)
+  - if SCP is missing (in OU) then it means deny
+  - for it to work you send invitation to other aws accounts that must accept invitation
+  - SCP is to control permissions, not to add permisions (to User)
 
 It's available in two feature sets:
 - __consolidated billing__
