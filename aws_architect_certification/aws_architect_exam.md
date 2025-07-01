@@ -20,6 +20,7 @@
   - [EC2 pricing](#Ec2_pricing)
 - [Auto Scaling](#AutoScaling)
   - [AutoScaling Group](#AutoScalingGroup)
+  - [Auto Scaling Timers](#AutoScalingTimers)
   - [Health Checks](#HealthChecks)
   - [Load Balancing](#LoadBalancing)
     - [Load Balancing Security](#LoadBalancingSecurity)
@@ -27,7 +28,7 @@
     - [NLB](#NLB)
     - [GLB](#GLB)
     - [Cross-zone load balancing](#Cross-zone)
-    - [Global Accelerator](#GlobalAccelerator)
+  - [Global Accelerator](#GlobalAccelerator)
 - [Organizations](#Organizations)
 - [VPC](#VPC)
   - [Security Groups](#SecurityGroups)
@@ -1032,6 +1033,7 @@ There are some additional scaling settings:
 - The termination policy controls which instances to terminate first when a scale in event occurs.
 - __Termination protection__ prevents Auto Scaling from terminating the protected instances.
 - The __standby state__ is used to put an instance that's in the in-service state into the standby state for updating and troubleshooting.
+  - In the EC2 Console, go to the Auto Scaling Groups section. Select the Auto Scaling Group. For Simple Scaling policies, you can set the Cooldown directly in the scaling policy settings.
 - __Lifecycle hooks__ can be used to perform custom actions by pausing instances as the ASG launches or terminates them.
   - Use cases:
     - running scripts to download and install software after launching your instance.
@@ -1043,7 +1045,7 @@ It provides fault tolerance for applications.
 
 - __launch template__: standardizes setup of EC2 instances (os, ec2 type, security-group etc.). Can use used with outher aws services (other then auto-scaling group
 - you can dynamically changing scaling policies
-- instance purhcase option: on demand or spot
+- instance purchase option: on demand or spot
 - allocation strategies: lowest price, price capacity optiized, 
 - termination policy: defines what instances are terminated first
   - default: even distribution accross AZ, except if instance is in 'protected' status, oldest template first, closest to next billing hour
@@ -1055,14 +1057,17 @@ It provides fault tolerance for applications.
     - data backup
     - integration with external systems 
 
-- auto-scaling timers: 
-  - warm-up time: time needed to initialize and ready to handle requests, needs dynamic scaling (metrics)
-  - cool-down period (default 300s): period before other scaling activity starts
-  - health-check grace period: amount of time before performing health check on new instances
+### Auto-scaling timers <a id="AutoScalingTimers"></a>
+
+- warm-up time: time needed to initialize and ready to handle requests, needs dynamic scaling (metrics)
+- cool-down period (default 300s): period before other scaling activity starts
+- health-check grace period: amount of time before performing health check on new instances
 
 ### Health checks <a id="HealthChecks"></a>
 
 - __EC2 health checks__, which are the EC2 status checks
+  - System Status Check: Monitors the physical hardware and network infrastructure in AWS that your EC2 instance runs on. If the system experiences a failure (e.g., hardware failure, AWS infrastructure issues), the instance will be marked as "unhealthy."
+  - Instance Status Check: Monitors the health of the EC2 instance itself—including the operating system, software, and any issues that might cause the instance to become unresponsive (e.g., OS crashes, CPU usage spikes, etc.). If the instance is not responsive or cannot be reached, it’s marked as unhealthy.
 - __ELB health checks__, which means it's going to use the ELB health checks in addition to the EC2 instance status checks.
 
 The __health check grace period__:
@@ -1079,6 +1084,8 @@ Only __one subnet per AZ__ can be enabled for each ELB.
 You need to ensure you have at least a /27 subnet and make sure there's at least 8 IP addresses available for the ELB to scale.
 
 ELBs can be configured as internet facing or internal only.
+
+You cannot directly assign an Elastic IP (EIP) to an AWS Elastic Load Balancer (ELB).  Application Load Balancers (ALB) and Classic Load Balancers (CLB), use DNS names (via AWS Route 53) for routing traffic instead of EIPs. However You can use Elastic IPs with Network Load Balancers (NLB).
 
 Internet facing ELBs:
 - the ELB nodes will have public IPs
@@ -1131,7 +1138,7 @@ Access Logs:
 - IPv4 or IPV6
 - VPC + public subnet
 - Security Group
-__ALB will do https decryption__ with the SSL certificate you provide
+__ALB will do https decryption__ with the SSL certificate you provide - need to configure it - see below.
 - forwards request to __target group__: EC2, lambda, ALB, IP addresses (on-premises)
 - can do port translation
 - __health check__ (default is port http)
@@ -1226,6 +1233,9 @@ AWS Global Accelerator utilizes the Amazon global network, allowing you to impro
 AWS Global Accelerator __improves performance__ for a wide range of applications over TCP or UDP by proxying packets at the edge to applications running in one or more AWS Regions. Global Accelerator is a __good fit for non-HTTP use cases__, such as gaming (UDP), IoT (MQTT), or Voice over IP, as well as for HTTP use cases that specifically require static IP addresses or deterministic, fast regional failover.
 
 ![ Global Accelerator ](./images/global_accelerator.jpg)
+
+AWS Global Accelerator creates two IPv4 static IPs when you create an accelerator by default. You can also request one additional IP in the case of needing an extra one for specific use cases like advanced routing or increasing availability and redundancy.
+
 
 ### Auto scaling vs ELB
 
