@@ -537,7 +537,6 @@ security-groups
 curl http://169.254.169.254/latest/meta-data/instance-id
 
 i-0abcd1234efgh5678
-
 ```
 
 ### User data <a id="UserData"></a>
@@ -653,12 +652,18 @@ elastic IP address:
 - Client can use existing Elastic IP to connect to new instance
 - Issues: extra servers to manage
 
-2. __Systems Manager__:
+2. __Systems Manager - Session Manager__:
 - Automated patching of servers and Automation of routine administrative tasks
 - interactive remote shell for Linux and Windows, macOS
 - Agent required: AWS preinstalls in many instances
 - Simpler and Safer when compared to Bastion Host
 - Close SSH and RDP ports in Security Group
+- you can use AWS Systems Manager to __SSH into an EC2 instance without needing to open inbound SSH ports__ (like port 22) on the EC2 instance:
+  - EC2 Instance: Your EC2 instance should be running a supported operating system (Linux or Windows).
+  - IAM Role: The EC2 instance must be associated with an IAM role that has the necessary SSM permissions.
+  - SSM Agent: The SSM Agent must be installed and running on the EC2 instance. Most Amazon Linux 2, Ubuntu, and Windows AMIs have the SSM Agent pre-installed. If you're using custom AMIs, you need to ensure the agent is installed.
+  - VPC Configuration: If the EC2 instance is in a private subnet (without a public IP), it should be able to connect to the Systems Manager endpoint. You need to ensure that your EC2 instance can reach the SSM endpoints either via the internet (if your instance has a NAT gateway or public IP) or via a VPC endpoint for Systems Manager.
+  - AWS Systems Manager (SSM) offers a Session Manager feature that __allows you to SSH into your private EC2 instances without needing an SSH key__ or direct network access.
 
 3. __VPN or Direct Connect__
 - Set Up a VPN Connection: Establish a VPN connection between your on-premises network and your AWS VPC
@@ -693,12 +698,13 @@ elastic IP address:
 
 - __Cluster placement group__ is designed to keep instances very close for low latency. Think about high performance computing, tightly coupled applications where you've got node to node communication
 - __Partition__ will spread your instances across logical partitions so that the groups in one partition don't share the same underlying hardware with other groups of instances. So you can use this for high availability. It's usually used with distributed and replicated workloads. For example, Hadoop, Cassandra and Kafka.
+  - When you create a Partition Placement Group, you define the number of partitions. AWS will then ensure that your instances are distributed across the given number of partitions. 
 - __Spread placement group__: This will place a small group of instances across distinct underlying hardware to reduce any kind of correlated failures.
 
 ### NAT <a id="NAT"></a>
 
 NAT Gateway = special agent with publicIP that connects to InternetGateway
-- __create NAT gateway in public subnet__
+- __create NAT gateway in each public subnet__
 - __define public IP__
 - add entry to main route table to NAT Gateway
 
@@ -731,10 +737,12 @@ NAT instances versus NAT gateways:
   - When you start an instance after hibernation, the root volume is restored to its previous state.
   - The RAM contents are then reloaded and the processes that were previously running on the instance get resumed.
   - Any previously attached volumes are re-attached and the instance retains its instance ID.
+  - when you hibernate an EC2 instance, the public IP is typically released, and you will lose it.
 - __Rebooting__
   - instances, this is the equivalent to an operating system reboot.
   - The DNS name and IP address gets retained.
   - It doesn't affect billing at all because the instance is still running and it hasn't stopped and started, so it's not a new billing lifecycle.
+  - instance storage (also known as ephemeral storage) is lost when you reboot an EC2 instance
 - AWS may sometimes __retire__ instances:
   - if there's some irreparable failure of the underlying hardware,
   - when an instance reaches its scheduled retirement date
@@ -758,6 +766,8 @@ You can modify the following attributes of an instance only when it is stopped:
 - User data.
 - Kernel.
 - RAM disk
+
+You cannot change the instance generation or instance size of an EC2 instance without stopping it.
 
 ### Nitro <a id="Nitro"></a>
 
