@@ -33,6 +33,7 @@
 - [VPC](#VPC)
   - [Security Groups](#SecurityGroups)
   - [Connecting To VPC](#ConnectingToVPC)
+  - [VPC Endpoint](#VPCEndpoint)
 - [S3](#S3)
   - [S3 Storage Classes](#S3StorageClasses)
   - [S3 Access](#S3Access)
@@ -1575,7 +1576,7 @@ You get full control of who has access to the resources inside the VPC.
 The names of availability zones are mapped to different zones for different uses. So, you can __use the AZ ID to identify the actual physical zone__.
 
 __Components of a VPC__:
-- __subnet__: segments of a VPC's IP range where you can place groups of isolated resources and they map toa single AZ.
+- __subnet__: segments of a VPC's IP range where you can place groups of isolated resources and they map to a single AZ.
   - AWS subnet is alswys in one AZ
   - Azure subnet can span multiple AZ
   - By default 2 subnets are connected to each other via Route Table and EC2 can communicate with private IP
@@ -1607,15 +1608,21 @@ __VPC Sharing__:
 - VPC sharing (part of Resource Access Manager) allows multiple AWS accounts to create their application resources such as Amazon EC2 instances, Amazon RDS databases, Amazon Redshift clusters, and AWS Lambda functions, into __shared and centrally-managed Amazon Virtual Private Clouds__ (VPCs). 
 - To set this up, the account that owns the VPC (owner) __shares one or more subnets with other accounts__ (participants) that belong to the same organization from AWS Organizations. After a subnet is shared, the participants can view, create, modify, and delete their application resources in the subnets shared with them. Participants cannot view, modify, or delete resources that belong to other participants or the VPC owner.
 - You can share Amazon VPCs to leverage the implicit routing within a VPC for __applications that require a high degree of interconnectivity__ and are within the same trust boundaries. This reduces the number of VPCs that you create and manage while using separate accounts for billing and access control.
+- To allow another AWS account (with which you've shared a subnet in your VPC) to use the RDS endpoint, you need to ensure a few key things:
+  - The RDS endpoint is in a shared subnet
+  - Update the security group attached to the RDS instance to allow traffic from the EC2 instances in the other account
+  - Make sure the EC2 instances in the other account can resolve the RDS endpoint's DNS name
+  - If your RDS setup uses IAM authentication, you’ll need to:
+    - Grant the other account's IAM users/roles access to the RDS via IAM policies.
 
 ### Security Groups <a id="SecurityGroups"></a>
 
 Security Group:
 - Default Security Group: Inbound: All, Outbound: All
-- Only Allow rules, no Deny
-- One security group can protect many EC2: SG -- n:n -- EC2
+- Only __Allow rules__, no Deny
+- One security group __can protect many EC2__: SG -- n:n -- EC2
 - Stateful: do not check 'inbound' if session has been initiated and this is returning traffic
-- One security group can protect EC2s in different AZs.
+- One security group can protect EC2s in __different AZs__.
 - can be attached to __anything with NIC__ (network interface)
 
 Security groups versus network ACLs:
@@ -1740,7 +1747,7 @@ __VPC Transit Gateway__
 
 The VPC router connects different AZs together and connects the VPC to the Internet Gateway
 
-Internet Gateways (IGW) must be created and then attached to a VPC, be added to a route table, and then associated with the relevant subnet(s)
+__Internet Gateways__ (IGW) must be created and then attached to a VPC, be added to a route table, and then associated with the relevant subnet(s)
 IGW is horizontally scaled, redundant and HA and performs NAT between private and public IPv4 addresses
 Internet Gateway requires public IP. Else not traffic will go in or out.
 
@@ -1761,12 +1768,32 @@ To enable access to or from the Internet for instances in a VPC subnet, you must
 - Ensure that instances in your subnet have a globally unique IP address
 - Ensure that your network access control and security group rules allow the relevant traffic to flow to and from your instance
 
-Managed Prefix List
+__Managed Prefix List__
 - one or more CIDR blocks
 - use it in VPC security groups, subnets, transit gateway tables, firewall etc
 - use it for outboud traffic
+- Example:
+  - Instead of allowing 0.0.0.0/0 or manually maintaining all S3 IP ranges, you can do:
+```
+{
+  "IpProtocol": "tcp",
+  "FromPort": 443,
+  "ToPort": 443,
+  "PrefixListId": "pl-63a5400a"
+}
+```
+  - Bad solution:
+```
+Type: HTTPS
+Protocol: TCP
+Port Range: 443
+Destination: 52.216.0.0/15
+Destination: 54.231.0.0/17
+...
 
-#### VPC Endpoint
+```
+
+### VPC Endpoint <a id="VPCEndpoint"></a>
 
 - powered by PrivateLink: provides private connectivity between VPCs, AWS services and on-premises aapplications using amazon network (not internet)
 - Gateway endpoint ( Dynamodb or S3): you need to define route table target in route table
