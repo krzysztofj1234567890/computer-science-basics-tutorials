@@ -1955,11 +1955,6 @@ S3 objects:
 - Permissions can be defined on objects at any time.
 - The storage class is set at the object level.
 
-S3:__PutObjectLegalHold__ permissions privileges are limited to people with a business need
-
-S3 Versioning
-- enable in bucket (default disabled) or object
-
 S3 Lifecycle rules
 - automated changing storage class 
 - applied to filtered objects: prefix, tags, object size (range)
@@ -1970,8 +1965,8 @@ By default __bucket owner__ pays for: storage, data transfer, PUT or GET user re
 __Requester__ if authenticated (must have aws account) can be made to pay for: data transfer and request cost. Requested must have a specific http header. To enable it you must:
 - make S3 bucket public
 - create bucket policy to everyone to access
-- set 'requester pay' option in 'properties'. It makes the bucket not available to anonymous access.
-- requested must use x-amz-request-payer header.
+- set __'requester pay' option in 'properties'__. It makes the bucket not available to anonymous access.
+- requested must use __x-amz-request-payer header__.
 
 __S3 pre-signed url__: __allow access to private S3 objects for limited time__
 - downloading and uploading
@@ -1980,24 +1975,9 @@ __S3 pre-signed url__: __allow access to private S3 objects for limited time__
   - aws cli
   - aws console
 
-S3 MFA delete for bucket: must aws cli and you must have MFA on for your aws user.
+__S3 MFA delete for bucket__: must aws cli and you must have MFA on for your aws user.
 
 
-__S3 Multipart Upload__ (mandatory for files >5GB)
-- get uploadId: 
-```
-aws s3api create-multipart-upload --bucket kjbucket --key kjfilename
-```
-- compress + split file ( 7-zip )
-- upload file parts <5MB
-```
-aws s3api upload-part --bucket kjbucket --key kjfilename --part-number1 --upload-id <id> --body .\you_file_name_part
-```
-- get ETag to track
-- send request with uploadID and ETAGs to assemble file
-```
-aws s3api complete-multipart-upload --bucket....
-```
 
 
 __VPC Gateway Endpoint for S3__
@@ -2017,20 +1997,16 @@ __S3 Access Point__
 
 ### Storage classes <a id="S3StorageClasses"></a>
 
-
-S3 storage classes:
-- Standard
-- Infrequent access: accessed 1/month, HA 99.9, retrieval fees, >128KB, at least 30 days
-- Intellingenmt tiering: unknown access pattern, HA 99.9, 30 days
-- IA One zone: use for data that can be re-created. HA: 99.5%, retrieval fees, >128KB
-- Express one zone: high performance, single zone to deliver consistent single-digit millisecond latency. AI. 10* faster then Standard, Requires 'directory' bucket
-- Glacial Instant retrival: long lived, few times per year fast retrival. >90days. Good for backup
-- Glacier flexible retrival: rarely accessed: good for archive or backup. >90days. Retrival within min-hours
-- Glacier Deep Archive: rarely accessed, use for archive. retrival in >12 hours, >180 dyas
-
-S3 storage Use cases:
-- Backup storage: disaster recovery, potentially frequent access, fast retrival speed
-- Archive: long term data preservation, infrequent access, slow retrival speed
+- __Standard__: pay per day
+- __Infrequent access__: accessed 1/month, HA 99.9, retrieval fees, >128KB, at least 30 days
+- __Intellingenmt tiering:__ unknown access pattern, HA 99.9, 30 days
+- __IA One zone__: use for data that can be re-created. HA: 99.5%, retrieval fees, >128KB
+- __Express one zone__: high performance, single zone to deliver consistent single-digit millisecond latency. AI. 10* faster then Standard, Requires 'directory' bucket
+- __Glacial Instant retrival__: long lived, few times per year fast retrival. >90days. Good for backup
+- __Glacier flexible retrival__: rarely accessed: good for archive or backup. >90days. Retrival within min-hours
+  - Backup storage: disaster recovery, potentially frequent access, fast retrival speed
+- __Glacier Deep Archive:__ rarely accessed, use for archive. retrival in >12 hours, >180 dyas
+  - Archive: long term data preservation, infrequent access, slow retrival speed
 
 Data Access Pattern:
 
@@ -2092,6 +2068,8 @@ __Bucket Policy__
 - you have to provide principal
 - Bucket policies are resource-based policies.
 - Bucket policies, they can only be attached to Amazon S3 buckets.
+- you __can assign the same policy to many S3 buckets, but not directly__ by referencing one policy across multiple buckets
+- __cannot assign a bucket policy directly to an individual S3 object__.
 - example of bucket policy that will protect S3 bucket:
 ```
 {
@@ -2136,11 +2114,12 @@ __S3 ACL = Access Control Lists__ - disabled by default
   - you prefer to keep access control policies in S3.
 
 __S3 Versioning__:
+- enable in __bucket__ (default disabled) or __object__
 - Versioning is a means of keeping multiple variants of an object in the same bucket.
 - You use versioning to preserve, retrieve, and restore every version of the object stored in your S3bucket.
 - Versioning enabled buckets will enable you to recover objects from accidental deletion or overwrites.
 
-Lifecycle management:
+__Lifecycle management__:
 
 ![ Lifecycle management ](./images/s3_life_cycle_management.png)
 
@@ -2148,7 +2127,7 @@ Archive Flow – Intelligent Tiering:
 
 ![ Intelligent Tiering ](./images/intelligent_tiering.jpg)
  
-Multi-Factor Authentication Delete:
+__Multi-Factor Authentication Delete__:
 - Adds an MFA requirement for bucket owners to the following operations:
   - changing the versioning state of a bucket
   - permanently deleting an object version,
@@ -2161,23 +2140,39 @@ Multi-Factor Authentication Delete:
   - authorized IAM users.
 - MFA Delete can be enabled by the bucket owner only.
 
-Protected API access with MFA:
+__Protected API access with MFA__:
 - This is used to enforce another authentication factor, an MFA code when accessing resources and not just S3.
 - It's enforced using the AWS MultiFactorAuthAge key in a bucket policy.
 
-
-Event notifications:
+__Event notifications__:
 - this is where S3 sends notifications when an event happens in an S3 bucket.
 - The destinations include SNS, SQS, and Lambda.
+- created when: object deleted, created, updated
+- good for: automated workflows, real-time notification
 
-Multipart upload:
+__Multipart upload__:
 - uploads objects in parts, independently, in parallel and in any order
 - It's performed using the Multipart upload API
 - recommended for objects __above 100 MB__.
 - can be used for objects from 5MB up to the maximum file size, which is __5TB__.
 - it has to be used for any objects larger than 5GB.
+__S3 Multipart Upload__ (mandatory for files >5GB):
+- get uploadId: 
+```
+aws s3api create-multipart-upload --bucket kjbucket --key kjfilename
+```
+- compress + split file ( 7-zip )
+- upload file parts <5MB
+```
+aws s3api upload-part --bucket kjbucket --key kjfilename --part-number1 --upload-id <id> --body .\you_file_name_part
+```
+- get ETag to track
+- send request with uploadID and ETAGs to assemble file
+```
+aws s3api complete-multipart-upload --bucket....
+```
 
-S3 copy API:
+__S3 copy API__:
 - you can copy objects __up to 5GB__.
 - it can be used to:
   - generate additional copies of objects,
@@ -2186,7 +2181,8 @@ S3 copy API:
   - move the objects between AWS locations and regions.
   - You can also change the object metadata.
 
-Server Access Logging:
+__Server Access Logging__:
+- __summary level__ record of requests in plain text made to S3 bucket
 - provides detailed records for the requests that are made to a bucket.
 - information that is logged includes the requester, the bucket name, the request time, request action, response status, and the error code.
 - It's disabled by default.
@@ -2195,21 +2191,14 @@ Server Access Logging:
 - you can specify a prefix if you want to.
 - You must also grant write permission to the Amazon S3 Log Delivery group on the destination bucket.
 
-__S3 server access logging__: __summary level__ record of requests in plain text made to S3 bucket
-
 __Cloud Trail events__: logs in json of all cations on your objects - __all details__ like: requestor, operation
 
-S3 Event Notification:
-- destination: SNS, SQS, Lambda
-- created when: object deleted, created, updated
-- good for: automated workflows, real-time notification
-
-Cross Account Access Methods:
+__Cross Account Access Methods:__
 - Resource-based policies and IAM policies can be used for programmatic access to S3 bucket objects,
 - resource-based ACL and IAM policies for programmatic access to S3 bucket objects as well.
 - If you need programmatic and console access, you can use cross account IAM roles.
 
-Performance optimizations:
+__Performance optimizations__:
 - S3 does support at least 3,500 PUT, COPY, POST, DELETE, or 5,500 GET HEAD requests per second per prefix in a bucket.
 - You can increase, read or write performance by parallelizing reads.
 - You can use Byte-Range Fetches.
@@ -2247,11 +2236,9 @@ Transfer acceleration is as secure as a direct upload to S3
 - speeds-up 50-500% faster
 - enable it and get new url
 
-
 Must use one of the following endpoints:
 - .s3-accelerate.amazonaws.com.
 - .s3-accelerate.dualstack.amazonaws.com (dual-stack option)
-
 
 
 ### S3 encryption <a id="S3Encryption"></a>
@@ -2282,12 +2269,13 @@ openssl rand 32 > sse-c.key
 key=$(cat sse-c.key | base64)
 # create md5 hash
 keymd5=$( cat sse-c.key | openssl dgst -md5 -binary | base64)
-```    - aws console cannot open this file
+```
+      - aws console cannot open this file
 
 - CSE (client side)
   - need to use AWS encryption SDK or OpenSSL or other to encrypt
 
-S3 Public access:
+__S3 Public access:__
 - set 'block all public access' on the bucket: account level or bucket level
 - set one of:
   - set 'ACL':
@@ -2341,7 +2329,7 @@ To enable website hosting on a bucket, specify:
 - __Create public hosted zone in Route 53 with A or CNAME record__ and point DNS to S3 website endpoint
 - Use Amazon __CloudFront for HTTPS support__ 
 
-AWS S3 Cross-origin resource sharing (CORS)
+__AWS S3 Cross-origin resource sharing (CORS)__
 - it is a way to request resources from different domain (javascript 'fetch')
 - browsers will block it
 - with Permissions -> CORS you can still do it by adding CORS rules to the bucket:
@@ -2373,8 +2361,8 @@ This feature also automatically enables versioning.
 
 Prevent deletion of objects (even life cycle policy cannot delete it)
 - retention mode: rules that define how strictly the object is protected
-  - Governance Mode
-  - Compliance Mode
+  - Governance Mode: Protected from most users, but authorized users can override with special permission
+  - Compliance Mode: Absolute enforcement — no one, not even the root user, can delete or modify the object until the retention period expires
 - retention period
 - Legal hold: indefinite time.
 - Versioning must be enabled
@@ -2399,8 +2387,8 @@ There are three ways in which you can use Object Lock:
   Once the legal hold is removed, the object version can be deleted.
 - __Retention Period__
   We can also protect an object version from deletion or modification by __specifying a retention period__
-  In __Governance Mode__, anyone with __S3:BypassGovernanceRetention__ permission can override retention configuration and delete the object version
-  In __Compliance Mode__, the __Object version cannot be deleted by anyone__ (including the root user) until the retention period expires.
+  - In __Governance Mode__, anyone with __S3:BypassGovernanceRetention__ permission can override retention configuration and delete the object version
+  - In __Compliance Mode__, the __Object version cannot be deleted by anyone__ (including the root user) until the retention period expires.
 
 ### AWS S3 Cross-region replication (CRR) <a id="S3CRR"></a>
 
