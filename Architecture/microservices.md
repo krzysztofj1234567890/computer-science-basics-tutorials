@@ -147,3 +147,56 @@ If there is a failure, the preceding microservices complete compensating actions
 
 There are various ways to implement a Saga—for example, you can use task and workflow engines such as Apache Airflow or Apache Camel.
 
+# REST API vs GraphQL
+
+GraphQL and REST API are both web API design approaches.
+
+REST is great for simplicity, caching, and conventional web services.
+
+GraphQL is ideal for flexibility, efficiency, and complex data fetching needs.
+
+
+| Feature / Aspect      | **REST API**                                                     | **GraphQL**                                                             |
+| --------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Design Style**      | Resource-based (e.g., `/users`, `/posts`)                        | Query-based (client defines data shape via queries)                     |
+| **Endpoints**         | Multiple endpoints for different resources                       | Single endpoint (`/graphql`) for all queries and mutations              |
+| **Data Fetching**     | Fixed responses; often over-fetches or under-fetches             | Client specifies exactly what data it needs                             |
+| **Over-fetching**     | Common; returns entire resource even if only one field is needed | Avoided; fetch only requested fields                                    |
+| **Under-fetching**    | May require multiple requests to get nested data                 | One request can retrieve deeply nested related data                     |
+| **Versioning**        | Versioned URLs (e.g., `/api/v1/`)                                | No need for versioning — schema evolves with optional/nullable fields   |
+| **Caching**           | Easy with HTTP (e.g., `ETag`, `304`)                             | Requires custom logic (Apollo, Relay have built-in caching)             |
+| **Type System**       | Typically not enforced                                           | Strongly typed schema (defined with SDL)                                |
+| **Error Handling**    | Relies on HTTP status codes (e.g., 404, 500)                     | Returns 200 OK with detailed error object in response body              |
+| **Batch Requests**    | Requires multiple calls or custom batching                       | One query can retrieve multiple resources                               |
+| **Real-time Support** | Not native; needs WebSockets or polling                          | Built-in via **subscriptions**                                          |
+| **Tooling**           | Varies; depends on language/framework                            | Excellent tools like GraphiQL, Apollo Studio, schema introspection      |
+| **Learning Curve**    | Lower; simpler to get started                                    | Higher; requires understanding of schema, queries, mutations, resolvers |
+
+# Securing mService
+
+## Authentication (Who are you?)
+
+- Use OAuth 2.0, OpenID Connect, or JWT (JSON Web Tokens) for stateless auth.
+- Consider API gateways like Kong, Apigee, or AWS API Gateway for centralized auth.
+
+## Authorization (Can you access this?)
+
+- Implement Role-Based Access Control (RBAC) or Attribute-Based Access Control (ABAC).
+- Protect routes or methods based on user roles or claims in JWT.
+
+## Transport Layer Security
+
+- Use HTTPS (TLS) for all communication between services and clients.
+- Never allow plain HTTP for sensitive endpoints.
+
+## API Gateway / Service Mesh
+
+- Gateways like Kong, Istio, or NGINX can handle: Rate limiting, Auth, Logging, Request validation
+- Service meshes (e.g., Istio, Linkerd) provide: Mutual TLS (mTLS) between services, Fine-grained traffic control, Observability and security policies
+
+## Network Security
+
+- Isolate microservices in a private subnet or VPC.
+- Use firewalls or security groups to restrict traffic.
+- Enable zero-trust networking principles.
+
