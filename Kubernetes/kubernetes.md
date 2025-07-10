@@ -1137,9 +1137,9 @@ Another strategy for scaling your workloads is to schedule the scaling operation
 
 Every Pod in a cluster gets its own unique __cluster-wide IP__ address. Pods can be treated much like VMs or physical host.
 
-- _Containers_ within a Pod use networking to communicate via loopback (_localhost_)
+- __Containers__ within a Pod use networking to communicate via loopback (__localhost__)
 - Cluster networking provides communication between different Pods.
-- The _Service API_ lets you expose an _application running in Pods_ to be reachable from _outside your cluster_.
+- The __Service API__ lets you expose an _application running in Pods_ to be reachable from __outside your cluster__.
   - Ingress provides extra functionality specifically for exposing HTTP applications, websites and APIs.
   - Gateway API is an add-on that provides an expressive, extensible, and role-oriented family of API kinds for modeling service networking.
 - You can also use Services to publish services only for consumption inside your cluster.
