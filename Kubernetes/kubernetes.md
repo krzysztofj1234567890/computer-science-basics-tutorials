@@ -109,6 +109,16 @@ container-specific APIs native to the target OS.
 The interface to this container runtime is defined by the Container Runtime Interface (CRI) standard.
 When you install the docker tooling the containerd runtime is also installed and used by the Docker daemon.
 
+A container runtime is the low-level software responsible for running containers on a system.
+
+A container runtime:
+- Pulls container images (from registries like Docker Hub).
+- Unpacks and prepares container images.
+- Isolates resources using Linux features like cgroups and namespaces.
+- Launches and manages container processes.
+- Handles networking and storage related to containers.
+- Cleans up resources when containers stop.
+
 Running Containers with Docker:
 
 ```
@@ -148,9 +158,59 @@ replicas of a service are available and healthy.
 * __nodes__: nodes are separated into control-plane nodes that contain containers like the API server, scheduler, etc., which manage the cluster,
 and worker nodes where your containers will run
 
+What to Install on a Kubernetes Node:
+- Container Runtime (containerd, docker is depreciated)
+- Kubelet
+  - The node agent that registers the node with the control plane and runs containers via the runtime
+- Kubeadm
+  - A CLI tool to bootstrap the node (and cluster).
+  - Used to join the node to an existing Kubernetes cluster.
+
+#### Controller manager
+
+The controller-manager in Kubernetes is a core component that runs controller loops—background processes that continuously monitor the cluster's state and work to move it toward the desired state as defined in the Kubernetes API (typically through manifests like Deployments, ReplicaSets, etc.).
+
+Each controller watches for changes in the cluster and reconciles the actual state with the desired state.
+
+For example:If a Deployment specifies 3 replicas but only 2 Pods are running, the ReplicaSet controller (within the controller-manager) will notice and create a third Pod
+
+Key Controllers in the kube-controller-manager:
+
+| Controller                    | What it manages                                             |
+| ----------------------------- | ----------------------------------------------------------- |
+| **Node controller**           | Monitors node health and manages node lifecycle.            |
+| **Replication controller**    | Ensures the desired number of pod replicas are running.     |
+| **Endpoints controller**      | Updates the Endpoints objects when Services or Pods change. |
+| **ServiceAccount controller** | Creates default service accounts and tokens.                |
+| **Namespace controller**      | Handles namespace lifecycle (e.g., cleanup when deleted).   |
+| **Job controller**            | Watches `Job` objects and ensures Pods run to completion.   |
+| **Deployment controller**     | Manages rolling updates and scaling for Deployments.        |
+
+
 ### The Kubernetes Client
 
 The official Kubernetes client is kubectl: a command-line tool for interacting with the Kubernetes API
+
+Install kubectl
+```
+sudo apt-get install -y kubectl
+```
+
+Configure kubectl
+```
+# Minikube
+minikube start
+kubectl config use-context minikube
+
+# Amazon EKS
+aws eks update-kubeconfig --region <REGION> --name <CLUSTER_NAME>
+```
+
+Test your connection
+```
+kubectl get nodes
+```
+
 
 Commands:
 
@@ -1253,6 +1313,19 @@ This is the __default__. You can expose the Service to the public internet using
 * __NodePort__: Exposes the Service on each Node's IP at a static port. Kubernetes control plane allocates a port from a range specified by --service-node-port-range flag (default: 30000-32767)
 * __LoadBalancer__: Exposes the Service externally using an external load balancer. Kubernetes does not directly offer a load balancing component; you must provide one. Used on On cloud providers which support external load balancers. Traffic from the external load balancer is directed at the backend Pods. The cloud provider decides how it is load balanced.
 * __ExternalName__: Maps the Service to the contents of the externalName field. The mapping configures your cluster's DNS server to return a CNAME record with that external hostname value. No proxying of any kind is set up.
+
+ClusterIP:
+- It’s a virtual IP address assigned to a Service.
+- Used for internal communication between components in the cluster (e.g., Pods talking to other Pods via Services).
+- Not reachable from outside the cluster (no public access).
+- DNS Routes traffic from the ClusterIP to the correct backend Pods using kube-proxy and iptables/ipvs.
+
+NodePort:
+- type of Service that exposes an application on a static port on each Node's IP—allowing access from outside the cluster.
+- Kubernetes assigns a NodePort (or you can set one manually).
+- Each node in the cluster listens on that port.
+- kube-proxy routes incoming traffic to the correct backend Pod via a ClusterIP.
+
 
 #### Ingress
 
