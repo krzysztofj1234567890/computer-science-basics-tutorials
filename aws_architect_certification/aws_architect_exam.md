@@ -2439,6 +2439,25 @@ You can configure __separate S3 Lifecycle rules on the source and destination bu
   - __replica modification sync__: changes made to replicated copies are sync back to source bucket
 
 
+### S3 Limits
+
+- Storage Limits:
+  - Unlimited Storage: You can store an unlimited amount of data in S3. 
+  - Individual Object Size: Objects can range from 0 bytes to 5 TB in size. 
+Single PUT Operation: The largest object you can upload in a single PUT operation is 5 GB. 
+Multipart Upload: For objects larger than 100 MB, it's recommended to use the Multipart Upload feature for optimal performance. 
+Bucket Size: There is no limit on the total size of data stored in a bucket. 
+Number of Buckets: Amazon S3 now supports up to 1 million buckets per AWS account. 
+Directory Buckets: S3 directory buckets, which only support S3 Express One Zone storage class, can support up to 2 million transactions per second. 
+
+- Request Rate Limits:
+  - PUT/COPY/POST/DELETE:  3,500 requests per second per prefix within a bucket, according to Stack Overflow. 
+  - GET/HEAD: 5,500 requests per second per prefix within a bucket, according to Stack Overflow. 
+- Service Quotas:
+  - There are also service-level quotas, and you can request increases to these if needed. 
+- 503 Slow Down Errors: When S3 is scaling to higher request rates, you might encounter 503 Slow Down errors. These should resolve as S3 completes scaling. 
+- Latency: S3 is not designed for latency-critical workloads, and actual latency can vary. 
+
 ### Architecture Patterns
 
 #### A  company is concerned about accidental deletion of Amazon S3 objects.
@@ -2673,8 +2692,16 @@ Two types of DNS record:
   - You can't create CNAME a record at the top node of DNS namespace,
   - If you have the domain namespace example.com, you can't create a CNAME for example.com, but you can for www.example.com because that's a subdomain. So, not the zone apex.
   - A CNAME can point to any DNS record hosted anywhere.
+  - __CNAME cannot be used at the root domain (example.com) — only on subdomains (www.example.com, api.example.com, etc.)__
   - __CNAME records must point to a domain, never to an IP address__
-  - Example: use CNAME records to point ftp.example.com and www.example.com to the DNS entry for example.com
+  - Use CNAME for subdomains when you want to point them to another domain name.
+  - Great for pointing to CDNs, load balancers, managed services.
+  - Example of CNAME use:
+    - www.example.com points to another domain: 
+    - www.example.com.    IN CNAME    myapp.hostingprovider.com.
+  - Things that do not work for Alias but wirk with CANME:
+    - CNAME Points to non-AWS domains (Alias cannot)
+    - Supported outside AWS Route 53
 - __A__ record:
   - __maps a domain name to an IP address__
   - Example: "google.com" pointing to the IP address "74.125.224.147"
@@ -2688,8 +2715,8 @@ Two types of DNS record:
   - Alias records work like a CNAME record in that you can map one DNS name (e.g. example.com) to another ‘targetʼ DNS name (e.g. elb1234.elb.amazonaws.com).
   - An Alias record can be used for resolving apex / naked domain names (e.g. example.com rather than sub.example.com).
   - A CNAME record canʼt be used for resolving apex / naked domain names.
-  - Examples:
-    - Domain: www.mywebsite.com  -> Value: myelb.us-east-2.amazonaws.com
+  - Examples of Alias use:
+    - example.com.    IN ALIAS    myapp.hostingprovider.com.
 - __MX__: email
 - __PTR__: IP -> name
 
@@ -2697,8 +2724,11 @@ Routing policies:
 - __simple__ routing (only one IP)
 - __weighted__ routing policy + health-check
 - __geolocation__: create one A record per regions + IP and default. dnschecker.org
+  - Use when: You want to serve users in specific countries, continents, or states (U.S. only) from different endpoints.
 - __latency__: create many A records in different regions
 - __geoproximity__: need to __create traffic policy_- (provide exact geo area coordinates + bias)
+  - Use when: You want fine-grained control over traffic distribution based on distance to endpoints.
+  - You want to adjust traffic boundaries dynamically using bias
 - __failover__: need to __create health-check__ , decrease __TTL__
 - __multivalue__: __returns many IP addresses__ in different order (round robin): same A record can have many IP addresses: Used for load balancer. Can add health-check
     - issues: cannot send traffic to private subnet, no https, slow TTL (min 60s)
@@ -2706,29 +2736,40 @@ Routing policies:
 
 ![ Routing policies ](./images/route_53_routing_policies.png)
 
+You can combine Geoproximity Routing with Failover Routing in Amazon Route 53, but only through Route 53 Traffic Flow using policy rules and failover endpoints within the same traffic policy.
+
+- You define geoproximity rules to route users based on their geographic location.
+- For each geoproximity location (e.g., us-east-1, eu-west-1), you can specify:
+  - A primary endpoint
+  - A secondary (failover) endpoint with Failover = Secondary
+- If the primary health check fails, Route 53 automatically sends traffic to the secondary
 
 ### Amazon CloudFront <a id="CloudFront"></a>
 
 To use CloudFront to distribute your website content, create a distribution and specify settings for it.
-When you create a distribution, CloudFront assigns a domain name to the distribution, such as d111111abcdef8.cloudfront.net. 
+When you create a distribution, __CloudFront assigns a domain name to the distribution, such as d111111abcdef8.cloudfront.net.__ 
 You can use this domain name in the URLs for your content.
 Instead of using this provided domain name, you can use an alternate domain name (also known as a CNAME).
 
-Amazon CloudFront can route to multiple origins based on the content type
+Amazon CloudFront __can route to multiple origins based on the content type__: You can configure a single Amazon CloudFront web distribution to serve different types of requests from multiple origins. For example, if you are building a website that serves static content from an Amazon Simple Storage Service (Amazon S3) bucket and dynamic content from a load balancer, you can serve both types of content from a Amazon CloudFront web distribution.
 
-You can configure a single Amazon CloudFront web distribution to serve different types of requests from multiple origins. For example, if you are building a website that serves static content from an Amazon Simple Storage Service (Amazon S3) bucket and dynamic content from a load balancer, you can serve both types of content from a Amazon CloudFront web distribution.
+__Failover__:
+- Use an origin group with __primary and secondary origins__ to configure Amazon CloudFront for __high-availability and failover__
+- You can set up Amazon CloudFront with origin failover for scenarios that require high availability. To get started, you create an origin group with two origins: a primary and a secondary. If the primary origin is unavailable or returns specific HTTP response status codes that indicate a failure, CloudFront automatically switches to the secondary origin.
+- To set up origin failover, you must have a distribution with at least two origins. Next, you create an origin group for your distribution that includes two origins, setting one as the primary. Finally, you create or update a cache behavior to use the origin group.
 
-Use an origin group with primary and secondary origins to configure Amazon CloudFront for high-availability and failover
+__Field level encryption__:
+- Use __field level encryption__ in Amazon CloudFront to protect sensitive data for specific content: Field-level encryption allows you to enable your users to securely upload sensitive information to your web servers. The sensitive information provided by your users is encrypted at the edge, close to the user, and remains encrypted throughout your entire application stack. This encryption ensures that only applications that need the data—and have the credentials to decrypt it—are able to do so.
+- To use field-level encryption, when you configure your Amazon CloudFront distribution, specify the set of fields in POST requests that you want to be encrypted, and the public key to use to encrypt them. You can encrypt up to 10 data fields in a request. (You can’t encrypt all of the data in a request with field-level encryption; you must specify individual fields to encrypt.)
 
-You can set up Amazon CloudFront with origin failover for scenarios that require high availability. To get started, you create an origin group with two origins: a primary and a secondary. If the primary origin is unavailable or returns specific HTTP response status codes that indicate a failure, CloudFront automatically switches to the secondary origin.
+| Security Layer           | HTTPS (TLS)                     | Field-Level Encryption (FLE)                                   |
+| ------------------------ | ------------------------------- | -------------------------------------------------------------- |
+| Encrypts                 | Entire HTTP request/response    | Specific fields within the body (e.g., JSON field, form input) |
+| Visibility to CloudFront | Full request visible            | Encrypted fields are unreadable even by CloudFront             |
+| Use case                 | Protects data in transit        | Protects sensitive fields end-to-end                           |
+| Who can decrypt          | Any system handling the request | Only **specific backend app** with private key                 |
 
-To set up origin failover, you must have a distribution with at least two origins. Next, you create an origin group for your distribution that includes two origins, setting one as the primary. Finally, you create or update a cache behavior to use the origin group.
 
-Use field level encryption in Amazon CloudFront to protect sensitive data for specific content
-
-Field-level encryption allows you to enable your users to securely upload sensitive information to your web servers. The sensitive information provided by your users is encrypted at the edge, close to the user, and remains encrypted throughout your entire application stack. This encryption ensures that only applications that need the data—and have the credentials to decrypt it—are able to do so.
-
-To use field-level encryption, when you configure your Amazon CloudFront distribution, specify the set of fields in POST requests that you want to be encrypted, and the public key to use to encrypt them. You can encrypt up to 10 data fields in a request. (You can’t encrypt all of the data in a request with field-level encryption; you must specify individual fields to encrypt.)
 
 - Cache copies of content close to your users
 - CloudFront routes request to nearest edge location
@@ -2852,7 +2893,7 @@ CloudFront __does not support region-specific origins__.
 
 #### Signed URLs and cookies
 
-- With __signed URL__s:
+- With __signed URLs__:
   - these provide more control over access to content.
   - __You can specify the beginning and expiration date and time and IP addresses__ or ranges of IP addresses for users.
 - With __signed cookies__, that's similar to signed URLs:
@@ -2895,24 +2936,6 @@ __Global Accelerator Setup__
 - listener setup: tcp:port or udp:port
 - endpoint group: define region and weight, health checks and muliple targets (ALB, NLB, EC2, Elastic IP)
 
-#### S3 Limits
-
-- Storage Limits:
-  - Unlimited Storage: You can store an unlimited amount of data in S3. 
-  - Individual Object Size: Objects can range from 0 bytes to 5 TB in size. 
-Single PUT Operation: The largest object you can upload in a single PUT operation is 5 GB. 
-Multipart Upload: For objects larger than 100 MB, it's recommended to use the Multipart Upload feature for optimal performance. 
-Bucket Size: There is no limit on the total size of data stored in a bucket. 
-Number of Buckets: Amazon S3 now supports up to 1 million buckets per AWS account. 
-Directory Buckets: S3 directory buckets, which only support S3 Express One Zone storage class, can support up to 2 million transactions per second. 
-
-- Request Rate Limits:
-  - PUT/COPY/POST/DELETE:  3,500 requests per second per prefix within a bucket, according to Stack Overflow. 
-  - GET/HEAD: 5,500 requests per second per prefix within a bucket, according to Stack Overflow. 
-- Service Quotas:
-  - There are also service-level quotas, and you can request increases to these if needed. 
-- 503 Slow Down Errors: When S3 is scaling to higher request rates, you might encounter 503 Slow Down errors. These should resolve as S3 completes scaling. 
-- Latency: S3 is not designed for latency-critical workloads, and actual latency can vary. 
 
 #### Traffic flow cloudfront, aws route 53 and aws s3
 
@@ -2938,6 +2961,8 @@ Step-by-Step Breakdown:
 - CloudFront caches the object (if caching is enabled).
 - Sends the response back to the browser.
 - The user sees the website content.
+
+
 
 ### Architecture Patterns
 
@@ -2970,7 +2995,7 @@ Create an AWS global accelerator and add the ALBs
 
 Default location is returned if it is configured. Otherwise 'no answer' response is returned
 
-#### n application is deployed in multiple AWS regions and Route 53 is configured to route request to the region that offers lowest latency for the client. Due to an unplanned downtime, Application is not available in one of the regions. How will Route 53 handle this scenario?
+#### An application is deployed in multiple AWS regions and Route 53 is configured to route request to the region that offers lowest latency for the client. Due to an unplanned downtime, Application is not available in one of the regions. How will Route 53 handle this scenario?
 
 Health Check needs to be configured for Route 53 to become aware of application down scenarios. 
 It will then act on the routing configuration specified
