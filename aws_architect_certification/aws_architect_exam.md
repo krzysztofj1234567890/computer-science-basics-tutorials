@@ -48,6 +48,7 @@
 - [8 Block and File Storage](#Block_File_Storage)
   - [EBS](#EBS)
   - [File Share](#FileShare)
+  - [Storage Gateways](#StorageGateways)
 - [9 Containers](#Containers)
   - [ECS](#ECS)
   - [EKS](#EKS)
@@ -3315,7 +3316,7 @@ Replication:
 - To __back up__ data from FSx to __S3__, you can leverage __AWS Backup__ or you can create a Data Repository Association (DRA) to link your FSx file system to an S3 bucket
 - In case of a failure, FSx __automatically fails over__ to a standby file server, ensuring minimal downtime and continued operation
     
-#### Storage gateway
+### Storage gateways <a id="StorageGateways"></a>
 
 - __connects on-premises software appliance with cloud-based storage__
 - it is __virtual machine__ image that you install on premises
@@ -3323,7 +3324,7 @@ Replication:
 - Use AWS S3 as a local file share backend
 - when you need to access AWS storage locally, with low-latency and caching.
 
-##### Storage gateway – File gateway
+#### Storage gateway – File gateway
 
 - NFS, SMB support, mount shares, shared folders
 - This provides an __on-premises file server__.
@@ -3333,17 +3334,18 @@ Replication:
 - local cache
 - Windows ACL support
 - only changes are transfered
+- __files are not all stored locally. Only recently accessed or recently written data is cached locally; the full dataset is stored in Amazon S3__.
 
-##### Storage gateway - volume gateway
+#### Storage gateway - volume gateway
 
 - can have cached volume or shared volume (and schedule task to move to S3)
 - attach ec2 or VMware to gateway
 - features: cache, backup volumes as EBS snapshots, integrates with AWS backup
 - This supports __block-based volumes__. So, it's an iSCSI protocol that you use to connect.
-- __cached volume mode__ where the entire data set is stored on S3, and a cache of the most frequently accessed data is on site.
+- __cached volume mode__ where the __entire data set is stored on S3, and a cache of the most frequently accessed data is on site__.
 - __stored volume mode__ means that the __entire data set is stored on site and asynchronously backed up to S3__
 
-##### Storage gateway - tape gateway
+#### Storage gateway - tape gateway
 
 - used for back up with popular backup software.
 - Each gateway is pre-configured with a media changer and tape drives, all virtual, of course.
@@ -3352,6 +3354,7 @@ Replication:
 - Annotate gateway can have up to 1,500 virtual tapes with a maximum aggregate capacity of one petabytes.
 - All data transferred between the gateway and AWS storage is encrypted using SSL.
 - all data stored by Tape Gateway in S3 is encrypted with server-side encryption using Amazon S3 managed encryption keys, SSE-S3
+- data is not permanently stored locally; it is buffered (cached) temporarily and then uploaded to AWS (Amazon S3 or S3 Glacier/Deep Archive).
 
 Tape Gateway enables you to replace using physical tapes on-premises with virtual tapes in AWS without changing existing backup workflows. Tape Gateway supports all leading backup applications and caches virtual tapes on-premises for low-latency data access. Tape Gateway encrypts data between the gateway and AWS for secure data transfer and compresses data while transitioning virtual tapes between Amazon S3 and Amazon S3 Glacier, or Amazon S3 Glacier Deep Archive, to minimize storage costs.
 
@@ -3360,7 +3363,7 @@ Tape Gateway compresses and stores archived virtual tapes in the lowest-cost Ama
 Tape Gateway stores your virtual tapes in S3 buckets managed by the AWS Storage Gateway service, so you don’t have to manage your own Amazon S3 storage. Tape Gateway integrates with all leading backup applications allowing you to start using cloud storage for on-premises backup and archive without any changes to your backup and archive workflows
 
 
-##### DataSync vs Storage gateway
+#### DataSync vs Storage gateway
 - data sync
   - to transfer data
   - uses agent (=VM) that is used to read/write data from your storage
@@ -3368,7 +3371,7 @@ Tape Gateway stores your virtual tapes in S3 buckets managed by the AWS Storage 
   - storage system store your data in cloud
   - storage gatway appliance (=VM) 
 
-##### FSx vs Storage gateway file gateway?
+#### FSx vs Storage gateway file gateway?
 
 | Feature / Service            | **Amazon FSx**                                                        | **AWS Storage Gateway – File Gateway**                         |
 | ---------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------- |
