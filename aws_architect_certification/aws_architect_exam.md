@@ -4225,24 +4225,45 @@ RDS Maintenance Windows:
 - Oracle and SQL, they also support transparent data encryption, which may have a performance impact.
 - __KMS__ is used for managing encryption keys.
 - You can't have an encrypted read replica of an unencrypted DB instance or an unencrypted read replica of an encrypted DB instance.
-- Read replicas of encrypted primary instances are encrypted and the same KMS key is used if in the same region as the primary, or if it's in a different region, a different KMS key is used.
+- Read replicas of encrypted primary instances are encrypted and the same __KMS key__ is used if in the same region as the primary, or if it's in a different region, a different KMS key is used.
 - You can't restore an unencrypted backup or snapshot to an encrypted DB instance.
-
-- authentication and access controls
-  - use AWS Secrets Manager to handle management of master credentials automatically. It automatically rotates credentials (and updates db credentials)
-  - __password authentication__: db users only
-  - password and __IAM database authentication__: IAM users and db users. Enables centralized user management. Uses IAM role to access db. Uses tokens (temp access)
-  - password __Kerberos authentication__ - when using AD
-- network encryption: to encrypt traffic between ec2 and database - use __certificate authority__  to create __certificate_ and install it in ec2 application server.
-- data encryption: enable during instance creation. 
+- __Network encryption__: to encrypt traffic between ec2 and database - use __certificate authority__  to create __certificate_ and install it in ec2 application server:
+  - Enable __SSL__ on the RDS instance
+  - Download the AWS RDS SSL Certificate on ec2
+  - Connect with SSL/TLS Using JDBC
+- __data encryption__: enable during instance creation. 
   - when set, the data is encrypted at rest.
-  - it uses KMS to encrypt database, backup, snapshot, replica, db logs
+  - it uses __KMS__ to encrypt database, backup, snapshot, replica, db logs
   - to encrypt data in transit: create server certificate (asymmetric key) use SSL/TLS for connections.  
     - Certificate: Contains the public key and is signed by a trusted Certificate Authority (CA).
   - to encrypt an unencrypted database you need to:
     - create unencrypted snapshot
     - copy the snapshot with encryption enabled
     - restore the database from encrypted shapshot
+
+__Authentication and access controls__:
+- use __AWS Secrets Manager__ to handle management of master credentials automatically. It automatically rotates credentials (and updates db credentials)
+```
+AWSSecretsManager client = AWSSecretsManagerClientBuilder.defaultClient();
+GetSecretValueRequest request = new GetSecretValueRequest().withSecretId("my-db-credentials");
+GetSecretValueResult result = client.getSecretValue(request);
+String json = result.getSecretString();  // contains username/password
+```
+- __environment variables__ - Good for containers/EC2. Store credentials as environment variables injected at deployment time
+- __AWS Systems Manager Parameter Store__ (with encryption): store the credentials as SecureString parameters.
+```
+AWSSimpleSystemsManagement ssm = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+GetParameterRequest request = new GetParameterRequest().withName("/my/db/password").withWithDecryption(true);
+String password = ssm.getParameter(request).getParameter().getValue();
+```
+- __IAM Authentication for RDS__ (Best for short-lived access): Use temporary IAM tokens instead of passwords to connect. Only works with RDS MySQL and PostgreSQL.
+```
+String token = RdsIamTokenGenerator.generate(...);
+String jdbcUrl = "jdbc:mysql://mydb.cluster-xyz.rds.amazonaws.com:3306/mydb";
+Connection conn = DriverManager.getConnection(jdbcUrl, "iam_user", token);
+```
+- password __Kerberos authentication__ - when using AD
+
 
 Recomendations:
 - Deploy RDS in __Private Subnet__ (unless your requirement is a publicly accessible RDS instance)
@@ -4340,7 +4361,7 @@ Read Replicas:
 #### Blue-Green deployment (blue: current, green: duplicate of prod, staging, test schema changes, test engine major upgrades)
 
 - use it for major database upgrades
-- one green is fully tested, fraffic will switch from blue to green
+- one green is fully tested, traffic will switch from blue to green
 - if green fails then rollback
 
 #### RDS Proxy
@@ -4370,6 +4391,17 @@ Read Replicas:
   - __read-through cache__: cache automatically fetches the data on cache misss
   - __cache-aside cachine (lazy loading)__: application checks cache and in miss then gets the data and updates cache
   - __write-Though caching__: update cache all the time the data is written to db
+
+#### Connect to RDS from java application on EC2
+
+- Your RDS security group allows inbound access from EC2 on the correct port
+- Get RDS Connection Details
+  - Endpoint: e.g., mydb.abc123xyz.us-east-1.rds.amazonaws.com
+  - Port: based on the DB engine
+  - Username/password: from RDS configuration
+  - Database name
+- Include JDBC Driver in Your Java App
+- Connect Using JDBC in Your Java Code
 
 
 #### Aurora <a id="Aurora"></a>
@@ -4409,7 +4441,7 @@ When should you not use RDS?
 
 Can handle the loss of up to two copies of data without affecting DB write availability and up to three copies without affecting read availability.
 
-Aurora Auto Scaling enables your Aurora DB cluster to handle sudden increases in connectivity or workload.
+__Aurora Auto Scaling__ enables your Aurora DB cluster to handle sudden increases in connectivity or workload.
 Aurora Auto Scaling dynamically adjusts the number of Aurora Replicas (reader DB instances) provisioned for an Aurora DB cluster.
 Aurora Auto Scaling enables your Aurora DB cluster to handle sudden increases in connectivity or workload.
 When the connectivity or workload decreases, Aurora Auto Scaling removes unnecessary Aurora Replicas so that you don't pay for unused provisioned DB instances.
@@ -4591,7 +4623,7 @@ DynamoDB supports:
   - item size: block = 1 KB
   - write consistency type: standard: 1, transactional: 2 
   - number of writes / s
-  - __RCU formula = ceil(item_size_KB) * writes_per_s * consistncy_type
+  - __RCU formula = ceil(item_size_KB) * writes_per_s * consistncy_type__
 
 #### Capacity Mode
 
@@ -4614,6 +4646,35 @@ DynamoDB supports:
 - local secondary indexes
 - global secondary indexes:
 
+#### How to Connect Java App to DynamoDB from EC2
+
+- Add AWS SDK to Your Java Project
+- Assign IAM Role to EC2
+- Write Java Code to Connect
+```
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.model.*;
+
+public class DynamoExample {
+    public static void main(String[] args) {
+        // Set the AWS Region
+        Region region = Region.US_EAST_1; // change if needed
+
+        // Create DynamoDB client (uses EC2 instance role credentials automatically)
+        DynamoDbClient ddb = DynamoDbClient.builder()
+                .region(region)
+                .build();
+
+        // List tables example
+        ListTablesResponse response = ddb.listTables();
+        System.out.println("Tables: " + response.tableNames());
+
+        ddb.close();
+    }
+}
+```
+
 #### DynamoDB streams
 
 - captures a time mode sequence of item level modifications in your table,
@@ -4621,6 +4682,7 @@ DynamoDB supports:
 - you can process that data.
 - you can configure what data is actually written. Keys only, new image, old image, or new and old images.
 - data added, updated, deleted - creates event available for 24 hours. Streams captures changes, who and when, cost included in DynamoDB
+- Integrates with: AWS Lambda, Kinesis Client Library, Kinesis Data Firehose, Amazon OpenSearch, S3, Amazon Redshift, Step Functions, EventBridge 
 
 __DynamoDB Trigger__: action triggered by a stream and connects to AWS Lambda
 
@@ -4794,7 +4856,7 @@ Option to query directly from data __files on S3 via Amazon RedShift Spectrum__
 
 Amazon RedShift can store huge amounts of data but __cannot ingest huge amounts of data in real time__.
 
-Only available in one AZ but you can restore snapshots into another AZ.
+__Only available in one AZ__ but you can restore snapshots into another AZ.
 Alternatively, you can run data warehouse clusters in multiple AZʼs by loading data into two Amazon RedShift data warehouse clusters in separate AZs from the same set of Amazon S3 input files.
 
 Amazon RedShift does not support Multi-AZ deployments.
