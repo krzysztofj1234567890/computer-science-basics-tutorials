@@ -160,6 +160,7 @@ Then a message is created and sent to all endpoints using the broadcast method.
 By leveraging Redis' pub/sub capabilities, you can reduce the load on your primary application server by offloading the message distribution work to Redis
 
 ## Server Sent Events (SSE)
+
 Client establishes a long term persistent connection with server. 
 This connection is used to send events from server to client. 
 There is no timeout and contain remains alive till the client remains on network. 

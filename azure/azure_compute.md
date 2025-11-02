@@ -1,4 +1,14 @@
-# Azure Functions
+# Table of Contents
+- [Azure Functions](#AzureFunctions)
+- [Containers](#Containers)
+  - Containerized function apps
+  - Azure Container Apps
+  - Azure App Service
+  - Azure Container Instances
+  - Azure Kubernetes Service
+  - Azure Functions
+
+# Azure Functions <a id="AzureFunctions"></a>
 
 Azure Functions is a serverless solution that allows you to write less code, maintain less infrastructure, and save on costs.
 
@@ -132,7 +142,7 @@ Container Apps: containerized function apps in a fully managed environment hoste
 - maximum instances: 300-1000
 - max memory: variable
 
-## containerized function apps
+## Containerized function apps
 
 Functions maintains a set of language-specific base images that you can use when creating containerized function apps.
 
@@ -163,11 +173,9 @@ Steps:
   az functionapp function show --resource-group AzureFunctionsContainers-rg --name <APP_NAME> --function-name HttpExample --query invokeUrlTemplate
   ```
 
-# Containers
+# Containers <a id="Containers"></a>
 
-## Options to deploy container on azure
-
-### Azure Container Apps
+## Azure Container Apps
 
 Azure Container Apps enables you to build serverless microservices based on containers. 
 Azure Container Apps doesn't provide direct access to the underlying Kubernetes APIs.
@@ -176,15 +184,15 @@ Fully managed experience based on best-practices.
 
 Azure Container Apps provide many application-specific concepts on top of containers, including certificates, revisions, scale, and environments.
 
-### Azure App Service
+## Azure App Service
 
-### Azure Container Instances
+## Azure Container Instances
 
 Azure Container Instances (ACI) provides a single pod of Hyper-V isolated containers on demand. 
 It can be thought of as a lower-level "building block" option compared to Container Apps. 
 Concepts like scale, load balancing, and certificates aren't provided with ACI containers.
 
-### Azure Kubernetes Service
+## Azure Kubernetes Service
 
 Azure Kubernetes Service (AKS) provides a fully managed Kubernetes option in Azure. 
 It supports direct access to the Kubernetes API and runs any Kubernetes workload. 
