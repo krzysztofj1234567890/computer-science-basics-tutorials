@@ -358,7 +358,7 @@ Everything lives in OneLake (a tenant-wide data lake) and you switch engines wit
 │  • Copilot in every notebook
 ```
 
-### Can I use dbt with databricks. How can I do it. Show me example.
+## Can I use dbt with databricks. How can I do it. Show me example.
 
 YES → dbt + Databricks = 2025 Gold Standard
 
@@ -386,3 +386,25 @@ YES → dbt + Databricks = 2025 Gold Standard
 | Best for            | Teams > 3 people        | Solo devs / free      | 100 % Databricks UI
 
 
+## How to run Azure ADF on custom server in data center?
+
+1. ADF Studio (cloud) → Create SHIR  (self-hosted integration runtime)
+2. Your server → Install 1 EXE  
+3. Paste 2 keys → Green check  
+4. Pipelines run ON YOUR SERVER
+
+## My data is on AzureSQL database. How can I upload it into snowflake ?
+
+Azure SQL → Snowflake (direct, no blob)        
+1. ADF → New Pipeline → Copy Data           
+2. Source: Azure SQL Dataset                
+3. Sink:   Snowflake Dataset              
+4. Disable staging → Direct copy     // single threaded, public internet
+   - Use Swnoflake Private link and Blob private endpoint     
+5. Trigger: Every 5 min
+
+Using Azure Storage Account in the middle migh have these advantages:
+- 10× faster (parallel unload)
+- Cheaper ($0.01/GB vs $0.12/DIU-hour)
+- Resume if Wi-Fi dies
+- Works with PII (private endpoint + VNet IR)
