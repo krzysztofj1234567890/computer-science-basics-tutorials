@@ -1873,4 +1873,178 @@ When a new version is ready, a new template is added with the label "version: gr
 * what is NodePort? 
 * access a pod or container to debug it
 
+# Kubernetes Interview Questions
+
+## What are the main components of Kubernetes architecture?
+
+```
+Kubernetes Cluster
+├── Master nodes aka Control Plane (often multiple nodes for HA)
+│   ├── kube-apiserver: Exposes the Kubernetes API, All interactions go through it
+│   ├── etcd: consistent, distributed key-value store.
+│   ├── kube-scheduler: Assigns Pods to suitable nodes based on resource requirements
+│   ├── kube-controller-manager: collection of background controllers that watch the cluster state via the API server
+│   └── cloud-controller-manager: Integrates with cloud providers (AWS, GCP, Azure, etc.) for:
+|                      Load balancers
+|                      Node management
+|                      Storage (volumes)
+|                      Route management
+└── Worker Nodes (many)
+    ├── kubelet
+    ├── kube-proxy
+    └── Container Runtime (containerd / CRI-O / ...)
+        └── Pods (containers)
+```
+
+## What is kube-apiserver?
+
+The Kubernetes API server validates and configures data for API objects (such as Pods, Services, Deployments, ConfigMaps, Secrets, Namespaces, and others). It provides a RESTful API (HTTP-based) that exposes the cluster's shared state, acting as the single entry point.
+
+- Exposes the Kubernetes API
+- Authentication: Verifies who is making the request (e.g., via certificates, tokens, OIDC, webhook, service accounts, basic auth, etc.).
+- Authorization: Checks if the authenticated user is allowed to perform the action
+- Persistence: If valid, writes/updates the object to etcd (the backing store). Reads from etcd to respond to queries.
+
+
+## What is kube-scheduler?
+
+The Kubernetes scheduler is a control plane process which assigns Pods to Nodes. The scheduler determines which Nodes are valid placements for each Pod in the scheduling queue according to constraints and available resources.
+
+- Watches for Unschedulable Pods Monitors the API server for newly created Pods with no nodeName set
+- Adds to Scheduling Queue
+- Scheduling Cycle
+
+## What is kube-controller-manager?
+
+It runs as a daemon and embeds multiple built-in controllers — each acting as a continuous control loop that watches the cluster's current state (via the API server) and works to reconcile it toward the desired state defined in your objects (Deployments, StatefulSets, Jobs, etc.)
+
+- Watches the API Server: Uses watch mechanisms to monitor changes to objects
+- Reconciles State
+  - For each controller:
+    - Compares actual state (what's running) vs desired state (spec in the object).
+    - Takes corrective actions
+- No Direct Execution: 
+  - It doesn't run containers itself — it updates objects via the kube-apiserver, which then triggers other components (e.g., kubelet starts Pods, kube-scheduler assigns nodes)
+
+## What is kubelet?
+
+It is the primary agent running on each Kubernetes node (worker server) that ensures containers described in PodSpecs are running and healthy, acting as the vital link between the cluster's control plane and the node itself. 
+It receives instructions from the API server, manages the pod lifecycle (starting, stopping, restarting containers), enforces resource limits, and reports the node's status back to the control plane, making abstract cluster intent concrete on the node. 
+
+Functions:
+- __Pod Management__: Takes PodSpecs (YAML/JSON defining pods) and ensures the actual containers match the desired state. 
+- __Health Monitoring__: Checks container health, restarts crashed containers, and handles liveness/readiness probes. 
+- __Node Registration__: Registers the node with the Kubernetes API server. 
+- __Communication__: Communicates with the control plane to get work and report status. 
+- __Resource Enforcement__: Applies resource and security constraints defined in the PodSpec. 
+
+How it works:
+- The Kubernetes control plane (like the Scheduler) tells Kubelet which pods to run on its specific node. 
+- Kubelet reads these instructions (PodSpecs). 
+- It uses a container runtime (like Docker, though Dockershim is deprecated) to create and manage the containers. 
+- It constantly monitors the pods and reports their status (e.g., running, failed, resource usage) back to the API server. 
+
+
+## What is kube-proxy?
+
+Its primary responsibility is to ensure that network traffic intended for a stable Service IP address is properly routed and load-balanced to the ephemeral IP addresses of the backend Pods, even as those Pods are created, terminated, or rescheduled
+
+Functions:
+- __Service-to-Pod Mapping__: Pod IPs change frequently, but Service IPs are stable. Kube-proxy continuously watches the Kubernetes API server for changes to Service and EndpointSlice objects and programs the node's network stack (e.g., using iptables or IPVS) to translate the Service's virtual IP and port to an available backend Pod's IP and port.
+- __Load Balancing__: Kube-proxy distributes traffic across all healthy Pods associated with a Service. The specific load-balancing algorithm (e.g., round-robin or least connections) depends on the operating mode.
+- __Health Checks and Failover__: If a Pod becomes unhealthy or is terminated, kube-proxy detects this change via the API server and automatically updates the network rules to stop routing traffic to that Pod, ensuring requests only go to healthy endpoints.
+- __Enabling Service Types__: It is responsible for implementing the internal ClusterIP services, as well as enabling external access via NodePort and LoadBalancer services by opening ports on the nodes and configuring the necessary routing
+
+## What is Container Runtime (e.g., containerd, CRI-O, Docker)?
+## What are Namespaces in Kubernetes?
+## What is the default namespace?
+## What is kubectl?
+
+## How do you check the version of your Kubernetes cluster?
+## What is a YAML file in Kubernetes context?
+
+## What are the most common kubectl commands you use daily?
+
+## How do you create a namespace?
+## What happens if you delete a Pod manually?
+## What is a ReplicaSet?
+## What is a Deployment?
+
+## What is the difference between Deployment and ReplicaSet?
+## Explain rolling updates in Kubernetes.
+## What are Rollback strategies in Deployment?
+
+## What is a Service in Kubernetes?
+## What are the different types of Services (ClusterIP, NodePort, LoadBalancer, ExternalName)?
+## What is headless Service?
+## What is ClusterIP vs NodePort vs LoadBalancer?
+## What is Ingress in Kubernetes?
+## What is the difference between Service and Ingress?
+## What are common Ingress controllers (NGINX, Traefik, HAProxy, etc.)?
+## What are ConfigMaps?
+## What are Secrets?
+## How do you mount a Secret as volume vs environment variable?
+## What is the difference between ConfigMap and Secret?
+## What are Labels and Selectors?
+## What are Annotations?
+## What is a DaemonSet?
+## What is a StatefulSet? When would you use it over Deployment?
+## What is the difference between StatefulSet and Deployment?
+## What are Persistent Volumes (PV) and Persistent Volume Claims (PVC)?
+## What are StorageClasses?
+## What is dynamic provisioning in Kubernetes storage?
+## What is a Job in Kubernetes?
+## What is a CronJob?
+## How do you scale a Deployment manually?
+## What is Horizontal Pod Autoscaler (HPA)?
+## What metrics does HPA use by default?
+## What is Vertical Pod Autoscaler (VPA)?
+## What is Cluster Autoscaler?
+## How do Probes work (livenessProbe, readinessProbe, startupProbe)?
+## 
+## What is Pod Disruption Budget (PDB)?
+## How does Kubernetes handle node failure?
+## What is taint and toleration?
+## What are node selectors?
+## What is affinity and anti-affinity?
+## Explain pod anti-affinity use cases.
+## What is Network Policy?
+## How do you restrict traffic using NetworkPolicy?
+## What is CNI (Container Network Interface)?
+## Popular CNI plugins (Calico, Flannel, Cilium, Weave)?
+## What is Service Mesh? (Istio, Linkerd)
+## What problem does Service Mesh solve?
+## What is RBAC in Kubernetes?
+## What are Roles vs ClusterRoles?
+## What are RoleBindings vs ClusterRoleBindings?
+## How do you debug a pod that is CrashLoopBackOff?
+## How do you view logs of a pod?
+## What is kubectl describe vs kubectl get?
+## How do you exec into a running container?
+## What is kubectl port-forward?
+## How do you drain a node for maintenance?
+## What is cordon vs drain vs uncordon?
+## What is kubectl taint?
+## How do you backup etcd?
+## What is Helm and why use it?
+## 
+## How do you upgrade a Kubernetes cluster (kubeadm method)?
+## What is Gateway API vs Ingress?
+## 
+## How do you handle multi-tenancy in Kubernetes?
+## What is Kyverno or OPA Gatekeeper? (Policy engines)
+## How do you implement GitOps with Kubernetes? (ArgoCD, Flux)
+## What is Karpenter vs Cluster Autoscaler?
+## How do you monitor Kubernetes cluster? (Prometheus + Grafana)
+## What metrics do you monitor in production Kubernetes?
+## How do you centralize pod logs? (EFK / Loki + Grafana)
+## What is Pod Security Admission / Pod Security Standards?
+## How do you secure Kubernetes cluster (best practices 2026)?
+## Explain sidecar container pattern.
+## What is init container? Differences from sidecar?
+## How do you handle stateful application migration / backup?
+## What is Volume Snapshots?
+## Explain canary deployment in Kubernetes.
+## What is blue-green deployment strategy?
+## How would you design a highly available Kubernetes control plane?
 
