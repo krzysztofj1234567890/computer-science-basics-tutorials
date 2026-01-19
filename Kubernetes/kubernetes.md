@@ -1956,39 +1956,371 @@ Functions:
 - __Enabling Service Types__: It is responsible for implementing the internal ClusterIP services, as well as enabling external access via NodePort and LoadBalancer services by opening ports on the nodes and configuring the necessary routing
 
 ## What is Container Runtime (e.g., containerd, CRI-O, Docker)?
+
+A container runtime is the software that actually runs containers on a machine.
+
+Under the hood, a runtime is responsible for:
+- Creating Linux namespaces (process, network, mount, etc.)
+- Applying cgroups (CPU, memory limits)
+- Setting up container filesystems (overlayfs)
+- Starting the container process
+- Managing container lifecycle (start/stop/restart)
+- Handling images (pull, unpack, store)
+
+Important:
+- Docker is not a Kubernetes runtime anymore
+- Kubernetes stopped supporting Docker as a runtime in 1.24
+- You can still build images with Docker
+- __containerd__ (industry standard container runtime)
+
 ## What are Namespaces in Kubernetes?
+
+A Namespace is a logical partition inside a Kubernetes cluster.
+
+Namespaces let you:
+- Group related resources
+- Avoid name collisions
+- Apply access control (RBAC)
+- Set resource limits (quotas)
+- Isolate teams, environments, or apps
+
+They do not create separate clusters or full isolation — they’re soft boundaries.
+
 ## What is the default namespace?
+
+The default namespace is the namespace Kubernetes uses when you don’t explicitly specify one.
+This namespace is named __default__.
+
 ## What is kubectl?
 
+kubectl is the command-line tool used to talk to a Kubernetes cluster.
+
+kubectl never talks to nodes directly. Everything goes through the API server
+
+## Explain kubectl vs Helm
+
+- A tool that generates Kubernetes YAML and installs it using kubectl-like API calls
+- Uses Charts (packages of Kubernetes manifests). Helm Charts contain:
+  - Chart.yaml        # metadata
+  - values.yaml       # default config
+  - templates/        # Kubernetes YAML templates
+- Supports templating, versioning, and rollbacks
+
+What you use Helm for
+- Install complex apps
+- Manage app versions
+- Configure via values files
+- Share reusable deployments
+
+```
+helm install prometheus prometheus-community/kube-prometheus-stack
+```
+
 ## How do you check the version of your Kubernetes cluster?
+
+```
+kubectl version
+
+# output
+Client Version: v1.28.2
+Server Version: v1.27.6
+```
+
+## kubectl troubleshooting tricks
+
+### kubectl get pods
+
+Look for:
+- CrashLoopBackOff
+- ImagePullBackOff
+- Pending
+- Error
+- OOMKilled
+
+### kubectl describe pod my-pod
+
+Scroll to Events at the bottom. This tells you why Kubernetes is unhappy.
+- Image pull errors
+- Failed mounts
+- Liveness/readiness failures
+- Scheduling issues
+
+### logs
+
+```
+# Basic logs
+kubectl logs my-pod
+
+# Specific container
+kubectl logs my-pod -c my-container
+
+# Previous crash
+kubectl logs my-pod --previous
+
+# Why is my pod Pending?
+
+```
+
 ## What is a YAML file in Kubernetes context?
+
+In Kubernetes, a YAML file is a declarative configuration file that describes the desired state of a Kubernetes resource.
 
 ## What are the most common kubectl commands you use daily?
 
+```
+# What’s going on right now?
+kubectl get pods
+kubectl get pods -o wide
+kubectl get svc
+kubectl get nodes
+kubectl get events
+
+# Why is this thing broken?
+kubectl describe pod my-pod
+kubectl describe deploy my-deployment
+
+# Logs
+kubectl logs my-pod
+kubectl logs my-pod -c my-container
+kubectl logs my-pod --previous
+
+# Get inside the container
+kubectl exec -it my-pod -- sh
+
+# Apply & update workloads
+kubectl apply -f app.yaml
+
+# Rollouts & deployments
+kubectl rollout status deployment my-deploy
+kubectl rollout history deployment my-deploy
+kubectl rollout undo deployment my-deploy
+
+# Resource usage
+kubectl top pods
+kubectl top nodes
+
+# Networking & services
+kubectl get svc
+kubectl describe svc my-service
+kubectl get endpoints my-service
+
+# 10 commands I type constantly:
+kubectl get pods
+kubectl describe pod
+kubectl logs
+kubectl logs --previous
+kubectl exec -it
+kubectl apply -f
+kubectl rollout status
+kubectl get events
+kubectl get svc
+kubectl config use-context
+
+```
+
+## What is rollout
+
+```
+  # Rollback to the previous deployment
+  kubectl rollout undo deployment/abc
+  
+  # Check the rollout status of a daemonset
+  kubectl rollout status daemonset/foo
+  
+  # Restart a deployment
+  kubectl rollout restart deployment/abc
+  
+  # Restart deployments with the 'app=nginx' label
+  kubectl rollout restart deployment --selector=app=nginx
+```
+
 ## How do you create a namespace?
+
+```
+kubectl create namespace my-namespace
+```
+
 ## What happens if you delete a Pod manually?
-## What is a ReplicaSet?
-## What is a Deployment?
+
+```
+kubectl delete pod my-pod
+```
+
+- kkubernetes detects that the POD is gone
+- controller sees the replica count is below desired
+- a new POD is created
+- POD gets a new name, IP etc.
 
 ## What is the difference between Deployment and ReplicaSet?
+
+### ReplicaSet (RS)
+
+- Purpose: Ensures that a specified number of pod replicas are running at any given time.
+- Functionality:
+  - If pods die, it will create new ones.
+  - If there are extra pods, it will delete them.
+  - Scope: Only manages replica counts. It doesn’t handle updates or rollbacks.
+
+### Deployment
+
+- Purpose: Provides declarative updates for pods and ReplicaSets.
+- Functionality:
+  - Creates and manages ReplicaSets for you.
+  - Handles rolling updates, rollbacks, and versioning.
+  - Lets you scale pods easily.
+  - Scope: Higher-level abstraction over ReplicaSets.
+  - Use case: This is what you should almost always use to manage your apps in production.
+
+
 ## Explain rolling updates in Kubernetes.
+
+A rolling update is a deployment strategy where pods are updated gradually, instead of taking down all old pods at once.
+- You have a Deployment with N replicas.
+- You update the Deployment with a new image/version.
+- Kubernetes creates a new ReplicaSet for the updated pods.
+- Kubernetes gradually scales down the old ReplicaSet while scaling up the new one, according to the strategy settings.
+
+If something goes wrong during a rolling update, Kubernetes can rollback to the previous version automatically (or manually)
+
 ## What are Rollback strategies in Deployment?
 
+In Kubernetes, rollbacks are mostly automatic via Deployment history. There are a few approaches:
+
+- kubectl rollout undo: Reverts the Deployment to the previous ReplicaSet.
+- Rolling Update Rollback (Automatic by Deployment): If a readiness probe fails for new pods.
+- Blue-Green / Canary Rollback (Manual Strategy)
+  - While not built-in like rollout undo, some teams implement manual rollback strategies:
+    - Blue-Green Deployment: Keep old pods running (Blue) while deploying new pods (Green). If Green fails, switch traffic back to Blue.
+    - Canary Deployment: Release updates to a small percentage of pods/users. If metrics are bad, rollback only the canary pods.
+
+
 ## What is a Service in Kubernetes?
+
+A Service in Kubernetes is an abstraction that defines a logical set of pods and a policy to access them.
+
+Pods in Kubernetes are ephemeral: they can be created, destroyed, or rescheduled on different nodes.
+
+If you try to access a pod directly, its IP may change, breaking connectivity.
+
+Services solve this problem by providing a __stable endpoint (IP or DNS name) to access pods__, regardless of which node they are on.
+
+Key Features:
+- __Stable network identity__: Each Service gets a cluster-internal IP (ClusterIP) and optionally a DNS name.
+- __Load balancing__: Automatically distributes traffic across the pods it targets.
+- __Pod selection via labels__: Services use selectors to target a set of pods by their labels.
+- __Supports multiple access types__: Internal cluster traffic, external access, or even port mapping.
+
 ## What are the different types of Services (ClusterIP, NodePort, LoadBalancer, ExternalName)?
+
+| Type             | Description                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| **ClusterIP**    | Default. Exposes the Service **inside the cluster only**.                                                   |
+|                  | Cannot use ClusterIP from outside kubernetes. Only services in kubernetes cluster can use it                |
+| **NodePort**     | Exposes the Service on **each node's IP** at a static port. Can be accessed from outside the cluster.       |
+| **LoadBalancer** | Provisions an external load balancer (cloud providers like AWS, GCP). Routes external traffic to your pods. |
+| **ExternalName** | Maps the Service to an **external DNS name**. Doesn’t create any pods or proxies.                           |
+
+
 ## What is headless Service?
-## What is ClusterIP vs NodePort vs LoadBalancer?
+
+A Headless Service in Kubernetes is a Service without a ClusterIP.
+- Normally, a Service gives you a stable ClusterIP and load balances traffic to the pods.
+- A Headless Service (clusterIP: None) does not get a ClusterIP, so Kubernetes does not load-balance traffic.
+- Instead, it returns the IPs of the individual pods directly.
+
+Headless Services are useful when you want direct access to individual pods.
+- __Stateful applications__ like databases (Cassandra, Kafka, etc.). Each pod has its own identity and needs to be addressed individually.
+- __Service discovery__: Headless Services allow pods to discover each other by DNS instead of going through a load balancer.
+
 ## What is Ingress in Kubernetes?
+
+An Ingress in Kubernetes is an API object that manages external access to services in a cluster, usually HTTP and HTTPS traffic.
+- It provides URL-based routing and virtual host-based routing.
+- Essentially, it acts as the entry point for traffic coming from outside the cluster.
+
+Why not just use NodePort or LoadBalancer?
+- NodePort: exposes one port per service → gets messy with many services.
+- LoadBalancer: creates a cloud load balancer per service → can be expensive.
+- Ingress: one entry point → can route traffic to many services using rules
+
 ## What is the difference between Service and Ingress?
+
+Service:
+- Purpose: Exposes a set of pods inside the cluster or to the outside world (depending on type).
+- Scope: Can be internal (ClusterIP) or external (NodePort / LoadBalancer).
+- Routing:
+  - For internal traffic → routes traffic to pods via ClusterIP.
+  - For external traffic → NodePort or LoadBalancer exposes a specific port.
+  - Key point: Service __does not handle URL/path-based routing__ or host-based routing. It works mostly at L4 (TCP/UDP) level.
+
+Ingress:
+- Purpose: Manages external HTTP/HTTPS traffic into the cluster.
+- Scope: Always for external access (though some internal Ingress setups exist).
+- Routing:
+  - Can route based on host names (api.example.com)
+  - Can route based on URL paths (/api → Service A, /web → Service B)
+  - Key point: Ingress requires a Service to route traffic to. It works at L7 (HTTP/HTTPS) layer.
+
 ## What are common Ingress controllers (NGINX, Traefik, HAProxy, etc.)?
-## What are ConfigMaps?
-## What are Secrets?
+
+Ingress by itself is just a set of rules—it doesn’t route traffic.
+
+An Ingress Controller is a pod that implements those rules and actually handles incoming HTTP/HTTPS requests.
+
+Without an Ingress Controller, your Ingress resource does nothing.
+
 ## How do you mount a Secret as volume vs environment variable?
-## What is the difference between ConfigMap and Secret?
-## What are Labels and Selectors?
-## What are Annotations?
-## What is a DaemonSet?
+
+### Mounting a Secret as Environment Variables
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-env-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+    env:
+      - name: DB_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: my-secret
+            key: username
+      - name: DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: my-secret
+            key: password
+```
+
+### Mounting a Secret as a Volume
+
+Each key in the Secret becomes a file in a directory mounted inside the container.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-volume-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+      - name: secret-volume
+        mountPath: "/etc/secrets"  # directory inside container
+        readOnly: true
+  volumes:
+    - name: secret-volume
+      secret:
+        secretName: my-secret
+```
+
 ## What is a StatefulSet? When would you use it over Deployment?
+
+
 ## What is the difference between StatefulSet and Deployment?
 ## What are Persistent Volumes (PV) and Persistent Volume Claims (PVC)?
 ## What are StorageClasses?
