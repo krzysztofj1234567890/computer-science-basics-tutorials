@@ -17,13 +17,14 @@
 - [UDF](#udf)
 - [Stored Procedures](#storedprocedures)
 - [Spark](#spark)
-
+- [Best practices](#bestpractices)
+- [Interview Questions](#interviewquestions)
 
 ## Architecture <a id="architecture"></a>
 
 * storage
 * compute (virtual warehouse): cache and micro-partitions
-* cloud services: authentication, authorization, infrastructure manager, metadata manager, optimizer
+* cloud services: authentication, authorization, infrastructure manager, metadata manager, optimizer, Transaction Management
 
 ### Tools
 
@@ -630,6 +631,15 @@ $$;
 
 Snowflake Stored Procedures are used to execute procedural logic in Snowflake—things that go beyond a single SQL statement, such as loops, conditions, error handling, and multi-step workflows.
 
+They run inside Snowflake’s cloud services layer, managed entirely by Snowflake.
+
+Stored procedures (JavaScript or Python) execute in Snowflake’s Cloud Services layer. This compute is:
+- Fully managed by Snowflake
+- Serverless
+- Not tied to your virtual warehouse
+
+You do not pay warehouse credits for the procedural logic itself.
+
 They are commonly used for ETL orchestration, data loading, auditing, and automation.
 
 - Contains multiple SQL statements
@@ -679,22 +689,46 @@ CALL load_sales_data();
 
 ## Snowflake with Python and Spark <a id="spark"></a>
 
-### Snowflake with pyton
+Snowflake integrates with Python and Spark in several well-defined ways.
 
-Local environment:
+### Option A: Snowflake Connector for Python
+
+Used when Python runs outside Snowflake (laptop, server, Airflow, Databricks, etc.).
 
 ```
 import snowflake.connector
+
+conn = snowflake.connector.connect(
+    user='USER',
+    password='PASSWORD',
+    account='ACCOUNT',
+    warehouse='COMPUTE_WH',
+    database='SALES_DB',
+    schema='PUBLIC'
+)
+
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM SALES")
+print(cur.fetchone())
 ```
 
-AWS Glue:
-* Aws Glue assows you to run serverless spark. It will create a VM and after task done, it will stop VM.
+### Option B: Snowpark Python (Python Runs Inside Snowflake)
 
- Deploy python job that connects to snowflake
+Snowpark lets you write Python code that executes inside Snowflake.
+- No Spark required
+- Serverless execution
+- Pushes computation to Snowflake
+
+```
+from snowflake.snowpark import Session
+
+df = session.table("SALES")
+result = df.group_by("REGION").sum("AMOUNT")
+result.show()
+```
 
 
-
-## Best practices
+## Best practices <a id="bestpractices"></a>
 
 Warehouse:
 * set auto suspend (for ETL: immediately, SELECT queries: 10 min (use cache), DevOps/Data Science: 5 min)
@@ -720,35 +754,12 @@ Retention period:
 * production/curated tables: use time travel.
 * large tables: expensive - maybe you do not need time travel
 
-## Pricing
+### Pricing
 
 - fee for data storage
 - fee for compute: function of warehouse size, number of clusters and time spent to execute queries
 
-## Snowflake objects
-
-- Account
-- User
-- Role
-- Virtual Warehouse
-- Resource Monitor
-- Integration
-- Database
-- Schema
-- Table
-- View
-- Stored Procedure
-- User Defined Functions (UDF)
-- Stage
-- File Format
-- Pipe
-- Sequence
-
-## Working with snowflake
-
-### Load data to snowflake
-
-#### Use snowsight UI web interface
+### Use snowsight UI web interface
 - login to account
 - create database
 - create schema
@@ -757,7 +768,7 @@ Retention period:
 - create stage
 - import file to stage
 
-#### Use snowSQL client
+### Use snowSQL client
 
 https://sivachandanc.medium.com/ingesting-local-files-to-snowflake-table-using-snowsql-396301578fde
 
@@ -786,7 +797,7 @@ list @~;
 copy into <table>> from @~/staged/MOCK_DATA.csv.gz ;
 ```
 
-#### load bulk data from azure
+### load bulk data from azure
 
 - load data into azure storage account
 
@@ -805,9 +816,9 @@ FROM @azstage/newbatch
 ```
 
 
-# Interview questions
+## Interview questions <a id="interviewquestions"></a>
 
-## How to copy data from snowflake table to file on aws s3?
+### How to copy data from snowflake table to file on aws s3?
 
 To copy data from a Snowflake table to a file in AWS S3, you can use the COPY INTO command
 
@@ -829,11 +840,11 @@ COPY INTO @my_s3_stage/my_data_file_
   OVERWRITE = TRUE;
 ```
 
-## What is SCD Type 1 or Type 2 or Type 3 etc.?
+### What is SCD Type 1 or Type 2 or Type 3 etc.?
 
 SCD stands for Slowly Changing Dimension — a set of techniques used in data warehousing to manage changes in dimension data over time.
 
-### SCD Type 1
+#### SCD Type 1
 
 SCD Type 1 (also called "Overwrite" or "Replace") is the simplest and most common way to handle changes in dimension data in a data warehouse.
 
@@ -841,7 +852,7 @@ SCD Type 1 (also called "Overwrite" or "Replace") is the simplest and most commo
 - No history is preserved
 - The dimension table always shows only the current state
 
-### SCD Type 2
+#### SCD Type 2
 
 SCD Type 2 (also called "Versioning" or "Add new row") is the most common Slowly Changing Dimension technique when you need to preserve history of changes in dimension attributes.
 
@@ -863,7 +874,7 @@ Example:
 - valid_to: When this version stopped being valid
 - is_current: Quick flag: is this the active version?
 
-### SCD Type 3
+#### SCD Type 3
 
 SCD Type 3 (Slowly Changing Dimension Type 3) is a method used in data warehousing to track limited history of changes to dimension attributes — typically just the current value and the immediately previous value
 
@@ -879,9 +890,9 @@ Use it when:
 - You only need the most recent change (or original value) for reporting
 - You want to avoid row explosion / table growth (Type 2 problem)
 
-### SCD Type 4
+#### SCD Type 4
 
-#### Kimball's Original / Official Type 4: Mini-Dimension
+##### Kimball's Original / Official Type 4: Mini-Dimension
 
 Ralph Kimball (in The Data Warehouse Toolkit) defines Type 4 as splitting rapidly or frequently changing attributes out of a large "monster" dimension into a separate mini-dimension table.
 
@@ -893,3 +904,246 @@ Ralph Kimball (in The Data Warehouse Toolkit) defines Type 4 as splitting rapidl
 
 Advantages: History of volatile attributes preserved without exploding the main table
 
+### How does Snowflake handle concurrency?
+
+Snowflake handles concurrency by using separate virtual warehouses for compute, multi-cluster warehouses for scaling, and shared cloud storage—allowing many users and queries to run simultaneously without contention.
+
+Separation of Storage and Compute:
+- All data is stored once in centralized cloud storage
+- Each virtual warehouse provides independent compute
+- Multiple warehouses can access the same data simultaneously
+
+Virtual Warehouses = Isolation
+- Each warehouse:
+  - Has its own CPU, memory, and cache
+  - Runs queries independently
+- If one query is slow or heavy, it does not impact others
+
+Multi-Cluster Warehouses (Key for High Concurrency)
+- When many queries hit the same warehouse:
+  - Snowflake automatically starts additional clusters
+  - Queries are distributed across clusters
+  - Clusters scale up and down automatically
+- Without Multi-Cluster
+  - Queries queue
+  - Users experience delays
+
+No Locks on Reads
+- Snowflake uses MVCC (Multi-Version Concurrency Control)
+- Readers don’t block writers
+- Writers don’t block readers
+
+### Explain the Cloud Services layer.
+
+The Cloud Services layer manages metadata, authentication, query optimization, transactions, and orchestration in Snowflake. It does not store data or run user compute-heavy queries.
+
+### How big is a micro-partition?
+
+A micro-partition is typically 50 MB to 500 MB of compressed data, with an average around 100–200 MB.
+
+### What metadata does Snowflake store?
+
+Snowflake stores metadata about objects, micro-partitions, files, security, and query execution to enable automatic optimization, pruning, governance, and concurrency.
+
+### What is pruning in Snowflake?
+
+Pruning in Snowflake means eliminating micro-partitions from a query scan using metadata (like min/max column values), so only relevant data is read.
+
+How Pruning Works:
+- Data Stored in Micro-Partitions
+  - Tables are stored as immutable micro-partitions
+  - Each micro-partition contains metadata per column: Min value, Max value, Null count, Distinct count
+- Query Predicate Evaluation
+  - Snowflake Looks at micro-partition metadata
+  - Identifies partitions where: min_date <= '2025-01-01', max_date >= '2025-01-01'
+  - Skips all other partitions
+
+### How does Snowflake handle indexing?
+
+Snowflake handles indexing automatically using micro-partition metadata, pruning, and optional search optimization instead of traditional indexes.
+
+### What happens when a warehouse is suspended?
+
+- Compute resources are shut down — Snowflake immediately releases all idle compute nodes/clusters. This stops further credit consumption for that warehouse.
+- Running queries are not aborted — Any statements (queries, loads, etc.) that were actively executing at the moment of suspension are allowed to complete normally. The warehouse doesn't kill them.
+- No new queries can run
+- Credit consumption stops
+- Result cache / local disk cache is dropped
+
+### How does Snowflake ensure high availability?
+
+Snowflake provides a 99.9% monthly uptime SLA
+
+- Centralized storage layer — All data is durably stored in cloud object storage (e.g., S3, Azure Blob, GCS) in micro-partitions. This storage is highly durable (typically 11–12 9s durability from the underlying cloud provider) and independently scalable from compute.
+- Independent compute clusters (virtual warehouses) — Each warehouse is an isolated MPP (massively parallel processing) cluster. Failure in one warehouse doesn't affect others.
+- Cloud services layer — Metadata, authentication, query optimization, and coordination are managed in a highly available, distributed manner.
+- Snowgrid — Snowflake's internal global network layer enables consistent behavior, security, and connectivity across regions and clouds, supporting cross-region/cross-cloud operations.
+
+### What are stages in Snowflake?
+
+Stages in Snowflake are named objects (or implicit locations) that serve as intermediate storage areas for data files. They are primarily used for bulk loading data from files into Snowflake tables (via COPY INTO <table>) and unloading data from tables to files (via COPY INTO <location>).
+
+Stages act as a bridge between external sources (like your local machine or cloud storage) and Snowflake tables, enabling efficient, parallel data ingestion/unloading without direct table access during staging.
+
+Snowflake supports two main categories of stages: internal (managed by Snowflake) and external (referencing cloud storage outside Snowflake).
+
+Common Commands for Working with Stages:
+- CREATE STAGE — Create named stages (internal or external).
+- PUT — Upload local files to internal stages (from SnowSQL, drivers, etc.).
+- GET — Download files from internal stages to local.
+- LIST @stage_name — List files in a stage.
+- COPY INTO my_table FROM @stage_name ... — Load data.
+- COPY INTO @stage_name FROM my_table ... — Unload data.
+- REMOVE @stage_name ... — Delete files from stage.
+- DESCRIBE STAGE my_stage — View properties.
+- DROP STAGE my_stage — Remove named stages
+
+### How does Snowpipe work internally?
+
+Snowpipe is Snowflake's serverless, continuous data ingestion service for loading files from a stage (internal or external) into tables automatically and near real-time. It operates in micro-batches rather than large scheduled bulk loads.
+There are two main ingestion paths:
+
+Auto-ingest (most common): Event-driven via cloud storage notifications.
+REST API triggered: Client applications explicitly notify Snowpipe of files.
+
+Snowpipe differs from classic COPY INTO bulk loads because it uses Snowflake-managed serverless compute (no virtual warehouse required), is triggered automatically or via API, and loads in smaller increments.
+
+Core Internal Components
+- Pipe object — A first-class Snowflake object created with CREATE PIPE. It embeds a fixed COPY INTO <table> statement (including stage, file format, transformations via SELECT, ON_ERROR behavior, etc.). This COPY definition is reused for every load triggered by the pipe.
+- Ingestion queue — An internal Snowflake-managed queue (per pipe) that holds pending file load requests. Files are appended as they are detected/ notified.
+- File loading metadata — Stored in the pipe object's metadata (not the table). Tracks path + filename (and internally eTag/checksum) of successfully loaded files. Prevents duplicates: same filename is never reloaded, even if file content changes later. This history is retained for 14 days (after which modified files could reload and cause duplicates).
+- Serverless compute layer — Snowflake provisions and scales ephemeral compute resources automatically to execute the pipe's COPY statement on queued files. Billing is per-second for actual compute used + per-file notification fees.
+
+### What is schema-on-read?
+
+Schema-on-read in Snowflake means that data is stored without enforcing a rigid schema upfront, and the structure is applied only when the data is queried (read)—not when it’s loaded.
+
+This approach is especially useful for semi-structured data like JSON, Avro, Parquet, or XML.
+
+- Data is ingested as-is into Snowflake (often into a __VARIANT__ column).
+- Snowflake does not require a predefined table schema for the internal fields of the data.
+
+```
+CREATE TABLE raw_events (
+    event_data VARIANT
+);
+```
+
+Interpret the schema at query time:
+```
+SELECT
+    event_data:user_id::STRING AS user_id,
+    event_data:event_time::TIMESTAMP AS event_time
+FROM raw_events;
+```
+
+### How do you load semi-structured data?
+
+In Snowflake, semi-structured data (JSON, Avro, Parquet, ORC, XML) is typically loaded using stages + COPY INTO, with the data stored in a VARIANT column. Here’s the standard, end-to-end approach.
+
+### What is VARIANT data type?
+
+In Snowflake, the VARIANT data type is a flexible, semi-structured data type used to store data whose structure is not fixed or known upfront—such as JSON, Avro, Parquet, ORC, or XML.
+
+It is the foundation for schema-on-read in Snowflake.
+
+### Difference between internal and external stages?
+
+Internal stages: Internal stages store data inside Snowflake-managed storage.
+
+Types of internal stages
+- User stage – @~
+- Table stage – @%table_name
+- Named internal stage
+
+External stages reference data stored in external cloud storage.
+
+Supported storage
+- Amazon S3
+- Azure Blob Storage
+- Google Cloud Storage
+
+### How do you unload data from Snowflake?
+
+In Snowflake, you unload (export) data using the COPY INTO <stage> command. This writes query results from Snowflake tables into files in an internal or external stage.
+
+```
+COPY INTO @stage_name/path/
+FROM <query_or_table>
+FILE_FORMAT = (TYPE = CSV);
+```
+
+### How does Snowflake handle duplicate data?
+
+Snowflake does not automatically prevent or remove duplicate data. How duplicates are handled depends on how you load, query, and design your pipelines. Snowflake gives you tools—but you control deduplication logic.
+
+File-level deduplication (default behavior)
+- When loading from stages, Snowflake tracks file metadata (file name + checksum).
+- A file is loaded only once by default
+- Reloading the same file is skipped automatically
+
+Snowflake does not deduplicate rows automatically.
+
+### How do you validate loaded data?
+
+### How does Snowflake optimize joins?
+### 
+### What is query profile?
+### 
+### How do you troubleshoot slow queries?
+### 
+### What is clustering key?
+### 
+### Difference between clustering and partitioning?
+### 
+### What is SEARCH OPTIMIZATION?
+### 
+### What is the QUALIFY clause?
+### 
+### What window functions are supported?
+### 
+### How does Snowflake handle large joins?
+### 
+### How do you reduce query cost?
+### 
+### What is automatic query optimization?
+### 
+### What is query acceleration?
+### 
+### How do Streams work internally?
+### 
+### Difference between Tasks and cron jobs?
+### 
+### What is serverless task?
+### 
+### ow does Snowflake handle security?
+### 
+### What is role-based access control (RBAC)?
+### 
+### Difference between SYSADMIN and SECURITYADMIN?
+### 
+### What is ACCOUNTADMIN?
+### 
+### How does Snowflake encrypt data?
+### 
+### Snowflake Security
+### 
+### How does Snowflake support compliance (HIPAA, GDPR)?
+### 
+### Difference between Snowpark and Spark?
+### 
+### How does Snowflake integrate with BI tools?
+### 
+### How do you optimize Snowflake cost?
+### 
+### How do you monitor credit usage?
+### 
+### How do you design a Snowflake ETL pipeline?
+### 
+### How do you handle incremental loads?
+### 
+### How do you migrate data from on-prem to Snowflake?
+### 
+### How do you design Snowflake for high concurrency?
+### 
+### What are common Snowflake performance issues?
