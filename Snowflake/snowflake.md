@@ -17,6 +17,7 @@
 - [UDF](#udf)
 - [Stored Procedures](#storedprocedures)
 - [Spark](#spark)
+- [Security](#security)
 - [Best practices](#bestpractices)
 - [Interview Questions](#interviewquestions)
 
@@ -727,6 +728,37 @@ result = df.group_by("REGION").sum("AMOUNT")
 result.show()
 ```
 
+## Security <a id="security"></a>
+
+Snowflake (the platform) secures:
+- Physical data centers
+- Hardware, networking, OS
+- Encryption mechanisms
+- Infrastructure patching
+- Availability and durability
+
+Customer (you) secures:
+- Users and roles (RBAC)
+- Authentication & authorization
+  - Username & Password
+  - MFA
+  - Single Sign-On (SSO), SAML 2.0 integration
+  - Key Pair Authentication
+- Data access policies
+  - Encryption at Rest
+  - Encryption in Transit
+  - Row-Level Security (RLS)
+  - Column-Level Security (CLS)
+  - Secure Data Sharing
+- Network controls (IP allowlists, PrivateLink)
+  - Network Policies: IP allowlists / blocklists
+  - Private Connectivity: AWS PrivateLink, Azure Private Endpoint
+  - Internal Network Isolation: Customer workloads are isolated
+- Data classification and governance
+  - Object Tagging: Tag columns and tables with metadata (PII classification)
+  - Access History: Tracks who accessed what data and when
+  - Monitoring, Auditing & Logging: Account Usage Views, 
+  - Data Recovery & Protection: Time Travel, Fail-safe
 
 ## Best practices <a id="bestpractices"></a>
 
@@ -817,6 +849,47 @@ FROM @azstage/newbatch
 
 
 ## Interview questions <a id="interviewquestions"></a>
+
+### explain how showflake AWS PrivateLink works
+
+Snowflake AWS PrivateLink allows you to connect to Snowflake privately over the AWS network, without exposing traffic to the public internet.
+
+It uses AWS PrivateLink + VPC Endpoints so all communication stays within AWS’s backbone network.
+
+Key Components
+- Customer VPC (your AWS account)
+- Interface VPC Endpoint (powered by AWS PrivateLink)
+- Snowflake Service VPC
+- Snowflake Virtual Warehouses
+
+Step 1: Snowflake Creates a PrivateLink Service
+- Snowflake exposes its service using a VPC Endpoint Service
+- This service is backed by Network Load Balancers (NLBs)
+
+Step 2: Customer Creates a VPC Interface Endpoint. In your AWS account:
+- You create an Interface VPC Endpoint
+- You select Snowflake’s endpoint service
+- AWS creates Elastic Network Interfaces (ENIs) in your VPC subnets
+- These ENIs have private IP addresses
+
+More about VPC Endpoint:
+- VPC endpoint is a virtual device that enables you to privately connect your Virtual Private Cloud (VPC) to supported AWS services without requiring an internet gateway, NAT device, VPN connection, or AWS Direct Connect connection
+- Creates an Elastic Network Interface (ENI) with a private IP address in your subnet.
+- Supports access from on-premises networks via VPN/Direct Connect, peered VPCs, and Transit Gateway
+- To connect to a VPC endpoint in another company's AWS account, you use AWS PrivateLink to establish a private, secure connection that does not traverse the public internet
+
+### what is the difference between snowflake time travel and fail safe
+
+Time Travel lets you access, query, and restore historical data that has changed or been deleted
+- Query data as it existed at a point in time
+- Recover accidentally deleted or updated data
+
+Fail-safe is a disaster recovery mechanism of last resort. It allows Snowflake to __recover data after Time Travel has expired__.
+- Recover data only through Snowflake Support
+- Restore data lost due to:
+  - Accidental drops after Time Travel window
+  - System failures
+  - Catastrophic events
 
 ### How to copy data from snowflake table to file on aws s3?
 
@@ -1086,32 +1159,282 @@ Snowflake does not deduplicate rows automatically.
 
 ### How do you validate loaded data?
 
+1. Validate During the Load (Pre- & In-Load Checks):
+```
+# check file structure and errors without inserting data
+COPY INTO target_table
+FROM @my_stage
+FILE_FORMAT = (TYPE = CSV)
+VALIDATION_MODE = RETURN_ERRORS;
+```
+
+2. Load into a Staging Table First (Best Practice)
+
+3. Validate Load Success: 
+
+Every COPY INTO returns a result set
+```
+SELECT *
+FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+```
+
+Validate with LOAD_HISTORY: Use Snowflake metadata views:
+```
+SELECT *
+FROM INFORMATION_SCHEMA.LOAD_HISTORY
+WHERE TABLE_NAME = 'TARGET_TABLE'
+ORDER BY LAST_LOAD_TIME DESC;
+```
+
+4. Data Quality Validation (Post-Load)
+```
+# Row Count Validation
+SELECT COUNT(*) FROM target_table;
+
+# NULL & Mandatory Field Checks
+SELECT COUNT(*) 
+FROM target_table
+WHERE customer_id IS NULL;
+
+# Data Type & Range Checks
+SELECT *
+FROM target_table
+WHERE order_amount < 0
+   OR order_amount > 100000;
+```
+
+5. Data Quality Frameworks
+- dbt tests
+- Great Expectations
+- Soda
+- Monte Carlo (observability)
+
 ### How does Snowflake optimize joins?
-### 
+
+Snowflake optimizes joins using a combination of metadata, micro-partition pruning, cost-based optimization, and distributed execution. Unlike traditional databases, it does not use indexes—everything is optimized automatically.
+
+1. When you run a query with joins, Snowflake’s cost-based optimizer decides:
+- Join order (which table joins first)
+- Join method (broadcast vs distributed)
+- Which predicates to push down
+- How many micro-partitions to scan
+- How much parallelism to use
+
+2. Micro-Partition Pruning (Biggest Performance Factor)
+Tables are stored in immutable micro-partitions (~50–500 MB compressed)
+
+Each micro-partition stores metadata:
+- Min/max values per column
+- NULL counts
+- Row counts
+
+3. Join Order Optimization. Snowflake automatically:
+- Joins smaller / filtered tables first
+- Pushes filters before joins when possible
+
+4. Join Distribution Strategy. Snowflake chooses between two main join strategies:
+- Broadcast Join (Replicated Join): One table is small can can be repliacted to all nodes
+- Distributed (Shuffle) Join: Both tables are large: Rows are repartitioned (hashed) on join keys, Matching keys land on same nodes
+
+5. Predicate Pushdown:
+- Snowflake pushes filters as close to the scan as possible.
+
+...
+
+### What EXPLAIN Is Good For?
+
+Verify Join Order & Join Type
+- Broadcast vs distributed joins
+- Whether small tables are joined first
+
+Confirm Predicate Pushdown
+- Check if filters are applied:
+- Before joins (good)
+- After joins (bad)
+
+Detect Obvious Problems
+- Cartesian joins
+- Unnecessary subqueries
+- Missing join conditions
+
 ### What is query profile?
-### 
+
+After running the query:
+- Open Query Profile in the Snowflake UI.
+- Query Profile shows:
+  - Actual execution steps
+  - Data scanned per step
+  - Join strategy used
+  - Partition pruning %
+  - Time spent per operator
+
+This is where real performance tuning happens.
+
+See https://www.chaosgenius.io/blog/snowflake-query-optimization-query-profile/
+
 ### How do you troubleshoot slow queries?
-### 
+
+- Confirm the Problem (Baseline First)
+  - Is the query consistently slow, or just once?
+  - Did it run fast before?
+  - Did data volume change?
+- Open Query Profile
+  - Nodes with highest execution time
+  - Operators scanning the most data
+  - Join operators (broadcast vs shuffle)
+  - Any spill to local storage
+- Diagnose Common Root Causes
+  - Too Much Data Scanned: Table Scan node dominates time: Add selective filters
+  - Inefficient Joins: Large shuffle joins, High network transfer: Filter dimension tables first, Reduce join cardinality
+- Poor Partition Pruning: % Partitions Scanned close to 100%
+- Data Skew: One node much slower than others: Break query into steps, Pre-aggregate skewed data
+- Warehouse Too Small: CPU-bound operators, Spills to local storage
+- Concurrency Issues: Query waits in queue
+
 ### What is clustering key?
-### 
+
+A clustering key tells Snowflake how rows should be ordered across micro-partitions based on one or more columns.
+- Snowflake stores data in micro-partitions
+- Each micro-partition has min/max metadata per column
+- Clustering improves how well this metadata aligns with query filters
+
+Without clustering:
+- Data is written in load order
+- Filters may scan many micro-partitions
+
+Clustering works best for:
+- Dates / timestamps
+- Status codes
+- Low-to-medium cardinality columns
+- Range filters (BETWEEN, >=, <=)
+
 ### Difference between clustering and partitioning?
-### 
+
+Partitioning is when you explicitly divide a table into separate physical chunks based on a column.
+Snowflake does partition data internally, but users don’t manage it.
+
+Clustering organizes data within Snowflake’s micro-partitions to improve pruning.
+
 ### What is SEARCH OPTIMIZATION?
-### 
+
+Search Optimization (SO) creates a specialized search access path that allows Snowflake to quickly find specific rows without scanning large portions of a table.
+
+Clustering struggles when:
+- Queries look up single values
+- Columns have very high cardinality
+- Predicates use = , IN, or LIKE
+
+__If many micro-partitions have overlapping min/max ranges, Snowflake must scan all of them.__
+
+__customer_id Is a Bad Clustering Key because High-cardinality problem__
+
+Example:
+```
+Partition 1: C000000001 → C999999999
+Partition 2: C000000010 → C999999990
+Partition 3: C000000005 → C999999995
+```
+
+Search Optimization solves this.
+
+When enabled:
+- Snowflake builds search metadata for specified columns
+- Metadata maps values → micro-partitions
+- At query time:
+  - Snowflake directly locates relevant partitions
+  - Skips scanning unrelated data
+
 ### What is the QUALIFY clause?
-### 
-### What window functions are supported?
-### 
+
+The QUALIFY clause is a filtering mechanism applied after window functions. It allows you to filter rows based on the result of window functions without using subqueries or CTEs.
+
+```
+SELECT column1, column2,
+       ROW_NUMBER() OVER (PARTITION BY column1 ORDER BY column2 DESC) AS rn
+FROM table_name
+QUALIFY rn = 1;
+```
+- ROW_NUMBER() is a window function
+- QUALIFY rn = 1 keeps only the first row per partition
+
+
 ### How does Snowflake handle large joins?
-### 
+
+Snowflake handles large joins using a combination of distributed architecture, micro-partitions, query optimization, and adaptive execution strategies.
+
+#### Broadcast Join
+
+The smaller table is replicated across all nodes.
+
+Each node joins the small table with its portion of the large table.
+
+Works well when one table is much smaller than the other.
+
+#### Shuffle / Partitioned Join
+
+Both tables are redistributed across nodes based on join keys.
+
+Required if both tables are large.
+
+Ensures matching keys end up on the same node.
+
+May involve heavy network transfer (the main bottleneck for large joins).
+
+#### Merge Join
+
+Snowflake can use sort-merge joins if tables are already sorted or clustered.
+
+Efficient for range joins or pre-ordered datasets.
+
+Avoids full redistribution.
+
 ### How do you reduce query cost?
-### 
+
+Reducing query cost in Snowflake is mostly about __reducing the amount of data scanned__ and __optimizing compute usage__, because Snowflake charges based on compute time
+
+Reduce Data Scanned:
+- Filter Early: 
+  - WHERE clauses to scan fewer micro-partitions
+  - Avoid functions on columns in filters
+- Use Clustering Keys: Cluster large tables on frequently filtered columns
+- Use Search Optimization
+- Avoid SELECT *
+
+Optimize Compute Usage:
+- Right-Size Your Warehouse: Scale up temporarily for big queries, then scale down
+- Suspend Idle Warehouses
+- multi-cluster warehouses instead of constantly scaling up
+
+Use Caching:
+| Cache Type       | Benefit                                              |
+| ---------------- | ---------------------------------------------------- |
+| Result Cache     | Query runs instantly if identical query ran recently |
+| Local Disk Cache | Data reused if warehouse recently queried same table |
+| Remote Cache     | Reduces S3 reads across warehouses                   |
+
+Materialize Expensive Operations
+
+Monitor Query Cost
+
 ### What is automatic query optimization?
-### 
-### What is query acceleration?
-### 
+
+Automatic Query Optimization is a set of built-in, behind-the-scenes techniques that Snowflake’s query engine uses to make queries run faster and more efficiently without requiring manual tuning.
+
+When you submit a query, Snowflake’s engine:
+- Analyzes the SQL statement
+- Estimates table sizes, micro-partition metadata, and data distribution
+- Chooses optimal execution strategies including:
+  - Join order and join type
+  - Partition pruning
+  - Broadcast vs shuffle
+  - Use of caching
+- Rewrites queries internally if it improves performance
+
+All of this happens automatically
+
+
 ### How do Streams work internally?
-### 
+
 ### Difference between Tasks and cron jobs?
 ### 
 ### What is serverless task?
