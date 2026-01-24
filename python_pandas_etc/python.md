@@ -1,6 +1,12 @@
 # Python 3
 
-## Python basics
+# Table of Contents
+- [basics](#basics)
+- [advanced](#advanced)
+  - [strong typing](#strongtyping)
+  - [oop](#oop)
+
+## Python basics <a id="basics"></a>
 
 __Python Indentation__: Python uses indentation to indicate a block of code:
 ```
@@ -780,9 +786,9 @@ deactivate
 ```
 
 
-## Advanced
+## Advanced <a id="advanced"></a>
 
-### Strong typing
+### Strong typing <a id="strongtyping"></a>
 
 In Python, you can achieve "strong typing" in a function by using
 type hints for function parameters and return values, and then using an external static type checker like mypy to enforce them during development.
@@ -801,5 +807,9 @@ pip install mypy
 mypy calc.py
 ```
 
-For more complex scenarios, the typing module provides advanced types:
+For more complex scenarios, the typing module provides advanced types
+
+### Python OOP <a id="oop"></a>
+
+https://www.w3schools.com/python/python_oop.asp
 
