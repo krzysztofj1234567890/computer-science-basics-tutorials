@@ -367,8 +367,439 @@ thisdict = {
 }
 x = thisdict["model"]
 
+# Update the "year" of the car by using the update() method:
+thisdict = {
+  "brand": "Ford",
+  "model": "Mustang",
+  "year": 1964
+}
+thisdict.update({"year": 2020}) 
+
+# Adding an item to the dictionary is done by using a new index key and assigning a value to it:
+thisdict = {
+  "brand": "Ford",
+  "model": "Mustang",
+  "year": 1964
+}
+thisdict["color"] = "red"
+print(thisdict)
+
+# Loop Through a Dictionary
+for x in thisdict:
+  print(x) 
+
+for x in thisdict.values():
+  print(x)
+
+for x, y in thisdict.items():
+  print(x, y) 
+
+# copy
+thisdict = {
+  "brand": "Ford",
+  "model": "Mustang",
+  "year": 1964
+}
+mydict = thisdict.copy()
+print(mydict)
+
+# Nested Dictionaries
+myfamily = {
+  "child1" : {
+    "name" : "Emil",
+    "year" : 2004
+  },
+  "child2" : {
+    "name" : "Tobias",
+    "year" : 2007
+  },
+  "child3" : {
+    "name" : "Linus",
+    "year" : 2011
+  }
+} 
+
+# Print the name of child 2:
+print(myfamily["child2"]["name"])
+```
+
+__Match__ statement: Instead of writing many if..else statements, you can use the match statement.
+
+```
+day = 4
+match day:
+  case 1:
+    print("Monday")
+  case 2:
+    print("Tuesday")
+  case 3:
+    print("Wednesday")
+  case 4:
+    print("Thursday")
+  case 5:
+    print("Friday")
+  case 6:
+    print("Saturday")
+  case 7:
+    print("Sunday")
+
+  # Use _ as the last case value if you want a code block to execute when there are not other matches:
+  case _:
+    print("Looking forward to the Weekend")
+
+# combine values
+day = 4
+match day:
+  case 1 | 2 | 3 | 4 | 5:
+    print("Today is a weekday")
+  case 6 | 7:
+    print("I love weekends!")
+```
+
+__Loops__
+
+```
+# while 
+i = 1
+while i < 6:
+  print(i)
+  i += 1
+  # break statement we can stop the loop even if the while condition is true:
+  if i == 5:
+    break
+  # continue statement we can stop the current iteration, and continue with the next:
+  if i == 3:
+    continue
+else:
+  print("i is no longer less than 6")
+
+# for
+fruits = ["apple", "banana", "cherry"]
+for x in fruits:
+  print(x)
+else:
+  print("Finally finished!") 
+```
+
+__Functions__
+
+A function is a block of code which only runs when it is called.
+
+A function can return data as a result.
+
+Python uses a mechanism called "pass-by-object-reference" (or "pass-by-assignment"), which means neither "pass-by-value" nor "pass-by-reference" strictly applies. The behavior depends on whether the object passed is mutable (changeable) or immutable (unchangeable).
+
+When an immutable object is passed, it behaves like pass-by-value. If you attempt to "modify" the value inside the function, Python actually creates a new object and the local variable is reassigned to this new object, leaving the original object in the caller's scope unaffected. 
+```
+def modify_immutable(value):
+    value += 1 # Creates a new int object and reassigns the local 'value'
+    print(f"Inside function: {value}")
+
+x = 5
+print(f"Before function: {x}")
+modify_immutable(x)
+print(f"After function: {x}")
+
+output:
+Before function: 5
+Inside function: 6
+After function: 5
+```
+
+Behavior with Mutable Objects: Mutable objects include types like:  list (lists), dict (dictionaries), set (sets), Class instances 
+
+When a mutable object is passed, it behaves like pass-by-reference. Since both the local variable and the original variable refer to the same object in memory, modifications made in-place to the object inside the function will be visible outside the function as we
+
+Examples:
+
+```
+# define a function
+def my_function():
+  print("Hello from a function") 
+
+# calling a function 
+my_function()
+
+# return values
+def get_greeting():
+  return "Hello from a function
+
+# arguments
+def my_function(fname):
+  print(fname + " Refsnes")
+my_function("Emil")
+
+# You can assign default values to parameters:
+def my_function(country = "Norway"):
+  print("I am from", country)
+
+# with keyword arguments, the order of the arguments does not matter.
+def my_function(animal, name):
+  print("I have a", animal)
+  print("My", animal + "'s name is", name)
+my_function(name = "Buddy", animal = "dog") 
+
+# To specify that a function can have only keyword arguments, add *, before the arguments:
+def my_function(*, name):
+  print("Hello", name)
+my_function(name = "Emil") 
 
 ```
 
+*args and **kwargs: allow functions to accept a unknown number of __arguments__.
 
+Inside the function, args becomes a tuple containing all the passed arguments.
+
+The **kwargs parameter allows a function to accept any number of __keyword arguments__.
+
+```
+# Using *args to accept any number of arguments:
+def my_function(*kids):
+  print("The youngest child is " + kids[2])
+my_function("Emil", "Tobias", "Linus") 
+
+# You can combine regular parameters with *args.
+def my_function(greeting, *names):
+  for name in names:
+    print(greeting, name)
+my_function("Hello", "Emil", "Tobias", "Linus") 
+
+# Using **kwargs to accept any number of keyword arguments:
+def my_function(**kid):
+  print("His last name is " + kid["lname"])
+my_function(fname = "Tobias", lname = "Refsnes") 
+```
+
+__Scope__
+
+```
+# global keyword, the variable belongs to the global scope:
+def myfunc():
+  global x
+  x = 300
+myfunc()
+print(x) 
+
+# nonlocal keyword, the variable will belong to the outer function:
+def myfunc1():
+  x = "Jane"
+  def myfunc2():
+    nonlocal x
+    x = "hello"
+  myfunc2()
+  return x
+print(myfunc1())                  // hello
+```
+
+__Decorators__
+
+Decorators let you add extra behavior to a function, without changing the function's code.
+
+Decorator is a function that takes another function as input and returns a new function.
+
+You can use multiple decorators on one function. This is done by placing the decorator calls on top of each other.
+
+```
+def changecase(func):
+  def myinner():
+    return func().upper()
+  return myinner
+
+@changecase
+def myfunction():
+  return "Hello Sally"
+
+print(myfunction())
+
+# One decorator for upper case, and one for adding a greeting:
+def changecase(func):
+  def myinner():
+    return func().upper()
+  return myinner
+
+def addgreeting(func):
+  def myinner():
+    return "Hello " + func() + " Have a good day!"
+  return myinner
+
+@changecase
+@addgreeting
+def myfunction():
+  return "Tobias"
+
+print(myfunction())
+```
+
+__Lambda__
+
+A lambda function is a small anonymous function.
+
+A lambda function can take any number of arguments, but can only have one expression.
+
+Lambda with Built-in Functions: map(), filter(), and sorted().
+
+```
+x = lambda a : a + 10
+print(x(5)) 
+
+# Double all numbers in a list:
+numbers = [1, 2, 3, 4, 5]
+doubled = list(map(lambda x: x * 2, numbers))
+print(doubled)                          // [2, 4, 6, 8, 10] 
+
+# Filter out even numbers from a list:
+numbers = [1, 2, 3, 4, 5, 6, 7, 8]
+odd_numbers = list(filter(lambda x: x % 2 != 0, numbers))
+print(odd_numbers)
+```
+
+__Generators__
+
+Generators are functions that can pause and resume their execution.
+
+When a generator function is called, it returns a generator object, which is an iterator.
+
+The code inside the function is not executed yet, it is only compiled. The function only executes when you iterate over the generator.
+
+The __yield__ keyword is what makes a function a generator.
+
+When yield is encountered, the function's state is saved, and the value is returned. The next time the generator is called, it continues from where it left off.
+
+Generators allow you to iterate over data without storing the entire dataset in memory.
+
+Generators are memory-efficient because they generate values on-the-fly instead of storing everything in memory
+
+```
+def my_generator():
+  yield 1
+  yield 2
+  yield 3
+
+for value in my_generator():
+  print(value) 
+```
+
+__Module__
+
+Consider a module to be the same as a code library.
+
+A file containing a set of functions you want to include in your application.
+
+To create a module just save the code you want in a file with the file extension .py:
+
+Now we can use the module we just created, by using the import statement.
+
+The module can contain functions, as already described, but also variables of all types (arrays, dictionaries, objects etc).
+
+file mymodule.py:
+```
+person1 = {
+  "name": "John",
+  "age": 36,
+  "country": "Norway"
+} 
+def greeting(name):
+  print("Hello, " + name) 
+```
+
+Use:
+```
+import mymodule
+mymodule.greeting("Jonathan")
+
+# You can choose to import only parts from a module, by using the from keyword.
+from mymodule import person1
+print (person1["age"])
+```
+
+__PIP__
+
+PIP is a package manager for Python packages, or modules if you like.
+
+__Try Except__
+
+The try block lets you test a block of code for errors.
+
+The except block lets you handle the error.
+
+The else block lets you execute code when there is no error.
+
+The finally block lets you execute code, regardless of the result of the try- and except blocks.
+
+```
+try:
+  f = open("demofile.txt")
+  try:
+    f.write("Lorum Ipsum")
+  except:
+    print("Something went wrong when writing to the file")
+  finally:
+    f.close()
+except:
+  print("Something went wrong when opening the file")
+```
+
+__None__
+
+None is a special constant in Python that represents the absence of a value.
+
+Its data type is NoneType, and None is the only instance of a NoneType object.
+
+__User Input__
+
+```
+print("Enter your name:")
+name = input()
+print(f"Hello {name}")
+```
+
+__Virtual Environment__
+
+A virtual environment in Python is an isolated environment on your computer, where you can run and test your Python projects.
+
+It allows you to manage project-specific dependencies without interfering with other projects or the original Python installation.
+
+Think of a virtual environment as a separate container for each Python project. Each container:
+- Has its own Python interpreter
+- Has its own set of installed packages
+- Is isolated from other virtual environments
+- Can have different versions of the same package
+
+```
+# create it
+python -m venv myfirstproject 
+
+# activate it
+myfirstproject\Scripts\activate
+
+# install modules
+pip install cowsay 
+
+# deactivate
+deactivate 
+```
+
+
+## Advanced
+
+### Strong typing
+
+In Python, you can achieve "strong typing" in a function by using
+type hints for function parameters and return values, and then using an external static type checker like mypy to enforce them during development.
+
+```
+def sum_numbers(a: int, b: int) -> int:
+    """
+    Calculates the sum of two integers.
+    """
+    return a + b
+```
+
+Enforcing Types with a Static Type Checker:
+```
+pip install mypy
+mypy calc.py
+```
+
+For more complex scenarios, the typing module provides advanced types:
 
