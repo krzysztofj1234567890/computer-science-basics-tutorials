@@ -379,7 +379,9 @@ Choose a lakehouse if:
 
 # Explain Iceberg
 
-Iceberg achieves ACID guarantees by treating metadata as the transaction boundary. Data files are immutable, and each table version is a snapshot pointing to manifests that describe data and deletes. This enables snapshot isolation, safe concurrent reads and writes, schema and partition evolution, and multi-engine interoperability — at the cost of requiring active metadata maintenance.
+Iceberg achieves ACID guarantees by treating metadata as the transaction boundary. 
+Data files are immutable, and each table version is a snapshot pointing to manifests that describe data and deletes. 
+This enables snapshot isolation, safe concurrent reads and writes, schema and partition evolution, and multi-engine interoperability — at the cost of requiring active metadata maintenance.
 
 Iceberg turns object storage into a transactional database by managing immutable files with a metadata-driven commit protocol.
 
@@ -442,4 +444,103 @@ Schema evolution:
   - Rename columns
   - Reorder columns
   - Add / drop columns
+
+# Explain Parquet
+
+Apache Parquet is a columnar, compressed, self-describing file format optimized for analytical workloads.
+
+It’s a storage format.
+
+```
+Parquet File
+ ├── File Header
+ ├── Row Groups
+ │    ├── Column Chunks
+ │    │    ├── Pages
+ │    │    │    ├── Data Page(s)
+ │    │    │    └── Dictionary Page (optional)
+ └── File Footer (metadata)
+```
+
+Physical File Structure:
+- __File Header__: Contains the magic number PAR1.
+- __Data__: The actual column data, broken into row groups and compressed using various encodings (like Run-Length Encoding for repeating values).
+- __File Metadata__: Located at the end of the file, it describes the __schema__, __compression__ used, __statistics (min/max values)__ for each column in each row group, and the location of the data blocks.
+- __File Footer__: Contains the size of the metadata and the magic number PAR1 again, allowing readers to quickly locate the metadata at the end of the file without reading the entire data portion
+
+# Explain and compare Streaming vs micro-batch
+
+Streaming (true streaming):  Process events one at a time as they arrive.
+- Continuous execution
+- Event-driven
+- Latency measured in milliseconds
+
+Micro-batch: Process events in small batches at fixed intervals (e.g., every 1–60 seconds).
+- Discrete execution
+- Time-sliced
+- Latency measured in seconds
+
+## Execution model
+
+Streaming:
+```
+Event → Operator → State → Output
+       (always running)
+```
+
+Micro-batch execution:
+```
+Collect events (Δt)
+→ Create batch
+→ Run batch job
+→ Commit results
+→ Repeat
+```
+
+## how Spark Structured Streaming works? Can it use presto and iceberg?
+
+Structured Streaming runs in micro-batch mode:
+```
+Trigger fires (e.g. every 10s)
+→ Read new data since last offset
+→ Build a logical plan (like batch Spark SQL)
+→ Execute physical plan
+→ Commit results
+→ Update offsets & state
+```
+
+Each micro-batch is:
+- A normal Spark SQL job
+- Deterministic
+- Fully fault-tolerant
+
+Kafka → Spark Structured Streaming → Iceberg table
+
+Per micro-batch:
+- Spark writes new Parquet files
+- Iceberg commits snapshot atomically
+- Exactly-once at snapshot level
+
+# Iceberg vs Delta Lake — comparison
+
+__Apache Iceberg__: Open, engine-agnostic table format with metadata-driven transactions.
+
+__Delta Lake__: Tightly integrated transactional layer optimized for Spark ecosystems.
+- Log-based
+- Databricks-led roadmap
+- Best experience inside Databricks
+
+
+Storage & metadata model:
+- Iceberg: Catalog → Metadata JSON → Manifest lists → Manifests → Data files
+
+- Delta (centralized transaction log):
+  - Append-only log
+```
+_delta_log/
+  ├── 000000.json
+  ├── 000001.json
+  ├── ...
+  └── checkpoints
+```
 
