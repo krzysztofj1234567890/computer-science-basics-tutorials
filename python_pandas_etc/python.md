@@ -814,6 +814,197 @@ For more complex scenarios, the typing module provides advanced types
 
 https://www.w3schools.com/python/python_oop.asp
 
+__Creating a class and object__
+
+```
+class MyClass:
+  x = 5
+
+# create object
+p1 = MyClass()
+print(p1.x)
+```
+
+__constructor__ =  __init__()__
+All classes have a built-in method called __init__(), which is always executed when the class is being initiated.
+
+```
+class Person:
+  def __init__(self, name, age):
+    self.name = name
+    self.age = age
+
+p1 = Person("Emil", 36)
+
+print(p1.name)
+print(p1.age) 
+```
+
+The __self__ parameter is a reference to the current instance of the class. It is used to access properties and methods that belong to the class.
+
+Without self, Python would not know which object's properties you want to access:
+
+It __does not have to be named self__, you can call it whatever you like, but it has to be the first parameter of any method in the class:
+
+__Class Properties__ are variables that belong to a class. They store data for each object created from the class.
+
+You can access object properties using dot notation:
+
+```
+class Car:
+  def __init__(self, brand, model):
+    self.brand = brand
+    self.model = model
+
+car1 = Car("Toyota", "Corolla")
+
+print(car1.brand)
+print(car1.model) 
+```
+
+Modify Properties:
+```
+class Person:
+  def __init__(self, name, age):
+    self.name = name
+    self.age = age
+
+p1 = Person("Tobias", 25)
+print(p1.age)
+
+p1.age = 26
+print(p1.age)
+```
+
+__Class Properties vs Object Properties__
+
+Properties defined inside __init__() belong to each object (instance properties).
+
+Properties defined outside methods belong to the class itself (class properties) and are shared by all objects:
+
+```
+class Person:
+  species = "Human" # Class property
+
+  def __init__(self, name):
+    self.name = name # Instance property
+
+p1 = Person("Emil")
+p2 = Person("Tobias")
+
+print(p1.name)
+print(p2.name)
+print(p1.species)
+print(p2.species) 
+
+# add new properties to existing objects
+p1.city = "Oslo"
+```
+
+__Class Methods__ are functions that belong to a class. They define the behavior of objects created from the class.
+```
+class Person:
+  def __init__(self, name):
+    self.name = name
+
+  def greet(self):
+    print("Hello, my name is " + self.name)
+
+p1 = Person("Emil")
+p1.greet() 
+```
+
+The __str__() Method: controls what is returned when the object is printed:
+```
+class Person:
+  def __init__(self, name, age):
+    self.name = name
+    self.age = age
+
+  def __str__(self):
+    return f"{self.name} ({self.age})"
+
+p1 = Person("Tobias", 36)
+print(p1) 
+```
+
+Python Inheritance: Inheritance allows us to define a class that inherits all the methods and properties from another class.
+
+```
+class Person:
+  def __init__(self, fname, lname):
+    self.firstname = fname
+    self.lastname = lname
+
+  def printname(self):
+    print(self.firstname, self.lastname)
+
+class Student(Person):
+  # When you add the __init__() function, the child class will no longer inherit the parent's __init__() function
+  def __init__(self, fname, lname):
+
+  # To keep the inheritance of the parent's __init__() function, add a call to the parent's __init__() function:
+  def __init__(self, fname, lname):
+    Person.__init__(self, fname, lname)
+```
+
+```
+# Python also has a super() function that will make the child class inherit all the methods and properties from its parent:
+class Student(Person):
+  def __init__(self, fname, lname):
+    super().__init__(fname, lname) 
+    # Add a property called graduationyear to the Student class:
+    self.graduationyear = 2019
+
+```
+
+__Polymorphism__
+```
+class Vehicle:
+  def __init__(self, brand, model):
+    self.brand = brand
+    self.model = model
+
+  def move(self):
+    print("Move!")
+
+class Car(Vehicle):
+  pass
+
+class Boat(Vehicle):
+  def move(self):
+    print("Sail!")
+
+class Plane(Vehicle):
+  def move(self):
+    print("Fly!")
+
+car1 = Car("Ford", "Mustang")       #Create a Car object
+boat1 = Boat("Ibiza", "Touring 20") #Create a Boat object
+plane1 = Plane("Boeing", "747")     #Create a Plane object
+
+for x in (car1, boat1, plane1):
+  print(x.brand)
+  print(x.model)
+  x.move()
+```
+
+__Encapsulation__ is about protecting data inside a class.
+
+In Python, you can make properties private by using a double underscore __ prefix:
+```
+class Person:
+  def __init__(self, name, age):
+    self.name = name
+    self.__age = age # Private property
+
+p1 = Person("Emil", 25)
+print(p1.name)
+print(p1.__age) # This will cause an error 
+```
+
+You can also make methods private using the double underscore prefix:
+
 ## Python Interview questions <a id="interview"></a>
 
 ### Is Python compiled or interpreted?
