@@ -54,15 +54,15 @@ __Object storage__: Foundation of the lake/lakehouse:
 
 __File formats__:
 - Columnar:
-- __Parquet__
+  - __Parquet__
     - Predicate pushdown
     - Compression
     - Vectorized reads
 - Table formats (sit on top of parquet)
-- __Delta Lake__: Simplicity, ecosystem
-- __Apache Iceberg__: Open spec, engine-agnostic
-- __Apache Hudi__: Streaming & upserts
-- table formats add:
+  - __Delta Lake__: Simplicity, ecosystem
+  - __Apache Iceberg__: Open spec, engine-agnostic
+  - __Apache Hudi__: Streaming & upserts
+  - table formats add:
     - ACID transactions
     - Schema enforcement/evolution
     - Snapshots & time travel
@@ -91,7 +91,6 @@ Multiple engines, one source of truth.
 | Trino / Presto | Fast interactive SQL       |
 | DuckDB         | Local / embedded analytics |
 | Snowflake      | Managed, proprietary       |
-
 
 ### Streaming engines
 
@@ -155,6 +154,31 @@ Critical for:
 - Impact analysis
 - Compliance
 - Debugging
+
+__AWS Glue__
+- AWS Glue gives you some lineage, but not end-to-end by default. 
+- OpenLineage + Marquez / DataHub
+  - Instrument Glue Spark jobs
+  - Emit lineage events
+  - Capture:
+    - Dataset in/out
+    - Column mappings
+    - Job runs
+
+__Azure data lake and databrics__:
+- Unity Catalog (UC) provides automatic lineage for:
+  - Tables & views
+  - Notebooks
+  - Jobs
+  - Delta tables
+  - Lineage captured:
+    - Table → table
+    - Notebook → table
+    - Job → table
+    - View dependencies
+  - This works automatically when:
+    - You use UC-managed tables
+    - You run queries in Databricks (SQL, notebooks, jobs)
 
 ### Data quality
 
