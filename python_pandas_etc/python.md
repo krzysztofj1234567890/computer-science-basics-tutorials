@@ -1181,3 +1181,446 @@ print(original_list)
 ### What is a lambda function? When to use it?
 
 
+## Python data engineering python interview questions
+
+### Difference between list and tuple?
+
+Lists are mutable; tuples are immutable and faster for read-only operations.
+
+### What are Python generators?
+
+Generators produce values lazily using yield, saving memory for large datasets.
+
+### What is a Python iterator?
+
+An object implementing __iter__() and __next__() to traverse elements.
+
+```
+class MyNumbers:
+  def __iter__(self):
+    self.a = 1
+    return self
+
+  def __next__(self):
+    if self.a <= 5:
+      x = self.a
+      self.a += 1
+      return x
+    else:
+      # Stop the iteration by raising StopIteration
+      raise StopIteration
+
+# Create an instance of the custom iterator class
+my_class_instance = MyNumbers()
+
+# Get the iterator object
+my_iter = iter(my_class_instance)
+
+# Iterate using a for loop (implicitly uses iter() and next())
+for num in my_iter:
+  print(num)
+```
+
+### What is list comprehension?
+
+A concise way to create lists:
+```
+[x*x for x in range(5)]
+```
+
+### What is a dictionary and why is it fast?
+
+Key-value data structure using hashing → O(1) average lookup.
+
+### Explain shallow vs deep copy.
+
+Shallow copies references; deep copies duplicate objects fully.
+
+### What are Python decorators?
+
+Functions that modify other functions’ behavior without changing code.
+
+```
+def uppercase_decorator(func):
+    """Decorator to convert a function's return value to uppercase."""
+    def wrapper():
+        result = func()
+        return result.upper()
+    return wrapper
+
+def exclamation_decorator(func):
+    """Decorator to add exclamation marks before and after a function's return value."""
+    def wrapper():
+        result = func()
+        return f"!!! {result} !!!"
+    return wrapper
+
+@exclamation_decorator
+@uppercase_decorator
+def greet():
+    """Original function that returns a simple greeting."""
+    return "Hello, World"
+
+# Call the decorated function
+print(greet())
+```
+
+Result:
+```
+!!! HELLO, WORLD !!!
+```
+
+### What is __init__?
+
+Constructor method called when an object is created.
+
+### What is *args and **kwargs?
+
+Variable-length positional and keyword arguments.
+
+### Difference between is and ==?
+
+is checks identity; == checks value equality.
+
+```
+list_a = [1, 2, 3]
+list_b = [1, 2, 3]
+list_c = list_a
+
+print(f"list_a == list_b: {list_a == list_b}")
+print(f"list_a is list_b: {list_a is list_b}")
+print(f"list_a is list_c: {list_a is list_c}")
+
+// RESULT
+list_a == list_b: True
+list_a is list_b: False
+list_a is list_c: True
+```
+
+### What is None?
+
+Represents absence of a value.
+
+### What is slicing?
+
+Extracting subsets from sequences: arr[1:5].
+
+### What are Python modules?
+
+Files containing Python code that can be imported.
+
+## What is lambda function?
+
+Anonymous one-line function: lambda x: x+1.
+
+### Difference between append() and extend()?
+
+append adds one item; extend adds multiple items.
+
+### Time complexity of dictionary lookup?
+
+O(1) average case.
+
+### When would you use a set?
+
+For fast membership testing and uniqueness.
+
+### What is a heap?
+
+Tree-based structure used in priority queues.
+
+```
+import heapq
+
+# 1. Create a heap from an existing list using heapify()
+# The function rearranges the list in-place to satisfy the heap property
+my_list = [21, 1, 45, 78, 3, 5]
+heapq.heapify(my_list)
+print(f"Heapified list: {my_list}")
+# Output: [1, 3, 5, 78, 21, 45] (order of non-root elements may vary)
+```
+
+### What is a deque?
+
+Double-ended queue optimized for fast appends/pops.
+
+```
+from collections import deque
+
+# 1. Create a deque
+numbers = deque([1, 2, 3, 4, 5])
+print(f"Initial deque: {numbers}")
+
+# 2. Add elements
+numbers.append(6)         # Add to the right end
+numbers.appendleft(0)     # Add to the left end
+print(f"After adding elements: {numbers}")
+
+# 3. Access elements (like a list)
+print(f"First element: {numbers[0]}")
+print(f"Last element: {numbers[-1]}")
+```
+
+### What is Big-O notation?
+
+Measures algorithm efficiency.
+
+### Explain map, filter, reduce.
+
+Functional programming tools for transformation.
+
+The __map__() function applies a given function to every item in an iterable and returns a map object (which can be converted to a list). It transforms the elements
+
+```
+# Function to apply
+def square(n):
+    return n * n
+
+# List of numbers
+numbers = [1, 2, 3, 4, 5]
+
+# Using map()
+# The result is a map object, convert to a list to see the values
+squared_numbers = list(map(square, numbers))
+
+# Output: [1, 4, 9, 16, 25]
+print(squared_numbers)
+
+# Using lambda (more compact)
+squared_numbers_lambda = list(map(lambda n: n * n, numbers))
+print(squared_numbers_lambda)
+```
+
+The __filter__() function tests each element in an iterable against a function that returns either True or False. It returns a filter object (convertible to a list) containing only the elements for which the function returned True. It selects a subset of elements
+
+```
+# Function to apply the condition
+def is_even(n):
+    return n % 2 == 0 # Returns True if even, False if odd
+
+# List of numbers
+numbers = [1, 2, 3, 4, 5, 6]
+
+# Using filter()
+# The result is a filter object, convert to a list to see the values
+even_numbers = list(filter(is_even, numbers))
+
+# Output: [2, 4, 6]
+print(even_numbers)
+
+# Using lambda (more compact)
+even_numbers_lambda = list(filter(lambda n: n % 2 == 0, numbers))
+print(even_numbers_lambda)
+```
+
+The __reduce__() function applies a rolling computation to sequential pairs of values in an iterable, reducing the iterable to a single cumulative value
+
+```
+# Python 3
+from functools import reduce
+
+numbers = [3, 4, 6, 9, 34, 12]
+
+def custom_sum(first, second):
+    return first + second
+
+result = reduce(custom_sum, numbers)
+print(result)
+```
+
+### How do you remove duplicates from a list?
+
+Convert to set.
+
+### Difference between Series and DataFrame in Pandas?
+
+Series: 1D; DataFrame: 2D.
+
+### How do you handle missing values in Pandas?
+
+fillna(), dropna().
+
+### Difference between loc and iloc in Pandas
+
+loc is label-based, while iloc is integer-position-based. This means you use explicit row/column names with loc and numerical positions (starting from 0) with iloc
+
+```
+import pandas as pd
+
+data = {'A': [1, 2, 3], 'B': [4, 5, 6]}
+df = pd.DataFrame(data, index=['row1', 'row2', 'row3'])
+
+# Select row 'row2' and column 'B'
+print(df.loc['row2', 'B']) # Output: 5
+
+# Select the second row (position 1) and third column (position 1 for column 'B')
+print(df.iloc[1, 1]) # Output: 5
+
+```
+
+### What is broadcasting in NumPy?
+
+Applying operations between arrays of different shapes.
+
+In this example, a 1D array is added to each row of a 2D array because the trailing dimensions are compatible (the 1D array's length matches the number of columns in the 2D array:
+
+```
+import numpy as np
+
+a_2d = np.array([
+    [0.0, 0.0, 0.0],
+    [10.0, 10.0, 10.0],
+    [20.0, 20.0, 20.0],
+    [30.0, 30.0, 30.0]
+])
+
+b_1d = np.array([1.0, 2.0, 3.0])
+
+result = a_2d + b_1d
+
+print(f"Shape of a_2d: {a_2d.shape}")
+print(f"Shape of b_1d: {b_1d.shape}")
+print(f"Resulting array:\n{result}")
+# Output:
+# Shape of a_2d: (4, 3)
+# Shape of b_1d: (3,)
+# Resulting array:
+# [[ 1.  2.  3.]
+#  [11. 12. 13.]
+#  [21. 22. 23.]
+#  [31. 32. 33.]]
+```
+
+### Difference between apply and map?
+
+map: Series only; apply: DataFrame/Series.
+
+```
+import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({
+    'Name': ['Alice', 'Bob', 'Charlie'],
+    'Age': [25, 30, 35]
+})
+
+# Define a function that takes a row (as a Series) as input
+def assign_status(row):
+    if row['Age'] > 28:
+        return 'Experienced'
+    else:
+        return 'Junior'
+
+# Apply the function along the rows (axis=1)
+df['Status'] = df.apply(assign_status, axis=1)
+print("\nDataFrame after apply():")
+print(df)
+# Output:
+#       Name  Age       Role       Status
+# 0    Alice   25    Manager       Junior
+# 1      Bob   30   Employee  Experienced
+# 2  Charlie   35   Employee  Experienced
+```
+
+### How do you read large CSV files efficiently?
+
+Use chunksize.
+
+the chunksize parameter is commonly used with the pandas library to process large files (like CSVs) in smaller, memory-efficient chunks
+
+```
+import pandas as pd
+
+# Define the number of rows per chunk
+chunk_size = 100000 
+file_path = 'large_dataset.csv'
+
+# Create an empty list to store processed chunks (optional, if you need to combine later)
+chunks = []
+
+# Iterate over the file in chunks
+for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+    # Perform operations on each chunk (e.g., filtering, aggregation)
+    # Here, we're just appending for demonstration purposes
+    chunks.append(chunk) 
+    print(f"Processed a chunk of size: {len(chunk)} rows")
+
+# If needed, concatenate all chunks into a single DataFrame (only if it fits in memory)
+# full_df = pd.concat(chunks) 
+```
+
+### What is pivot table?
+
+Summarizes data with aggregation.
+
+```
+import pandas as pd
+import numpy as np
+
+# 1. Create a sample DataFrame
+data = {
+    'Region': ['East', 'East', 'West', 'West', 'East', 'West'],
+    'Product': ['Laptop', 'Phone', 'Laptop', 'Phone', 'Laptop', 'Laptop'],
+    'Quantity': [10, 15, 5, 20, 12, 8],
+    'Price': [1000, 500, 1000, 500, 1000, 1000]
+}
+df = pd.DataFrame(data)
+
+print("Original DataFrame:")
+print(df)
+print("-" * 30)
+
+# 2. Create the pivot table
+pivot_df = df.pivot_table(
+    values='Quantity',      # Column to aggregate
+    index='Region',         # Row labels
+    columns='Product',      # Column labels
+    aggfunc=np.sum,         # Aggregation function (sum the quantities)
+    fill_value=0            # Replace missing values (NaN) with 0
+)
+
+print("Pivot Table:")
+print(pivot_df)
+
+// RESULT
+Original DataFrame:
+  Region Product  Quantity  Price
+0   East  Laptop        10   1000
+1   East   Phone        15    500
+2   West  Laptop         5   1000
+3   West   Phone        20    500
+4   East  Laptop        12   1000
+5   West  Laptop         8   1000
+------------------------------
+Pivot Table:
+Product  Laptop  Phone
+Region                
+East         22     15
+West         13     20
+```
+
+### How do you optimize Pandas performance?
+
+Use vectorization, categorical types.
+
+### What is partitioning?
+
+Splitting data for parallel processing.
+
+### What is shuffling?
+
+Redistribution of data across nodes.
+
+### What is checkpointing?
+
+Saving state for fault tolerance.
+
+### What is window function?
+
+Operates over a defined range of rows.
+
+
+
+
+
+
