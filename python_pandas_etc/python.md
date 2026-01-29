@@ -555,9 +555,10 @@ my_function(name = "Emil")
 
 *args and **kwargs: allow functions to accept a unknown number of __arguments__.
 
-Inside the function, args becomes a tuple containing all the passed arguments.
+Inside the function, args becomes a __tuple__ containing all the passed arguments so you cannot add new values (tuple cannot be changed)
 
 The **kwargs parameter allows a function to accept any number of __keyword arguments__.
+**kwargs uses __dictionaty__ and you can add new values.
 
 ```
 # Using *args to accept any number of arguments:
@@ -686,6 +687,22 @@ for value in my_generator():
   print(value) 
 ```
 
+example:
+```
+# Generator to read a large file line by line
+def read_large_file(file_name):
+    with open(file_name, 'r') as f:
+        for line in f:
+            yield line.strip()
+
+# Usage example:
+# Assuming 'large_file.txt' is a large file on your system
+for line in read_large_file('large_file.txt'):
+    print(line)  # Process each line one by one
+
+```
+
+
 __Module__
 
 Consider a module to be the same as a code library.
@@ -719,6 +736,38 @@ from mymodule import person1
 print (person1["age"])
 ```
 
+__Package__
+
+A Python package is a way to organize related Python modules into a single directory hierarchy. In simpler terms, a package is a collection of Python files (modules) that are grouped together to provide a specific set of functionality.
+
+Here’s an example of how to organize a Python package with multiple files:
+```
+my_package/
+    __init__.py   // special file is required to tell Python that the directory is a package (can be empty or contain initialization code).
+    module1.py
+    module2.py
+    submodule/
+        __init__.py     // This file indicates that submodule is a subpackage
+        submodule1.py
+        submodule2.py
+
+```
+
+how to use it:
+```
+# Importing a module from the package
+from my_package import module1
+
+# Accessing functions, classes, or variables from module1
+module1.some_function()
+
+# Importing from a submodule
+from my_package.submodule import submodule1
+
+# Accessing functions, classes, or variables from submodule1
+submodule1.another_function()
+```
+
 __PIP__
 
 PIP is a package manager for Python packages, or modules if you like.
@@ -744,6 +793,59 @@ try:
     f.close()
 except:
   print("Something went wrong when opening the file")
+```
+
+```
+try:
+    num = int(input("Enter a number: "))
+    result = 10 / num
+except ValueError:
+    print("That's not a valid integer!")
+except ZeroDivisionError:
+    print("Cannot divide by zero!")
+
+OR
+
+try:
+    num = int(input("Enter a number: "))
+    result = 10 / num
+except (ValueError, ZeroDivisionError) as e:
+    print(f"Error occurred: {e}")
+else:
+    print(f"The result is {result}")
+
+```
+
+__Create custom Exception__
+
+You do this by defining a new class that inherits from a built-in exception class, typically Exception or one of its subclasses.
+- Define a new class: Create a new class and inherit from Exception (or one of its subclasses).
+- Optionally, define an __init__ method: You can customize the initialization to accept additional information or parameters that describe the exception.
+- Optionally, define a __str__ method: This method is used to return a custom error message when the exception is raised.
+
+```
+# Define a custom exception class with a custom __str__ method
+class InsufficientBalanceError(Exception):
+    def __init__(self, balance, amount):
+        self.balance = balance
+        self.amount = amount
+    
+    def __str__(self):
+        return f"Insufficient balance: {self.balance} available, but {self.amount} required."
+
+# Using the custom exception
+def withdraw(balance, amount):
+    if amount > balance:
+        raise InsufficientBalanceError(balance, amount)
+    return balance - amount
+
+try:
+    balance = 100
+    withdraw_amount = 150
+    new_balance = withdraw(balance, withdraw_amount)
+except InsufficientBalanceError as e:
+    print(f"Caught an error: {e}")
+
 ```
 
 __None__
@@ -958,6 +1060,46 @@ class Student(Person):
 
 ```
 
+Multiple inheritance in Python is a feature that allows a class to inherit from more than one parent class.
+
+```
+class ChildClass(ParentClass1, ParentClass2):
+    # class body
+```
+- __Method Resolution Order (MRO)__: Python uses a method resolution order (MRO) algorithm to determine the order in which classes are searched for a method when it’s called. The default MRO follows the C3 linearization.
+- __Diamond Problem__: In some cases (especially when a class inherits from two classes that have a common ancestor), a problem known as the diamond problem arises. Python handles this problem using C3 linearization to avoid ambiguity.
+- __Super() Function__: The super() function can be used to call methods from parent classes in the context of multiple inheritance.
+
+```
+class A:
+    def greet(self):
+        print("Hello from class A")
+
+class B(A):
+    def greet(self):
+        print("Hello from class B")
+
+class C(A):
+    def greet(self):
+        print("Hello from class C")
+
+class D(B, C):
+    def greet(self):
+        print("Hello from class D")
+        super().greet()
+
+# Using the classes
+d = D()
+d.greet()
+
+// RESULT
+Hello from class D
+Hello from class B
+Hello from class C
+Hello from class A
+
+```
+
 __Polymorphism__
 ```
 class Vehicle:
@@ -1003,7 +1145,33 @@ print(p1.name)
 print(p1.__age) # This will cause an error 
 ```
 
-You can also make methods private using the double underscore prefix:
+__Class methods__: use @staticmethod decorator, or a class method using the @classmethod decorator.
+
+```
+class MyClass:
+    @staticmethod
+    def my_static_method():
+        print("This is a static method.")
+
+# Call the static method without creating an instance of the class
+MyClass.my_static_method()
+```
+
+A @classmethod is similar to a static method in that it is bound to the class rather than an instance of the class. However, it takes a reference to the class itself (cls) as its first argument, which allows it to access and modify class-level data.
+
+```
+class MyClass:
+    class_variable = 10
+    
+    @classmethod
+    def my_class_method(cls):
+        print(f"This is a class method. Class variable: {cls.class_variable}")
+
+# Call the class method without creating an instance of the class
+MyClass.my_class_method()
+
+```
+
 
 ## Python Interview questions <a id="interview"></a>
 
@@ -1172,6 +1340,76 @@ print(original_list)
 
 ```
 
+### what is iterator object in python?
+
+An iterator object must implement two methods defined in the iterator protocol:
+
+__iter__(): This method returns the iterator object itself. It allows an object to be used as an iterable.
+
+__next__(): This method returns the next value from the iterable. When there are no more values to return, it raises the StopIteration exception
+
+```
+class MyIterator:
+    def __init__(self, start, end):
+        self.current = start
+        self.end = end
+
+    def __iter__(self):
+        return self  # The object itself is the iterator
+
+    def __next__(self):
+        if self.current > self.end:
+            raise StopIteration  # Signals that there are no more items
+        self.current += 1
+        return self.current - 1
+
+# Using the iterator
+my_iter = MyIterator(1, 5)
+
+for number in my_iter:
+    print(number)
+```
+
+### explain map() in python
+
+The map() function in Python is a built-in function that applies a given function to all items in an iterable (like a list, tuple, or string) and returns a map object, which is an iterator.
+
+```
+map(function, iterable, ...)
+```
+
+- function: This is the function that will be applied to each element in the iterable. It can be a built-in function, a lambda function, or any user-defined function.
+- iterable: This is one or more iterables (like a list, tuple, etc.). If more than one iterable is passed, the function must take as many arguments as there are iterables.
+- The result is a map object, which is an iterator. You can convert it to a list, tuple, or other types to see the output.
+
+```
+numbers = [1, 2, 3, 4, 5]
+
+# Use a lambda function to square each number
+squared_numbers = map(lambda x: x * x, numbers)
+
+# Convert to a list and print
+print(list(squared_numbers))
+```
+
+If you provide multiple iterables to map(), the function will receive one element from each iterable at a time, and the function should be able to handle multiple arguments. For example, let’s add corresponding elements from two lists:
+
+```
+numbers1 = [1, 2, 3, 4]
+numbers2 = [5, 6, 7, 8]
+
+# Add corresponding elements from two lists
+result = map(lambda x, y: x + y, numbers1, numbers2)
+
+# Convert to list and print
+print(list(result))
+
+// Result
+[6, 8, 10, 12]
+```
+
+
+
 ### Explain slicing in Python with negative indices.
 
 ### What are Python decorators and how do they work?
@@ -1179,6 +1417,8 @@ print(original_list)
 ### Explain generators and yield keyword.
 
 ### What is a lambda function? When to use it?
+
+
 
 
 ## Python data engineering python interview questions
@@ -1309,7 +1549,7 @@ Extracting subsets from sequences: arr[1:5].
 
 Files containing Python code that can be imported.
 
-## What is lambda function?
+### What is lambda function?
 
 Anonymous one-line function: lambda x: x+1.
 
@@ -1619,6 +1859,28 @@ Saving state for fault tolerance.
 
 Operates over a defined range of rows.
 
+### compare pandas DataFrame to spark DataFrame
+
+Pandas DataFrame:
+- Part of the Pandas library, which is built on top of NumPy.
+- Primarily designed for single-node, in-memory data manipulation and analysis.
+- Commonly used in smaller-scale, local data analysis and processing tasks.
+
+Spark DataFrame:
+- Part of the Apache Spark ecosystem, which is designed for distributed computing.
+- Built on top of Spark SQL and Catalyst optimizer, making it highly optimized for large-scale data processing.
+- Primarily used for big data processing, typically in a cluster environment (distributed across multiple nodes).
+
+| Feature              | **Pandas DataFrame**                              | **Spark DataFrame**                                               |
+| -------------------- | ------------------------------------------------- | ----------------------------------------------------------------- |
+| **Primary Use Case** | Small to medium data analysis on a single machine | Large-scale distributed data processing                           |
+| **Processing Model** | In-memory, single-node                            | Distributed, cluster-based, lazy execution                        |
+| **Scalability**      | Limited to system memory                          | Scales horizontally across multiple machines                      |
+| **Performance**      | Fast for small datasets in memory                 | Optimized for big data, high performance in distributed computing |
+| **Ease of Use**      | Simple, intuitive Pythonic API                    | More complex, especially for distributed setups                   |
+| **Fault Tolerance**  | No built-in fault tolerance                       | Built-in fault tolerance with RDD lineage                         |
+| **Memory & Storage** | In-memory only                                    | Memory and disk-based, distributed storage                        |
+| **Integration**      | Python data science ecosystem                     | Spark ecosystem, big data tools, cloud services                   |
 
 
 
