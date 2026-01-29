@@ -7,6 +7,8 @@
   - [Event Handling](#EventHandling)
   - [JDBC Framework](#JDBC)
   - [MVC Framework](#MVC)
+  - [AOP](#aop)
+  - [Spring Interview](#springinterview)
 - [Spring Boot](#Boot)
   - [Spring Boot Architecture](#BootArchitecture)
   - [Spring Boot Project](#BootProject)
@@ -497,6 +499,286 @@ simple hello view in /WEB-INF/hello/hello.jsp:
    </body>
 </html>
 ```
+## Spring AOP <a id="aop"></a>
+
+## Java spring interview questions <a id="springinterview"></a>
+
+### What is Spring Framework?
+
+Spring is a lightweight Java framework for building enterprise applications. It provides inversion of control (IoC), aspect‑oriented programming (AOP), transaction management, and integrates with many technologies.
+
+### What is Inversion of Control (IoC)?
+
+IoC is a design principle where control of object creation and lifecycle is handed over to the container (Spring).
+
+### What is Dependency Injection (DI)?
+
+DI is a pattern where dependencies are provided by the container rather than the object creating them.
+
+```
+@Component
+public class OrderService {
+    private final PaymentService paymentService;
+
+    public OrderService(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+}
+```
+
+The Spring IoC container (most commonly AnnotationConfigApplicationContext or the one auto-configured in Spring Boot) creates and wires dependencies for your OrderService class using the following step-by-step process:
+- Component Scanning: Spring scans your packages (usually starting from the package containing your @SpringBootApplication class) for classes annotated with @Component, @Service, @Repository, @Controller, etc.
+- Bean Definition Registration: A BeanDefinition is created for OrderService. Spring sees that:
+  - It has exactly one constructor. 
+  - That constructor has parameters (PaymentService)
+- Dependency Resolution (Constructor Argument Matching): For constructor injection (the recommended and now default style), Spring looks at the parameter types of the constructor. It needs a bean whose type is compatible with PaymentService
+- Finding the Dependency Bean: Spring checks the existing bean factory for a bean that matches PaymentService (by type)
+- Bean Instantiation Order (Smart Autowiring). Spring creates beans in the right order using a dependency graph:
+  - First creates PaymentService bean (if not already created)
+  - Then creates OrderService by calling its constructor and passing the already-created PaymentService instance
+
+### What are the types of DI in Spring?
+
+Constructor‑based, Setter‑based, and Field‑based (via annotations).
+
+#### Constructor-based Dependency Injection (Recommended / Best Practice)
+
+```
+@Service
+public class OrderService {
+
+    private final PaymentService paymentService;
+    private final CustomerRepository customerRepo;
+    private final OrderValidator validator;
+
+    // Since Spring 4.3 → single constructor = implicit @Autowired
+    public OrderService(
+            PaymentService paymentService,
+            CustomerRepository customerRepo,
+            OrderValidator validator) {
+        
+        this.paymentService  = paymentService;
+        this.customerRepo    = customerRepo;
+        this.validator       = validator;
+    }
+
+    public void placeOrder(Order order) {
+        validator.validate(order);
+        customerRepo.save(order.getCustomer());
+        paymentService.processPayment(order.getTotalAmount());
+        // ...
+    }
+}
+```
+
+- Use final fields → immutable, thread-safe
+- Dependencies are required (Spring fails fast during startup if missing)
+- Easiest to test (just new OrderService(...) in tests)
+
+#### Setter-based Dependency Injection
+
+```
+@Service
+public class OrderService {
+
+    private PaymentService paymentService;
+    private CustomerRepository customerRepo;
+    private OrderValidator validator;
+
+    // All setters are called after object is created (but before @PostConstruct)
+    @Autowired
+    public void setPaymentService(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+
+    @Autowired
+    public void setCustomerRepository(CustomerRepository customerRepo) {
+        this.customerRepo = customerRepo;
+    }
+
+    @Autowired
+    public void setValidator(OrderValidator validator) {
+        this.validator = validator;
+    }
+
+    // or even bulk variant (less common)
+    @Autowired
+    public void setDependencies(
+            PaymentService paymentService,
+            CustomerRepository repo,
+            OrderValidator validator) {
+        this.paymentService = paymentService;
+        this.customerRepo = repo;
+        this.validator = validator;
+    }
+
+    // business methods...
+}
+```
+
+#### Field-based Dependency Injection (via @Autowired on fields)
+
+```
+@Service
+public class OrderService {
+
+    @Autowired
+    private PaymentService paymentService;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    @Qualifier("strictOrderValidator")
+    private OrderValidator validator;
+
+    // or even (not recommended anymore)
+    @Autowired(required = false)
+    private NotificationService optionalNotifier;
+
+    public void placeOrder(Order order) {
+        // risk: if injection failed → NPE here
+        validator.validate(order);
+        paymentService.processPayment(order.getAmount());
+    }
+}
+```
+
+### What is a Spring Bean?
+
+An object created, managed, and injected by the Spring IoC container.
+
+### What are Bean Scopes in Spring?
+
+Common scopes: singleton, prototype, request, session, application.
+
+### What is @Component?
+
+A stereotype annotation indicating a Spring‑managed bean.
+
+Marks a class as a Spring bean.
+
+```
+@Component
+public class InventoryService {}
+
+```
+
+### Difference between @Component, @Service, @Repository, @Controller?
+
+all mark managed beans — but indicate different layers:
+- @Service: Service layer
+- @Repository: DAO layer (adds exception translation)
+- @Controller: MVC controller
+- @Component: Generic bean
+
+### What is @Autowired?
+
+Annotation to auto‑inject dependencies.
+
+### Difference between BeanFactory and ApplicationContext?
+
+ApplicationContext extends BeanFactory with more enterprise features (events, i18n, AOP).
+
+### What are the ways to configure Spring?
+
+XML, Java config (@Configuration), and annotations (@ComponentScan, @Bean).
+
+### What does @Configuration do?
+
+Marks a class as a source of bean definitions.
+
+```
+@Configuration
+public class AppConfig {}
+```
+
+### What does @Bean do?
+
+Declares a method as a bean producer.
+
+```
+@Bean
+public MyService service() {
+    return new MyService();
+}
+
+```
+
+### What is @ComponentScan?
+
+Scans packages for annotated components.
+
+```
+@ComponentScan("com.example")
+
+```
+
+### How do you exclude a package from scanning?
+
+Using @ComponentScan(excludeFilters = @Filter(...)).
+
+### How to define properties file in Spring?
+
+Using @PropertySource and Environment or @Value.
+
+### What is Environment abstraction?
+
+Provides access to properties and profiles.
+
+### What is @Primary vs @Qualifier?
+
+- @Primary: default when multiple beans exist
+- @Qualifier: specifies which bean to inject
+
+```
+@Autowired
+@Qualifier("mysqlRepo")
+private UserRepo repo;
+```
+
+### What is Environment?
+
+Spring interface to access properties and profiles.
+
+### What is Spring Profile?
+
+Activates environment‑specific beans.
+
+### Bean Lifecycle Callbacks?
+
+- @PostConstruct
+- @PreDestroy
+
+### What is AOP?
+
+Aspect‑Oriented Programming — separates cross‑cutting concerns.
+
+### What is JoinPoint?
+
+An executable point (e.g., method call).
+
+### What is Advice?
+
+Action taken at a join point (before, after, around).
+
+### What is @Aspect?
+
+Marks an aspect class.
+
+```
+@Aspect
+@Component
+public class LoggingAspect {}
+
+```
+
+
+
+
+
+
+
 
 # Spring Boot <a id="Boot"></a>
 
