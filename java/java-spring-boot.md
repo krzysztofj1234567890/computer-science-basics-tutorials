@@ -1,7 +1,18 @@
 # Leaarning Spring Boot
 
+## Table of Contents
+- [Spring Basics](#basics)
+- [Spring Boot](#springboot)
+- [REST APIs with Spring Boot](#springbootrestapi)
+- [Database + Spring Data JPA](#jpa)
+- [Exception Handling & Validation](#exceptions)
+- [Spring Security](#security)
+- [Configuration & Profiles](#configuration)
+- [Testing Spring Boot Apps](#testing)
+- [Advanced & Real-World Topics](#advanced)
+- [Real Projects](#projects)
 
-## 🌱 1. Understand Spring Basics 
+## 🌱 1. Spring Basics  <a id="basics"></a>
 
 ### Core Spring Concepts
 
@@ -235,7 +246,7 @@ How spring does __Component Scanning__ ?
 
 
 
-## ⚡ 2. Spring Boot
+## ⚡ 2. Spring Boot <a id="springboot"></a>
 
 Spring Boot is a framework built on top of the Spring Framework that simplifies the process of developing, deploying, and running Spring applications. It is an opinionated framework designed to reduce the complexity of configuration and setup by providing sensible defaults. The goal is to make Spring applications easier to develop with minimal effort and configuration.
 
@@ -282,11 +293,128 @@ public class HelloWorldApplication {
 }
 ```
 
-### @SpringBootApplication
+With Spring Boot, you can run this application directly:
+```
+java -jar hello-world-application.jar
+```
 
-### Auto-configuration
+### What is @SpringBootApplication
+
+@SpringBootApplication is the main annotation in Spring Boot.
+It marks the entry point of a Spring Boot application and enables key Spring Boot features in one line.
+
+@SpringBootApplication = @Configuration + @EnableAutoConfiguration + @ComponentScan
+- @Configuration: Marks the class as a configuration class. Allows you to define beans using @Bean
+- @EnableAutoConfiguration: automatically configures beans based on: Classpath dependencies, Existing beans, Application properties
+- @ComponentScan: Scans packages for Spring components: @Component, @Service, @Repository, @Controller, @RestController
 
 ### Starter dependencies
+
+Spring Boot starters are predefined dependency bundles that:
+- Group commonly used libraries
+- Provide compatible versions
+- Enable auto-configuration
+
+#### Before Spring Boot (Painful)
+
+```
+<!-- You had to add everything manually -->
+spring-webmvc
+jackson-databind
+tomcat
+spring-context
+spring-aop
+commons-logging
+```
+
+Most Important Spring Boot Starters: spring-boot-starter-web, spring-boot-starter-data-jpa:
+
+| Starter    | Purpose           |
+| ---------- | ----------------- |
+| web        | REST & web apps   |
+| data-jpa   | ORM & DB          |
+| security   | Authentication    |
+| test       | Testing           |
+| actuator   | Monitoring        |
+| validation | Input validation  |
+| jdbc       | JDBC              |
+| aop        | Logging, security |
+| cache      | Caching           |
+| mail       | Email             |
+
+#### Compare web app with and without spring boot
+
+- ❌ More configuration
+- ❌ Manual setup
+- ❌ External server
+- ❌ Harder to maintain
+
+Project Structure Without Spring Boot:
+```
+my-spring-app/
+├── src/main/java
+│   └── com/example
+│       ├── config
+│       │   ├── WebConfig.java
+│       │   └── AppInitializer.java
+│       ├── controller
+│       │   └── HelloController.java
+├── src/main/resources
+│   └── application.properties
+├── webapp
+│   └── WEB-INF
+│       └── web.xml
+└── pom.xml
+```
+
+Project Structure With Spring Boot:
+```
+my-spring-boot-app/
+├── src/main/java
+│   └── com/example
+│       ├── HelloController.java
+│       └── MyAppApplication.java
+├── src/main/resources
+│   └── application.properties
+└── pom.xml
+```
+
+pom.xml Without Spring Boot:
+```
+<web-app>
+    <servlet>
+        <servlet-name>dispatcher</servlet-name>
+        <servlet-class>
+            org.springframework.web.servlet.DispatcherServlet
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>dispatcher</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+</web-app>
+```
+
+pom.xml With Spring Boot:
+```
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+
+Deployment Without Spring Boot:
+- ❌ Build WAR
+- ❌ Install Tomcat manually
+- ❌ Deploy WAR to server
+
+Deployment with Spring Boot:
+- mvn spring-boot:run
+- Embedded Tomcat
+- ✅ No WAR
+- ✅ No web.xml
 
 ### First App (Hello World)
 
@@ -302,86 +430,990 @@ public class HelloController {
 ```
 
 
-## 🌐 3. Learn REST APIs with Spring Boot
+## 🌐 3. REST APIs with Spring Boot <a id="springbootrestapi"></a>
 
-### @RestController
+### @RestController 
+
+It is a specialized Spring annotation used to create RESTful web services.
+
+This class will handle HTTP requests and return data (JSON/XML) directly — not views (HTML).
+
+@RestController = @Controller + @ResponseBody 
+- very method automatically returns the response body
+- No need to add @ResponseBody on each method
+
+How it works:
+- Client sends HTTP request
+- Spring DispatcherServlet routes request
+- Method executes
+- Return value is:
+  - Converted to JSON (via Jackson)
+  - Written to HTTP response body
+
+Example:
+```
+@RestController
+public class HelloController {
+
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello Spring Boot";
+    }
+}
+```
+
+@Controller vs @RestController:
+| Feature               | @Controller | @RestController |
+| --------------------- | ----------- | --------------- |
+| Purpose               | MVC views   | REST APIs       |
+| Returns               | View name   | JSON / XML      |
+| @ResponseBody needed? | Yes         | ❌ No            |
+| ViewResolver          | Used        | ❌ Not used      |
+
+CRUD REST API example:
+```
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    @GetMapping
+    public List<User> getAllUsers() {
+        return List.of(
+            new User(1, "Alice"),
+            new User(2, "Bob")
+        );
+    }
+
+    @PostMapping
+    public User createUser(@RequestBody User user) {
+        return user;
+    }
+
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable int id) {
+        return new User(id, "Alice");
+    }
+}
+
+```
 
 ### @GetMapping, @PostMapping, @PutMapping, @DeleteMapping
 
+| Annotation       | HTTP Method | Purpose     |
+| ---------------- | ----------- | ----------- |
+| `@GetMapping`    | GET         | Read data   |
+| `@PostMapping`   | POST        | Create data |
+| `@PutMapping`    | PUT         | Update data |
+| `@DeleteMapping` | DELETE      | Delete data |
+
+
+- Client sends HTTP request
+- DispatcherServlet receives it
+- Spring finds matching URL + HTTP method
+- Controller method is invoked
+- Return value is written to response (JSON)
+
 ### @RequestParam
+
+```
+@GetMapping("/users")
+public List<User> search(@RequestParam String name) {
+    return userService.findByName(name);
+}
+```
 
 ### @PathVariable
 
+```
+@GetMapping("/users/{id}")
+public User getUser(@PathVariable Long id) {
+    return userService.findById(id);
+}
+```
+- automatically returns http status code = 200
+- Spring automatically adds default headers, such as: "Content-Type: application/json"
+- If an Exception Is Thrown: 500 INTERNAL SERVER ERROR
+
+Correct Way (Best Practice): Use ResponseEntity
+
 ### @RequestBody
 
-### ResponseEntity
-
-### HTTP status codes
-
-### Build a CRUD REST API
-
-
-
-## 🗄️ 4. Database + Spring Data JPA
-
-### JPA & Hibernate basics
-
-### @Entity, @Id, @GeneratedValue
-
-### JpaRepository
-
-### CRUD operations
-
-### Pagination & sorting
-
-### Relationships:
-
-#### @OneToMany
-
-#### @ManyToOne
-
-### Example Repository
-
 ```
-public interface UserRepository extends JpaRepository<User, Long> {
-    User findByEmail(String email);
+@PutMapping("/users/{id}")
+public User updateUser(
+        @PathVariable Long id,
+        @RequestBody User user) {
+    return userService.update(id, user);
 }
 ```
 
 
-## 🔐 5. Exception Handling & Validation
+### ResponseEntity
+
+It gives you full control over the HTTP response — not just the body.
+
+ResponseEntity<T> represents the entire HTTP response, including:
+- ✅ Response body
+- ✅ HTTP status code
+- ✅ HTTP headers
+
+```
+@PostMapping("/users")
+public ResponseEntity<User> createUser(@RequestBody User user) {
+    User savedUser = userService.save(user);
+    return ResponseEntity.status(HttpStatus.CREATED)
+                         .body(savedUser);
+}
+```
+
+```
+@PostMapping("/users")
+public ResponseEntity<String> create(@RequestBody User user) {
+    if (user.getEmail() == null) {
+        return ResponseEntity
+                .badRequest()
+                .body("Email is required");
+    }
+    return ResponseEntity.ok("User created");
+}
+```
+
+### HTTP status codes
+
+```
+@PostMapping("/users")
+public ResponseEntity<User> create(@RequestBody User user) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+                         .body(userService.save(user));
+}
+```
+
+## 🗄️ 4. Database + Spring Data JPA <a id="jpa"></a>
+
+Spring Data JPA builds on top of JPA and Hibernate to eliminate boilerplate code. It provides:
+- Repository interfaces
+- Auto-generated queries
+- Pagination & sorting
+- Transaction management
+
+Spring Data JPA simplifies database access by providing repository abstractions that eliminate boilerplate CRUD code and automatically generate queries.
+
+JPA (Java Persistence API) is a specification that defines:
+- How Java objects are mapped to database tables
+- How CRUD operations should be done
+- How relationships are handled
+
+Hibernate is a JPA implementation:
+- JPA = Rules / Contract
+- Hibernate = Actual engine that follows the rules
+
+### Without JPA (Plain JDBC)
+
+```
+Connection con = dataSource.getConnection();
+PreparedStatement ps =
+    con.prepareStatement("SELECT * FROM users WHERE id=?");
+ps.setLong(1, id);
+ResultSet rs = ps.executeQuery();
+```
+
+Issues:
+- Too much boilerplate
+- Error-prone
+- Manual mapping
+- Hard to maintain
+
+JPA (Java Persistence API) is a specification that defines:
+- How Java objects map to database tables
+- How CRUD operations should work
+
+### @Entity, @Id, @GeneratedValue
+
+```
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+    private String email;
+
+    // getters & setters
+}
+```
+
+| Annotation      | Purpose          |
+| --------------- | ---------------- |
+| @Entity         | Marks JPA entity. Map class to table |
+| @Table          | Maps to DB table |
+| @Id             | Primary key      |
+| @GeneratedValue | Auto PK          |
+
+Common Strategies for @GeneratedValue:
+| Strategy | Description            |
+| -------- | ---------------------- |
+| IDENTITY | Auto-increment (MySQL) |
+| SEQUENCE | DB sequence            |
+| AUTO     | Provider decides       |
+| TABLE    | PK table. JPA creates (or expects) a small dedicated database table that acts like a sequence simulator              |
+
+Example with TABLE generatror:
+```
+@Id
+@GeneratedValue(strategy = GenerationType.TABLE, generator = "product_gen")
+@TableGenerator(
+    name = "product_gen",
+    table = "id_generators",               // custom table name
+    pkColumnName = "generator_name",        // name of the key column
+    pkColumnValue = "product",              // value that identifies this sequence
+    valueColumnName = "next_value",         // column that holds the counter
+    allocationSize = 20                     // how many IDs to "pre-allocate"
+)
+private Long id;
+
+// 
+CREATE TABLE id_generators (
+    generator_name VARCHAR(255) NOT NULL PRIMARY KEY,
+    next_value     BIGINT
+);
+
+-- Example row inserted by Hibernate
+INSERT INTO id_generators (generator_name, next_value) VALUES ('product', 1);
+```
+
+| Strategy | DB Support       | Performance | Notes              |
+| -------- | ---------------- | ----------- | ------------------ |
+| IDENTITY | Auto-increment   | 🔴 Slow     | Insert triggers ID |
+| SEQUENCE | DB sequence      | 🟢 Fast     | Best option        |
+| TABLE    | Any DB           | 🔴 Slowest  | Extra table        |
+| AUTO     | Provider decides | ⚠️ Varies   | Default            |
+
+### Entity Lifecycle States
+
+```
+new MyEntity() 
+    → Transient 
+        ↓ persist() / save()
+    → Managed  ───────────────┐
+        │   flush() / commit()  │   (automatic dirty checking → INSERT/UPDATE)
+        │                       │
+        ↓ close() / end @Transactional / clear() / evict()
+    → Detached  ←──────────────┘
+        │
+        ↓ merge()   (most important method when working with detached entities!)
+    → Managed again
+        │
+        ↓ remove() / delete()
+    → Removed  → commit() → gone from database
+```
+
+- __Transient__
+  - just a plain Java object
+  - Create with new, set fields, add to collections, etc.
+  - Nothing is persisted until you call save() or persist().
+  - Most common mistake: forgetting to save → data silently lost.
+```
+User user = new User("alice", "alice@example.com");   // transient
+```
+- __Managed__ 
+  - the "happy path" inside @Transactional
+  - Almost everything you do in a @Service / @Transactional method happens with managed entities.
+  - Spring Data JPA repositories usually return managed entities when called inside a transaction
+```
+@Service
+@Transactional
+public class UserService {
+
+    public User updateUser(Long id, String newName) {
+        User user = userRepository.findById(id).orElseThrow();   // → managed
+        user.setName(newName);                                    // change tracked!
+        // no need to call save() — dirty checking does it
+        return user;
+    }
+}
+```
+- Detached → very common source of bugs
+  - You explicitly call entityManager.detach() or clear()
+```
+// load fresh managed entity + copy changes (preferred in complex apps)
+@Transactional
+public User updateBetter(Long id, UserUpdateDto dto) {
+    User managed = userRepository.getReferenceById(id);   // or findById()
+    managed.setName(dto.name());
+    managed.setEmail(dto.email());
+    // ... copy only allowed fields
+    return managed;
+}
+```
+
+
+### JpaRepository
+
+```
+public interface UserRepository extends JpaRepository<User, Long> {
+}
+```
+
+What You Get for Free:
+- save()
+- findById()
+- findAll()
+- deleteById()
+- count()
+
+Using Repository in Service Layer:
+```
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepo;
+
+    public User create(User user) {
+        return userRepo.save(user);
+    }
+
+    public User get(Long id) {
+        return userRepo.findById(id)
+                       .orElse(null);
+    }
+
+    public List<User> getAll() {
+        return userRepo.findAll();
+    }
+}
+```
+
+REST Controller:
+```
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    @Autowired
+    private UserService service;
+
+    @PostMapping
+    public User create(@RequestBody User user) {
+        return service.create(user);
+    }
+
+    @GetMapping("/{id}")
+    public User get(@PathVariable Long id) {
+        return service.get(id);
+    }
+}
+```
+
+### Pagination & sorting
+
+```
+PageRequest page = PageRequest.of(0, 5);
+Page<User> users = userRepo.findAll(page);
+```
+
+### Relationships
+
+- @ManyToOne
+```
+@Entity
+class Order {
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+}
+```
+- @OneToMany
+```
+@Entity
+class User {
+    @OneToMany(mappedBy = "user")
+    private List<Order> orders;
+}
+```
+- @ManyToMany
+```
+@ManyToMany
+@JoinTable(
+  name = "user_roles",
+  joinColumns = @JoinColumn(name="user_id"),
+  inverseJoinColumns = @JoinColumn(name="role_id")
+)
+private Set<Role> roles;
+```
+- Fetch Types:
+  - @ManyToOne and @OneToOne default to FetchType.EAGER.
+  - Issues:
+    - Loads the target entity every time you load the source — even if you only need 2 fields from the parent
+    - Causes memory bloat (especially deep object graphs)
+    - Makes serialization (Jackson → JSON) dangerous → can pull in entire database if not careful
+| Type  | Behavior         |
+| ----- | ---------------- |
+| LAZY  | Load when needed |
+| EAGER | Load immediately |
+```
+@ManyToOne(fetch = FetchType.LAZY)
+```
+
+### Custom Queries
+
+JPQL:
+```
+@Query("SELECT u FROM User u WHERE u.email = :email")
+User findByEmail(@Param("email") String email);
+
+```
+
+Native SQL:
+```
+@Query(
+  value = "SELECT * FROM users WHERE email=?",
+  nativeQuery = true)
+User findByEmail(String email);
+```
+
+### Transactions
+
+Spring Data JPA uses transactions automatically.
+```
+@Transactional
+public void updateUser(...) {}
+```
+- ✔ Rollback on exception
+- ✔ ACID compliant
+
+### EntityManager
+
+- Repositories = convenient & safe 95% of the time
+- EntityManager = your escape hatch when you __need full JPA / Hibernate power__
+
+Repositories are best when you need:
+- ✔ Standard CRUD
+- ✔ Simple queries
+- ✔ Pagination & sorting
+- ✔ Fast development
+- ✔ Clean code
+
+Use EntityManager when:
+- Complex Dynamic Queries
+- Bulk Updates & Delete
+- Batch Inserts / Updates
+
+
+```
+Example:
+@Service
+@Transactional
+class DocumentService {
+
+    @PersistenceContext
+    private EntityManager em;
+
+    // 1. Refresh entity after external change (trigger, stored proc, another transaction)
+    public void refreshAfterExternalUpdate(Long id) {
+        Document doc = em.find(Document.class, id);
+        // ... assume external system changed row
+        em.refresh(doc);           // reloads fresh state from DB
+    }
+
+    // 2. Complex query with multiple JOIN FETCH to avoid N+1
+    public List<Order> findOrdersWithDetails(String customerEmail) {
+        return em.createQuery("""
+            SELECT o FROM Order o
+            JOIN FETCH o.customer c
+            JOIN FETCH o.items i
+            JOIN FETCH i.product
+            WHERE c.email = :email
+            """, Order.class)
+            .setParameter("email", customerEmail)
+            .getResultList();
+    }
+
+    // 3. Batch insert / update – important for performance
+    @Transactional
+    public void importLargeFile(List<Product> products) {
+        int i = 0;
+        for (Product p : products) {
+            em.persist(p);
+            i++;
+            if (i % 100 == 0) {          // flush & clear every 100 entities
+                em.flush();
+                em.clear();               // ← prevents OutOfMemory
+            }
+        }
+        em.flush();
+        em.clear();
+    }
+
+    // 4. Get Hibernate Session when needed (e.g. natural-id lookup)
+    public Product findByNaturalId(String sku) {
+        Session session = em.unwrap(Session.class);
+        return session.byNaturalId(Product.class)
+                      .using("sku", sku)
+                      .loadOptional()
+                      .orElse(null);
+    }
+}
+```
+
+
+## 🔐 5. Exception Handling & Validation <a id="exceptions"></a>
+
+Default Spring Boot Exception Handling (Out of the Box):
+- Spring Boot returns JSON error response
+- Status code depends on exception
+
+Example error response:
+```
+{
+  "timestamp": "2026-01-30T10:15:00",
+  "status": 404,
+  "error": "Not Found",
+  "path": "/users/10"
+}
+```
+
+Custom exception:
+```
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class UserNotFoundException extends RuntimeException {
+    public UserNotFoundException(String msg) {
+        super(msg);
+    }
+}
+```
 
 ### @ExceptionHandler
 
+@ExceptionHandler is a Spring annotation that marks a method as responsible for handling specific exceptions thrown during request processing in controllers.
+
+It allows you to centralize exception handling logic, return custom HTTP status codes, and provide meaningful error responses (especially important for REST APIs).
+
+Use it:
+- in one @Controller or @RestController
+- recomended: Global (application-wide) @ExceptionHandler inside @ControllerAdvice or @RestControllerAdviceConsistent error responses across all controllers (recommended)Yes — almost always this way
+
+```
+@RestController
+public class UserController {
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<String> handle(UserNotFoundException ex) {
+        return ResponseEntity.status(404).body(ex.getMessage());
+    }
+}
+```
+
+Better:
+```
+import org.springframework.http.*;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.time.Instant;
+import java.util.*;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    // Generic fallback for any unhandled exception (production: log + minimal info)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(
+            Exception ex, WebRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                ex.getMessage(),
+                request.getDescription(false),
+                Instant.now()
+        );
+
+        // In production → log.error("Unhandled exception", ex);
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // Custom not-found
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(
+            ResourceNotFoundException ex, WebRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                "Resource Not Found",
+                ex.getMessage(),
+                request.getDescription(false),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // Validation errors (@Valid / @Validated)
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+
+        List<String> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .toList();
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Failed",
+                String.join("; ", errors),
+                request.getDescription(false),
+                Instant.now()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // You can add more: AccessDenied, Security exceptions, etc.
+}
+```
+
 ### @ControllerAdvice
+
+@ControllerAdvice is a specialized Spring annotation used to define global behavior for controllers.
+
+Most commonly, it’s used for:
+- ✅ Global exception handling
+- ✅ Global data binding
+- ✅ Global model attributes
 
 ### Custom exceptions
 
-### Bean Validation:
+Create a Custom Exception:
+```
+public class UserNotFoundException extends RuntimeException {
+    public UserNotFoundException(String message) {
+        super(message);
+    }
+}
+```
 
-#### @NotNull
+Throw the Exception:
+```
+@Service
+public class UserService {
+    public User getUser(Long id) {
+        return userRepository.findById(id)
+            .orElseThrow(() ->
+                new UserNotFoundException("User not found with id " + id));
+    }
+}
+```
 
-#### @Size
+Handle Exception Using @ControllerAdvice:
+```
+@RestControllerAdvice
+public class GlobalExceptionHandler {
 
-#### @Email
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiError> handleUserNotFound(
+            UserNotFoundException ex) {
+
+        ApiError error = new ApiError(
+            404,
+            ex.getMessage(),
+            LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+}
+
+public class ApiError {
+    private int status;
+    private String message;
+    private LocalDateTime timestamp;
+
+    // constructors, getters
+}
+```
+
+### Bean Validation
+
+Common Validation Annotations
+- @NotNull
+- @Size
+- @Email
+
+```
+public class UserRequest {
+
+    @NotNull
+    @Size(min = 3, max = 20)
+    private String name;
+
+    @Email
+    private String email;
+
+    @Min(18)
+    private int age;
+}
+```
+| Annotation  | Purpose              |
+| ----------- | -------------------- |
+| @NotNull    | Not null             |
+| @NotBlank   | Not null + not empty |
+| @Size       | String length        |
+| @Email      | Email format         |
+| @Min / @Max | Numeric range        |
+| @Pattern    | Regex                |
+
+
+Triggering Validation in Controller:
+```
+@PostMapping("/users")
+public ResponseEntity<User> createUser(
+        @Valid @RequestBody UserRequest request) {
+    return ResponseEntity.ok(service.create(request));
+}
+```
+
+If validation fails Spring triggers MethodArgumentNotValidException
 
 
 
-## 🔒 6. Spring Security (Very Important for Jobs)
+## 🔒 6. Spring Security <a id="security"></a>
+
+Spring Security is a powerful framework that provides:
+- ✅ Authentication (Who are you?)
+- ✅ Authorization (What are you allowed to do?)
+- ✅ Protection against common attacks (CSRF, XSS, etc.)
+
+If authentication or authorization fails → request never reaches controller:
+```
+HTTP Request
+   ↓
+Spring Security Filters
+   ↓
+Authentication
+   ↓
+Authorization
+   ↓
+Controller
+```
+
+Default Spring Security Behavior (Out of the Box)
+- Username: user
+- Password: printed in console
+- All endpoints require login
+- Form-based login enabled
 
 ### Basic authentication
+
+__Simple REST Controller (to protect)__
+```
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HelloController {
+
+    @GetMapping("/public")
+    public String publicEndpoint() {
+        return "This is public — no authentication needed";
+    }
+
+    @GetMapping("/api/hello")
+    public String hello() {
+        return "Hello! You are authenticated with Basic Auth.";
+    }
+
+    @GetMapping("/api/admin")
+    public String admin() {
+        return "Admin area — you need ADMIN role";
+    }
+}
+```
+
+__Security Configuration — Basic Auth + In-Memory Users__
+```
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+import static org.springframework.security.config.Customizer.withDefaults;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // → Disable CSRF (common for pure REST APIs with Basic Auth)
+            .csrf(csrf -> csrf.disable())
+
+            // → Authorization rules
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/public").permitAll()           // open to everyone
+                .requestMatchers("/api/admin").hasRole("ADMIN")   // only ADMIN role
+                .anyRequest().authenticated()                     // everything else needs login
+            )
+
+            // → Enable HTTP Basic Authentication
+            .httpBasic(withDefaults());   // ← this is the key line for Basic Auth
+
+        // Optional: disable default form login if you don't want it
+        // .formLogin(form -> form.disable());
+
+        return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+        UserDetails user = User.builder()
+                .username("user")
+                .password(passwordEncoder.encode("user123"))
+                .roles("USER")
+                .build();
+
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder.encode("admin456"))
+                .roles("ADMIN")
+                .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+### Authentication with Database (JPA)
+
+```
+@Entity
+public class AppUser {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String username;
+    private String password;
+    private String role;
+}
+
+@Service
+public class CustomUserDetailsService
+        implements UserDetailsService {
+
+    @Autowired
+    private UserRepository repo;
+
+    @Override
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException {
+
+        AppUser user = repo.findByUsername(username)
+            .orElseThrow(() ->
+                new UsernameNotFoundException("User not found"));
+
+        return User.withUsername(user.getUsername())
+                .password(user.getPassword())
+                .roles(user.getRole())
+                .build();
+    }
+}
+
+```
+
+### JWT authentication (for REST APIs)
+
+JWT-based security is currently (in January 2026) the most popular and recommended stateless authentication mechanism
+
+It replaces session cookies or Basic Auth in microservices, SPAs (React/Vue/Angular), mobile apps, and API-first architectures.
 
 ### Password encryption (BCrypt)
 
 ### Role-based authorization
 
-### JWT authentication (for REST APIs)
+```
+...
+@Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+        ...
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
+                .anyRequest().authenticated()
+)
+```
+
 
 ### Securing endpoints
 
+Enable method-level security:
+- @EnableMethodSecurity → Enables annotations like @PreAuthorize so methods can be secured based on roles.
+```
+@SpringBootApplication
+@EnableMethodSecurity
+public class DemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+}
+```
 
+Controller with @PreAuthorize:
+- @PreAuthorize("hasAnyRole('USER','ADMIN')") → Checks before method runs if authenticated user has either USER or ADMIN role.
+```
+@RestController
+public class SecureController {
 
-## ⚙️ 7. Configuration & Profiles
+    @GetMapping("/public")
+    public String publicApi() {
+        return "Public API";
+    }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/secure/user")
+    public String userAccess() {
+        return "User access";
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/secure/admin")
+    public String adminAccess() {
+        return "Admin access";
+    }
+}
+```
+
+??????????????????? explain how jwt token authentication works
+e??????????????????? xplain how oAuth2  authentication works
+??????????????????? explain how jSAML works
+
+## ⚙️ 7. Configuration & Profiles <a id="configuration"></a>
 
 ### application.properties
 
@@ -394,7 +1426,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 ### External configs
 
 
-## 🧪 8. Testing Spring Boot Apps
+## 🧪 8. Testing Spring Boot Apps <a id="testing"></a>
 
 ### @SpringBootTest
 
@@ -405,7 +1437,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 ### Unit vs integration testing
 
 
-## ☁️ 9. Advanced & Real-World Topics
+## ☁️ 9. Advanced & Real-World Topics <a id="advanced"></a>
 
 ### Spring Actuator
 
@@ -420,7 +1452,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 ### Kafka / RabbitMQ (optional)
 
 
-## 🛠️ 10. Build Real Projects
+## 🛠️ 10. Real Projects <a id="projects"></a>
 
 ### Beginner Projects
 
