@@ -10,6 +10,7 @@
 - [Configuration & Profiles](#configuration)
 - [Testing Spring Boot Apps](#testing)
 - [Advanced & Real-World Topics](#advanced)
+- [Deploying sping boot app into kubernetes](#intokubernetes)
 - [Real Projects](#projects)
 
 ## 🌱 1. Spring Basics  <a id="basics"></a>
@@ -1409,50 +1410,723 @@ public class SecureController {
 }
 ```
 
-??????????????????? explain how jwt token authentication works
-e??????????????????? xplain how oAuth2  authentication works
-??????????????????? explain how jSAML works
+### how jwt token authentication works
+
+JWT (JSON Web Token) is a stateless authentication mechanism.
+
+The server gives the client a signed token after login, and the __client sends that token with every request__ to prove who they are.
+
+A JWT has 3 parts, separated by dots:
+- Header: Algorithm used to sign the token
+```
+{ "alg": "HS256", "typ": "JWT" }     
+```
+- Payload: actual claims / data
+```
+{ "sub": "user-1234", "name": "Anna Smith", "roles": ["user", "order-manager"], "iat": 1738390400, "exp": 1738391000, "iss": "api.example.com" }
+```
+- Signature: Cryptographic proof — created using secret key + header + payload
+```
+SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+The token when encoded looks like this:
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMzQiLCJuYW1lIjoiQW5uYSBTbWl0aCIsInJvbGVzIjpbInVzZXIiLCJvcmRlci1tYW5hZ2VyIl0sImlhdCI6MTczODM5MDQwMCwiZXhwIjoxNzM4MzkxMDAwLCJpc3MiOiJhcGkuZXhhbXBsZS5jb20ifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+JWT Authentication Flow:
+```
+1. Client sends login request (username/password)
+2. Server validates credentials
+3. Server generates JWT
+4. Client stores JWT
+5. Client sends JWT in every request (JWT is sent in the HTTP request header)
+```
+GET /api/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+6. Server validates JWT
+7. Request allowed or rejected
+```
+
+How Server Validates JWT:
+```
+- Extract token from Authorization header
+- Verify signature using secret key
+- Check expiration
+- Extract user details
+- Set authentication in SecurityContext
+- Continue request
+```
+
+Example of token verification in spring:
+```
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String header = request.getHeader("Authorization");
+
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            String username = jwtService.extractUsername(token);
+
+            UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(
+                    username, null, jwtService.extractRoles(token));
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}
+```
+
+### how oAuth2  authentication works with example
+
+It allows an application to access a user’s data on another system without knowing the user’s password.
+
+Key Roles in OAuth2:
+```
+| Role                     | Meaning                                |
+| ------------------------ | -------------------------------------- |
+| **Resource Owner**       | The user (you)                         |
+| **Client**               | The application (your app)             |
+| **Authorization Server** | Issues tokens (Google, Keycloak, Okta) |
+| **Resource Server**      | Hosts protected APIs                   |
+```
+
+OAuth2 Flow (Authorization Code Grant – MOST COMMON):
+1. User clicks Login
+2. App redirects user to Authorization Server
+  - Your app redirects the browser:
+```
+GET https://accounts.google.com/o/oauth2/v2/auth?
+    client_id=abc123
+    &redirect_uri=http://localhost:8080/login/oauth2/code/google
+    &response_type=code
+    &scope=profile email
+```  
+3. User logs in & grants consent
+4. Auth Server sends Authorization Code to Client
+5. Client exchanges code for Access Token
+  - request to Authorization server (google):
+```
+POST https://oauth2.googleapis.com/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=abc123
+client_secret=secret
+code=4/xyz123
+grant_type=authorization_code
+redirect_uri=http://localhost:8080/login/oauth2/code/google
+```
+  - google returns:
+```
+{
+  "access_token": "ya29.a0AfH6...",
+  "expires_in": 3600,
+  "refresh_token": "1//0g...",
+  "token_type": "Bearer"
+}
+```
+6. Client calls ResourceServer using Bearer token
+7. Resource Server validates the JWT token: validates the token’s cryptographic signature using a secret key or public key that only the Authorization Server controls.
+
+```
+User (Browser)        Client App          Authorization Server       Resource Server
+     |                    |                        |                     |
+     |--- Click Login --->|                        |                     |
+     |                    |--- Redirect /authorize --->|                 |
+     |                    |                        |--- Prompt Login & Consent --->|
+     |                    |                        |<-- User submits credentials --|
+     |                    |<-- Authorization Code --|                     |
+     |                    |--- Exchange code for token --->|             |
+     |                    |<-- Access Token (JWT) ---|                     |
+     |                    |                        |                     |
+     |                    |--- API Request ----------------------------->|
+     |                    |      Authorization: Bearer <AccessToken>     |
+     |                    |                        |    Validate JWT --->|          
+     |                    |                        |      (signature, exp, iss, aud)
+     |                    |<--------------------- Protected Resource ----|
+     |<------------------ Response ----------------|                     |
+```
+
+the Resource Server does NOT need to contact the Authorization Server for every request when validating a JWT access token.
+JWT (JSON Web Token) is self-contained and can verify all of this locally using cryptography
+
+### how SAML works
+
+SAML is a protocol for Single Sign-On (SSO).
+
+- It allows a user to log in once with an Identity Provider (IdP) and access multiple Service Providers (SP) without entering credentials again.
+- It’s XML-based (the messages are XML documents).
+- Common in enterprise apps (Okta, ADFS, Keycloak, Salesforce).
+
+Core Concepts:
+| Term                        | Meaning                                              |
+| --------------------------- | ---------------------------------------------------- |
+| **Identity Provider (IdP)** | Authenticates users (e.g., Okta, Keycloak, ADFS)     |
+| **Service Provider (SP)**   | Application that consumes SAML token (your app)      |
+| **SAML Assertion**          | XML document containing user identity and attributes |
+
+```
+User (Browser)        Service Provider (SP)       Identity Provider (IdP)
+     |                        |                           |
+     |--- Access /dashboard -->|                           |
+     |                        |--- Redirect /sso/login -->|
+     |                        |                           |--- Prompt login / consent -->|
+     |                        |                           |<-- User submits credentials --|
+     |                        |<-- SAML Response (Base64) --|
+     |<-- Browser POST SAML --|                           |
+     |                        |--- Validate signature --->|
+     |                        |--- Extract user info ---->|
+     |                        |--- Create session -------->|
+     |<-- Session cookie ------|                           |
+     |--- Access /dashboard -->|                           |
+     |<-- Protected resource ---|                           |
+```
+
+- User → SP: Tries to access a protected resource (/dashboard).
+- SP → IdP: Redirects user to IdP with SAMLRequest (XML).
+- IdP → User: Prompts login/consent if needed.                  // SP never authenticates user directly — it relies on the IdP.
+- User → IdP: Submits credentials.
+- IdP → SP (via Browser): Sends SAMLResponse (signed assertion).
+- SP validates the assertion (signature, expiration, issuer).   // SAMLResponse is signed by IdP, SP verifies signature.
+- SP creates session for the user.
+- User → SP: Requests resource again, SP serves it using the session.
+
+Spring example:
+```
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .saml2Login();
+        return http.build();
+    }
+}
+```
 
 ## ⚙️ 7. Configuration & Profiles <a id="configuration"></a>
 
+Spring Boot uses externalized configuration to make apps flexible without changing code.
+This means you can define properties outside your Java code:
+- application.properties or application.yml (default)
+- Environment variables
+- Command-line arguments
+- Config Server (Spring Cloud)
+
 ### application.properties
+
+```
+server.port=8080
+spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+spring.datasource.username=root
+spring.datasource.password=root
+```
 
 ### Profiles (dev, test, prod)
 
+Profiles allow you to run the same application with different configurations based on the environment (dev, test, prod).
+
+Default profile: default
+
+application-dev.properties:
+```
+server.port=8081
+spring.datasource.url=jdbc:mysql://localhost:3306/devdb
+spring.datasource.username=devuser
+spring.datasource.password=devpass
+```
+
+application-prod.properties:
+```
+server.port=80
+spring.datasource.url=jdbc:mysql://prod-db-server:3306/proddb
+spring.datasource.username=produser
+spring.datasource.password=prodpass
+```
+
+application.yml can include multiple profiles:
+```
+spring:
+  profiles:
+    active: dev
+
+---
+spring:
+  profiles: dev
+server:
+  port: 8081
+datasource:
+  url: jdbc:mysql://localhost:3306/devdb
+  username: devuser
+  password: devpass
+
+---
+spring:
+  profiles: prod
+server:
+  port: 80
+datasource:
+  url: jdbc:mysql://prod-db-server:3306/proddb
+  username: produser
+  password: prodpass
+
+```
+
+How to Activate a Profile:
+- Command-line argument
+```
+java -jar myapp.jar --spring.profiles.active=dev
+```
+- Environment variable
+```
+export SPRING_PROFILES_ACTIVE=prod
+java -jar myapp.jar
+```
+
 ### @Value
+
+@Value is a way to inject external configuration values into your beans
+
+application.properties:
+```
+app.name=MySpringApp
+app.version=1.0.0
+```
+
+You can inject these values into a Spring bean:
+```
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
+public class AppInfo {
+
+    @Value("${app.name}")
+    private String name;
+
+    @Value("${app.version}")
+    private String version;
+
+    public void printInfo() {
+        System.out.println("App: " + name + ", Version: " + version);
+    }
+}
+```
+
+Injecting Environment Variables:
+```
+@Value("${HOME}")
+private String homeDirectory;
+```
 
 ### @ConfigurationProperties
 
+@ConfigurationProperties is a Spring Boot annotation that __binds a whole group of properties__ (from application.properties or application.yml) to a Java class.
+
+It’s ideal for structured configuration instead of injecting individual values one by one.
+
+application.yml:
+```
+app:
+  name: MySpringBootApp
+  version: 1.0.0
+  features:
+    login: true
+    payments: false
+```
+
+Create a class to bind all these properties:
+```
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+@Component
+@ConfigurationProperties(prefix = "app")
+public class AppProperties {
+
+    private String name;
+    private String version;
+    private Features features;
+
+    public static class Features {
+        private boolean login;
+        private boolean payments;
+
+        // getters and setters
+        public boolean isLogin() { return login; }
+        public void setLogin(boolean login) { this.login = login; }
+        public boolean isPayments() { return payments; }
+        public void setPayments(boolean payments) { this.payments = payments; }
+    }
+
+    // getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getVersion() { return version; }
+    public void setVersion(String version) { this.version = version; }
+    public Features getFeatures() { return features; }
+    public void setFeatures(Features features) { this.features = features; }
+}
+```
+
+Differences Between @Value and @ConfigurationProperties:
+```
+| Feature             | @Value                    | @ConfigurationProperties                    |
+| ------------------- | ------------------------- | ------------------------------------------- |
+| Usage               | Single property injection | Bind multiple related properties to a class |
+| Type Safety         | No compile-time checking  | Strongly typed POJO                         |
+| Nested Properties   | Hard to manage            | Natural with nested classes                 |
+| Ease for many props | Tedious for many props    | Very convenient                             |
+| SpEL support        | Yes                       | No (focus on binding only)                  |
+```
+
 ### External configs
+
+Spring Boot allows you to specify an external property file outside your packaged .jar file (useful for sensitive data and environment-specific configurations).
+
+```
+java -jar myapp.jar --spring.config.location=file:/path/to/external-config/
+```
+
+### Spring Cloud Config
+
+For large-scale systems with multiple microservices, it’s common to externalize configuration using Spring Cloud Config. This solution stores configuration in a centralized repository (Git, filesystem, etc.) and allows all your microservices to pull the same configuration dynamically.
+
 
 
 ## 🧪 8. Testing Spring Boot Apps <a id="testing"></a>
 
-### @SpringBootTest
+- Unit Tests – test a single class or method, no Spring context required.
+- Integration Tests – test the Spring context, database, and beans together.
+- Web/Controller Tests – test REST endpoints, including HTTP requests and responses.
 
-### @WebMvcTest
+Unit test:
+```
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
-### @MockBean
+public class CalculatorServiceTest {
 
-### Unit vs integration testing
+    private final CalculatorService calculatorService = new CalculatorService();
+
+    @Test
+    void testAdd() {
+        int result = calculatorService.add(2, 3);
+        assertEquals(5, result);
+    }
+}
+```
+
+Testing with Spring Context (Integration Test):
+```
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+    public UserService(UserRepository userRepository) { this.userRepository = userRepository; }
+
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
+    }
+}
+
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+public class UserServiceIntegrationTest {
+
+    @Autowired
+    private UserService userService;
+
+    @Test
+    void testFindByUsername() {
+        User user = userService.findByUsername("john");
+        assertThat(user).isNotNull();
+        assertThat(user.getUsername()).isEqualTo("john");
+    }
+}
+```
+
+
+Mocking Dependencies with Mockito: For faster unit tests, we can mock repositories:
+
+### Mockito
+
+It allows you to create fake (mock) objects that replace real dependencies (services, repositories, external clients, etc.) during tests.
+
+Without mocking:
+- tests become slow (real DB, real HTTP calls)
+- tests become flaky (external services down, data changes)
+- tests are hard to set up (need test database, credentials, etc.)
+
+```
+@ExtendWith(MockitoExtension.class)           // ← enables Mockito annotations
+class OrderServiceTest {
+
+    @Mock
+    private OrderRepository orderRepo;
+
+    @Mock
+    private PaymentClient paymentClient;
+
+    @InjectMocks                               // ← auto-injects mocks into constructor
+    private OrderService orderService;
+
+    @Test
+    void shouldCreateOrderAndMarkAsPaidWhenPaymentSucceeds() {
+        // given (BDD style – very readable)
+        CreateOrderRequest request = new CreateOrderRequest(...);
+        Order savedOrder = new Order(...);
+        given(orderRepo.save(any(Order.class))).willReturn(savedOrder);         
+        given(paymentClient.charge(anyBigDecimal(), anyString())).willReturn(true);
+
+        // when
+        Order result = orderService.createOrder(request);
+
+        // then
+        assertThat(result.isPaid()).isTrue();
+        then(orderRepo).should(times(2)).save(any(Order.class));   // called twice
+        then(paymentClient).should().charge(eq(savedOrder.getTotalAmount()), anyString());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenPaymentFails() {
+        // given
+        CreateOrderRequest request = ...;
+        given(paymentClient.charge(any(), any())).willReturn(false);
+
+        // when + then
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(PaymentFailedException.class);
+
+        then(orderRepo).should(times(1)).save(any());   // saved only once (before payment)
+    }
+}
+```
+
+Web Layer Test with MockMvc:
+- @WebMvcTest loads only controller layer.
+- @MockBean injects a mock of the service.
+```
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(UserController.class)
+public class UserControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private UserService userService;
+
+    @Test
+    void testGetUser() throws Exception {
+        User user = new User();
+        user.setUsername("john");
+        when(userService.findByUsername("john")).thenReturn(user);
+
+        mockMvc.perform(get("/api/users/john"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("john"));
+    }
+}
+```
 
 
 ## ☁️ 9. Advanced & Real-World Topics <a id="advanced"></a>
 
 ### Spring Actuator
 
+Spring Boot Actuator is a sub-project of Spring Boot that adds production-ready features to your application.
+It provides monitoring, metrics, health checks, and management endpoints out of the box.
+
+```
+| Endpoint               | Purpose                                      |
+| ---------------------- | -------------------------------------------- |
+| `/actuator/health`     | Shows app health (UP/DOWN)                   |
+| `/actuator/info`       | Shows custom application info                |
+| `/actuator/metrics`    | Shows metrics (CPU, memory, JVM, HTTP, etc.) |
+| `/actuator/env`        | Shows environment properties                 |
+| `/actuator/loggers`    | View or modify log levels at runtime         |
+| `/actuator/threaddump` | Shows JVM thread dump                        |
+| `/actuator/httptrace`  | Recent HTTP request traces                   |
+```
+
+
+
 ### Logging (Logback, SLF4J)
+
+- SLF4J (Simple Logging Facade for Java) is just a facade, not a logging framework.
+- It allows you to write logging code once and plug in any logging framework (Logback, Log4j2, etc.) at runtime.
+- In Spring Boot, SLF4J is used by default, and Logback is the default logging implementation.
+
 
 ### Caching (Redis)
 
+Spring Boot provides Spring Cache abstraction that supports multiple caching providers:
+- In-memory: ConcurrentHashMap (default), EhCache
+- Distributed: Redis, Hazelcast, Memcached
+
+Enable Caching in Spring Boot:
+- Add @EnableCaching in your main application class
+```
+@SpringBootApplication
+@EnableCaching
+public class CachingDemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(CachingDemoApplication.class, args);
+    }
+}
+```
+
+Using @Cacheable:
+- @Cacheable tells Spring: “Check the cache before executing the method. If the value is present, return it; otherwise, execute and cache the result.”
+```
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+
+    @Cacheable("users")
+    public String getUserById(Long id) {
+        simulateSlowService();
+        return "User" + id;
+    }
+
+    private void simulateSlowService() {
+        try {
+            Thread.sleep(3000); // simulate delay
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+}
+```
+
+| Annotation       | Purpose                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| `@Cacheable`     | Reads from cache if exists; else executes method and caches result |
+| `@CachePut`      | Always executes method and updates cache                           |
+| `@CacheEvict`    | Removes cache entries                                              |
+| `@EnableCaching` | Enables caching in Spring Boot                                     |
+
+
+
 ### Dockerizing Spring Boot
+
+Dockerizing means packaging your Spring Boot application into a Docker container, which includes:
+- Your application JAR
+- JVM/runtime
+- Dependencies
+- Configuration
+
 
 ### Spring Cloud (Microservices)
 
-### Kafka / RabbitMQ (optional)
+Spring Cloud is a set of tools for building distributed, cloud-native applications.
+
+It provides features for:
+- Service Discovery (Eureka, Consul)
+  - When this microservice starts, it registers with Eureka Server automatically
+```
+spring.application.name=user-service
+server.port=8081
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+```
+- Load Balancing (Ribbon, Spring Cloud LoadBalancer)
+  - @LoadBalanced → allows service name resolution via Eureka instead of hardcoding URLs.
+- API Gateway (Spring Cloud Gateway)
+- Circuit Breakers (Resilience4J, Hystrix)
+- Configuration Management (Spring Cloud Config)
+```
+server.port=8888
+spring.cloud.config.server.git.uri=https://github.com/your-repo/config-repo
+```
+- Distributed Tracing & Messaging (Sleuth, Stream)
+
+Spring Cloud builds on top of Spring Boot, so it’s easy to integrate
+
+#### should i use spring cloud and service discovery (Consul), load balancing (ribbon) when deploying spring boot app to kubernetes?
+
+not usually – Kubernetes already provides these features natively
+
+kubernetes provides:
+- Service Discovery: Kubernetes Service objects give DNS names for pods
 
 
-## 🛠️ 10. Real Projects <a id="projects"></a>
+Use Kubernetes native features for:
+- Service discovery → Service DNS
+- Load balancing → Service or Ingress
+- Health checks → liveness/readiness probes
+
+✅ Use Spring Cloud components only for:
+- Configuration server (Spring Cloud Config)
+- Circuit breakers (Resilience4J)
+- API Gateway / routing (Spring Cloud Gateway)
+- Distributed tracing (Sleuth + Zipkin)
+
+#### how spring boot helps with event driven applications?
+
+
+
+## 10. Deploy spring boot into kubernetes - best practices <a id="intokubernetes"></a>
+
+- Containerize the Spring Boot App
+  - Use slim/base images for smaller images.
+  - Multi-stage build to exclude build tools from final image.
+  - Avoid running as root user inside the container
+- Externalize Configuration
+  - Use Kubernetes ConfigMap and Secrets for sensitive info (DB passwords, API keys).
+  - Environment variables injected into the container.
+- Define Kubernetes Deployment
+  - Replicas > 1 for high availability.
+  - Use readiness and liveness probes to manage pod health:
+- Expose the Service
+  - Use ClusterIP, NodePort, or LoadBalancer:
+- Use Spring Boot Actuator
+  - Expose health, metrics, and info endpoints for Kubernetes probes and monitoring
+- Logging & Monitoring
+  - Spring Boot logs → stdout/stderr, Kubernetes will capture logs via kubectl logs.
+  - Integrate Prometheus + Grafana using Spring Boot Actuator metrics.
+  - Use ELK stack (Elasticsearch, Logstash, Kibana) or Loki for centralized logging.
+- Scaling & Resource Management
+  - Define resources and limits:
+  - Horizontal scaling: kubectl scale deployment springboot-app --replicas=5
+  - Kubernetes Horizontal Pod Autoscaler (HPA) can scale pods automatically based on CPU or custom metrics.
+- Use CI/CD for Deployment
+  - Build Docker images using GitHub Actions, Jenkins, GitLab CI.
+  - Push images to Docker Registry.
+  - Automate kubectl apply or Helm charts for deployment.
+  - Version control Kubernetes manifests.
+
+
+
+## 🛠️ 11. Real Projects <a id="projects"></a>
 
 ### Beginner Projects
 
@@ -1479,4 +2153,7 @@ e??????????????????? xplain how oAuth2  authentication works
 #### Payment gateway integration
 
 #### Distributed system with Spring Cloud
+
+
+
 
