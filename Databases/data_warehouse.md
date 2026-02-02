@@ -31,9 +31,12 @@ Data Modeling Methodology:
 
 Whereas the entities and relations of a Logical Data Model represent an enterprise, the databases, tables, and views of a Physical Data Model represent physical data structures. 
 
-### Dimensional Data Model aka Star Schema
+#### Dimensional Data Model aka Star Schema
 
-#### Fact tables
+A Dimensional Data Model casts data into two groups: Facts and Dimensions.
+Facts are also known as Events or Transactions. A Fact is something that happened
+
+##### Fact tables
 
 In the middle is a Fact table (a Fact is an event,transaction, or something that happens at a single moment in time). 
 
@@ -48,6 +51,9 @@ Typically, fact includes:
 - How: The action that was performed
 - Why: Sometimes, but not always, a reason for the action is provided
 
+A Fact table joins to the surrounding Dimension tables using Primary Key/Foreign Key relations.
+
+
 
 #### Dimension tables
 
@@ -61,7 +67,94 @@ A Fact table joins to the surrounding Dimension tables using Primary Key/Foreign
 Time Dimension table                Transaction Event table
 Time          ----- foreign key --- Time                        Place Dimenstion table
                                     Place ----- foreign key --- Place
+Thing Dimention table
+Thing         ----- foreign key --- Thing 
 ```
+
+Dimension tables are very flexible. Attributes, hierarchies, and hierarchical levels can be added, removed, or changed by simply modifying the columns in a Dimension table
+
+Join Strategies:
+- Source Native Key
+  - Fact.Thing = Dimension.Thing
+  - if enterprise has two unique identifiers: Chair and Table. As long as the Dimension table has only one row for the entity labeled Chair and only one row for the entity labeled Table, this method will work
+- Source Native Key with Dates
+  - Chair and Table are captured with their Begin and End Dates. 
+  - The join between the Fact and Dimension tables must include the Source Native Key and Dates 
+  - This achieves only a Type 2 time-variant relation
+  - Typically, in an operational database, one Date field identifies when the data in a row became effective and another field identifies when the data in a row ceased being effective.
+- Surrogate Key: 
+  - Fact table can join the Dimension table using the __generated__ Surrogate Key
+  - This approach requires the Dimension table have only one row for each Surrogate Key, otherwise, the results from these tables will be multiplied by a factor of the number of rows the Dimension table has for a duplicated Surrogate Key
+- Surrogate Key with Source Native Key: 
+  - When the Surrogate Key in the Dimension table identifies the entity, but not the instance of the entity, the Source Native Key can be used to identify an individual instance of an entity
+  - The Surrogate Key 123 identifies the entity Chair, but the Source Native Key (Thing ID) must be included to identify the individual instance of Chair.
+- Surrogate Key with Surrogate Key Version: Type 2 Join
+  - When the Surrogate Key identifies the entity, but not the individual instance of an entity
+
+Factless Fact: A business event may not necessarily transact dollars, move units of product, or return any sort of arithmetic measurement:
+- An airplane lands
+- A store opens (and closes) its doors
+- A truck arrives at a warehouse
+
+#### Snowflake Schema
+
+Sometimes a Dimension, or part of a Dimension, is too complex or volatile to work well in a single Dimension row. 
+In such situations, part of the Dimension is normalized out of the Dimension yielding a Dimension of a Dimension, or a Sub-dimension.
+Splitting a Dimension in a Star Schema yields a Snowflake Schema.
+
+A __Snowflake Schema is created by normalizing Dimension tables__.
+
+![ snowflake example ](./images/snowflake_example.png)
+
+Dimension tables include in each row enough information about its hierarchy to allow the data warehouse customer to __summarize data__ at a higher level of that hierarchy
+
+#### Third Normal Form Data Model
+
+Third Normal Form data warehouses:
+- Third Normal Form data warehouses __do not model a business or subject area__, they model relationships between data elements instead.
+- Third Normal Form data warehouse structures are too erratic and scattered to be easily understood or optimized.
+
+A Third Normal Form data warehouse uses data structures that are normalized to the Third Normal Form. The result is many small tables rather than a few large tables, and many table joins rather than a few table joins
+
+Advantages:
+- ✅ Eliminates data redundancy
+- ✅ Ensures data consistency
+- ✅ Easier to integrate data from multiple source systems
+- ✅ Good for enterprise-wide reporting and operational analytics
+
+Disadvantages:
+- ❌ Complex joins
+- ❌ Slower for BI queries
+- ❌ Harder for business users
+
+Example: Insurance:
+
+| Facility | Date       | Time  | Agent | Type | Transaction # | Policy Number | Insured    | Relation
+|----------|------------|-------|-------|------|---------------|---------------|------------|----------
+| 1357     | 05/12/1997 | 13:35 | Fred  | New  | 051297-132    | AB-2324-01    | Jane Doe   | Primary
+| 1357     | 05/12/1997 | 13:35 | Fred  | New  | 051297-132    | AB-2324-02    | John Doe   | Husband
+| 1357     | 05/12/1997 | 13:35 | Fred  | New  | 051297-132    | AB-2324-03    | Janice Doe | Daughter
+| 1357     | 05/12/1997 | 13:35 | Fred  | New  | 051297-132    | AB-2324-04    | Mark Doe   | Son
+
+- Fact Header table represents an individual transaction and 
+- Each row in the Fact Detail table represents each individual person who is insured.
+
+In a Dimensional Data Model, Fact tables can never be joined together. 
+The same is true of Third Normal Form Fact tables—individual facts cannot be joined to each other.
+
+#### Data Mart
+
+A Data Mart is a separate database or set of databases, each with a specific focus.
+That focus can be either a subject area or decision support need (e.g., auditing, loss prevention, or profitability).
+
+Data Mart is created when an EDW cannot provide data in the manner required by data customers, and the business need for data in that form justifies the expense and overhead of a Data Mart.
+
+A Data Mart is physically or logically separate from the EDW from which it receives data
+
+A Data Mart may receive data from other sources, including the customers who use it or organizations external to the enterprise.
+
+Page 140
+
 
 ## book: Data Warehousing Guide
 
