@@ -121,9 +121,97 @@ In Java, there are a few monads that we use quite often, such as __Optional__ an
 ```
 Optional.of(2).flatMap(f -> Optional.of(3).flatMap(s -> Optional.of(f + s)))
 ```
+- Optional<Integer> opt = Optional.of(2): It creates an Optional that contains the value 2. Optional.of() must NOT receive null.
+- to access value use isPresent(): 
+```
+if (opt.isPresent()) {
+    System.out.println(opt.get());
+}
+```
+
 Why do we call Optional a monad?
 
 Optional allows us to wrap a value using the method of and apply a series of transformations. We’re applying the transformation of adding another wrapped value using the method flatMap.
+
+__Optional__
+- Optional<T> is a container object that may or may not contain a value.
+- Introduced in Java 8 to reduce NullPointerException
+```
+Optional<String> name = user.getName();
+name.ifPresent(n -> System.out.println(n.toUpperCase()));
+OR
+opt.ifPresent(System.out::println);
+```
+
+__::__
+- In Java, :: is called a method reference. It’s a shortcut for writing lambda expressions.
+- Use this method as an implementation.
+- It works only with functional interfaces (like lambdas).
+```
+Instead of:
+list.forEach(item -> System.out.println(item));
+
+use:
+list.forEach(System.out::println);
+
+Types of method reference:
+- Static Method Reference
+  - ClassName::staticMethod
+- Instance Method of a Particular Object
+  - object::instanceMethod
+- Instance Method of an Arbitrary Object of a Class
+  - ClassName::instanceMethod
+
+Example:
+```
+printer.print("Hello");  // prints immediately
+
+Consumer<String> consumer = printer::print;     // printer::print is a method reference. nothing is printed
+consumer.accept("Hello"); // prints now
+
+printer::print knows it takes a String because of the target functional interface.
+Consumer<String> has one abstract method: void accept(String value);
+```
+
+Steps:
+- Consumer<String> has one abstract method:
+```
+void accept(String value);
+```
+- Java now asks: “Can printer.print(String) match accept(String)?”
+- If the method signature matches → ✅ compile success
+```
+
+A method reference can have 2 or more arguments — but ONLY if the target functional interface expects them.
+- Method Reference with TWO Arguments: BiConsumer<T, U>
+```
+BiConsumer<String, Integer> biConsumer = printer::print;
+biConsumer.accept("Hello", 3);
+```
+- Method Reference with RETURN Value
+```
+Calculator calc = new Calculator();
+BiFunction<Integer, Integer, Integer> addFn = calc::add;
+System.out.println(addFn.apply(2, 3)); // 5
+```
+- Method Reference with THREE Arguments
+  - Java doesn’t provide a built-in one — but you can define your own
+```
+@FunctionalInterface
+interface TriConsumer<A, B, C> {
+    void accept(A a, B b, C c);
+}
+
+class Printer {
+    void print(String msg, int count, boolean flag) {
+        System.out.println(msg + " " + count + " " + flag);
+    }
+}
+
+TriConsumer<String, Integer, Boolean> tri = printer::print;
+tri.accept("Hello", 2, true);
+
+```
 
 ### Currying
 
@@ -142,6 +230,9 @@ logger.log(Level.INFO, "My weight on Earth: " + weightOnEarth.apply(60.0));
 Function<Double, Double> weightOnMars = weight.apply(3.75);
 logger.log(Level.INFO, "My weight on Mars: " + weightOnMars.apply(60.0));
 ```
+
+Meaning of Function<Double, Function<Double, Double>> weight:
+- A function that takes a Double, and returns another Function, which takes a Double and returns a Double
 
 ### Recursion
 
@@ -265,7 +356,10 @@ public class GFG {
 }
 ```
 
-From the above code, we are not mutating any variable. Instead, we are transforming the data from one function to another. This is another difference between Imperative and Declarative. Not only this but also in the above code of declarative style, every function is a pure function and pure functions don’t have side effects
+From the above code, we are not mutating any variable. 
+Instead, we are transforming the data from one function to another. 
+This is another difference between Imperative and Declarative. 
+Not only this but also in the above code of declarative style, every function is a pure function and pure functions don’t have side effects
 
 ## Built-in java functional interfaces
 
@@ -348,3 +442,33 @@ Terminal Operations:
 - forEach(): The forEach method is used to iterate through every element of the stream.
 - reduce(): The reduce method is used to reduce the elements of a stream to a single value
 - count(): Returns the count of elements in the stream.
+
+filter()
+```
+List<Integer> numbers = List.of(1, 2, 3, 4, 5);
+numbers.stream()
+       .filter(n -> n % 2 == 0)
+       .forEach(System.out::println);
+```
+
+map()
+```
+List<String> names = List.of("john", "alice", "bob");
+List<String> upper =
+    names.stream()
+         .map(String::toUpperCase)
+         .toList();
+
+System.out.println(upper);
+```
+
+reduce()
+```
+List<Integer> numbers = List.of(1, 2, 3, 4);
+
+int sum =
+    numbers.stream()
+           .reduce(0, (a, b) -> a + b);
+
+System.out.println(sum); // 10
+```

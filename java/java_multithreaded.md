@@ -6,7 +6,9 @@ Java supports multithreading through Thread class. Java Thread allows us to crea
 
 ### Simple singleton
 
-If your singleton class is not using a lot of resources, this is the approach to use. But in most of the scenarios, singleton classes are created for resources such as File System, Database connections, etc. We should avoid the instantiation unless the client calls the getInstance method.
+If your singleton class is not using a lot of resources, this is the approach to use. 
+But in most of the scenarios, singleton classes are created for resources such as File System, Database connections, etc. 
+We should avoid the instantiation unless the client calls the getInstance method.
 
 ```
 public class EagerInitializedSingleton {
@@ -102,8 +104,7 @@ public class LiftOff implements Runnable {
 
 run( ) method usually has some kind of loop that continues until the task is no longer necessary, so you must establish the condition on which to break out of this loop.
 
-The call to the static method Thread.yield( ) inside run( ) is a suggestion to the thread scheduler that says, "I’ve done the important parts of my cycle and this would be a good time 
-to switch to another task for a while.
+The call to the static method Thread.yield( ) inside run( ) is a suggestion to the thread scheduler that says, "I’ve done the important parts of my cycle and this would be a good time to switch to another task for a while.
 
 #### Callable
 
@@ -143,8 +144,8 @@ public class BasicThreads {
 } 
 ```
 
-Executors provide a layer of indirection between a client and the  execution of a task; instead of a client executing a task directly, an intermediate object 
-executes the task. Executors allow you to manage the execution of asynchronous tasks without having to explicitly manage the lifecycle of threads
+Executors provide a layer of indirection between a client and the  execution of a task; instead of a client executing a task directly, an intermediate object executes the task. 
+Executors allow you to manage the execution of asynchronous tasks without having to explicitly manage the lifecycle of threads
 
 We can use an Executor instead of explicitly creating Thread objects
 
@@ -161,14 +162,17 @@ public class CachedThreadPool {
 
 ```
 
-The call to shutdown( ) prevents new tasks from being submitted to that Executor. The current thread (in this case, the one driving main( )) will continue to run all tasks submitted 
-before shutdown( ) was called. The program will exit as soon as all the tasks in the Executor finish. 
+The call to shutdown( ) prevents new tasks from being submitted to that Executor. 
+The current thread (in this case, the one driving main( )) will continue to run all tasks submitted before shutdown( ) was called. 
+The program will exit as soon as all the tasks in the Executor finish. 
 
 #### Callable
 
-The submit( ) method produces a Future object, parameterized for the particular type of result returned by the Callable. You can query the Future with isDone( ) to see if it has 
-completed. When the task is completed and has a result, you can call get( ) to fetch the result. You can simply call get( ) without checking isDone( ), in which case get( ) will block 
-until the result is ready. You can also call get( ) with a timeout.
+The submit( ) method produces a Future object, parameterized for the particular type of result returned by the Callable. 
+You can query the Future with isDone( ) to see if it has completed. 
+When the task is completed and has a result, you can call get( ) to fetch the result. 
+You can simply call get( ) without checking isDone( ), in which case get( ) will block until the result is ready. 
+You can also call get( ) with a timeout.
 
 ```
 FutureTask<ResultType> futureTask = new FutureTask<>( new TaskWithResult(i) );
@@ -210,9 +214,8 @@ When you call yield( ), you are suggesting that other threads of the same priori
 
 #### Daemon threads
 
-A "daemon" thread is intended to provide a general service in the background as long as the 
-program is running, but is not part of the essence of the program. Thus, __when all of the non-daemon threads complete, the program is terminated, killing all daemon threads__ in the 
-process.
+A "daemon" thread is intended to provide a general service in the background as long as the program is running, but is not part of the essence of the program. 
+Thus, __when all of the non-daemon threads complete, the program is terminated, killing all daemon threads__ in the process.
 
 If there are any non-daemon threads still running, the program doesn’t terminate.
 
@@ -244,8 +247,8 @@ public class SimpleDaemons implements Runnable {
 
 #### Joining a thread
 
-One thread may call join( ) on another thread to wait for the second thread to complete before proceeding. If a thread calls t.join( ) on another thread t, then the calling thread is 
-suspended until the target thread t finishes.
+One thread may call join( ) on another thread to wait for the second thread to complete before proceeding. 
+If a thread calls t.join( ) on another thread t, then the calling thread is suspended until the target thread t finishes.
 
 #### Catching exceptions
 
@@ -295,8 +298,8 @@ public class CaptureUncaughtException {
 
 All concurrency schemes serialize access to shared resources. This means that only one task at a time is allowed to access the shared resource.
 
-To prevent collisions over resources, Java has built-in support in the form of the synchronized keyword. When a task wishes to execute a piece of code guarded by the 
-synchronized keyword, it checks to see if the lock is available, then acquires it, executes the code, and releases it. 
+To prevent collisions over resources, Java has built-in support in the form of the synchronized keyword. 
+When a task wishes to execute a piece of code guarded by the synchronized keyword, it checks to see if the lock is available, then acquires it, executes the code, and releases it. 
 
 ```
 public class SynchronizedEvenGenerator extends IntGenerator { 
@@ -326,9 +329,7 @@ If you declare a field to be __volatile__, this means that as soon as a write oc
 This is true even if local caches are involved—volatile fields are immediately written through to main memory, and reads occur from main memory. 
 
 An atomic operation on a non-volatile field will not necessarily be flushed to main memory, and so another task that reads that field will not necessarily see the new value. 
-If multiple tasks are accessing a field, that field should be volatile; otherwise, the field should only be accessed 
-via synchronization. Synchronization also causes flushing to main memory, so if a field is 
-completely guarded by synchronized methods or blocks, it is not necessary to make it volatile.
+If multiple tasks are accessing a field, that field should be volatile; otherwise, the field should only be accessed via synchronization. Synchronization also causes flushing to main memory, so if a field is completely guarded by synchronized methods or blocks, it is not necessary to make it volatile.
 
 ##### Atomiclnteger, AtomicLong etc.
 
@@ -336,8 +337,8 @@ These are for fine-tuning to use machine-level atomicity that is available on so
 
 ##### ThreadLocal
 
-A second way to prevent tasks from colliding over shared resources is to eliminate the sharing of variables. Thread local storage is a mechanism that automatically creates 
-different storage for the same variable, for each different thread that uses an object.
+A second way to prevent tasks from colliding over shared resources is to eliminate the sharing of variables. 
+Thread local storage is a mechanism that automatically creates different storage for the same variable, for each different thread that uses an object.
 
 If you have five threads using an object with a variable x, thread local storage generates five different pieces of storage for x.
 
