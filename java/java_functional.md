@@ -1,10 +1,20 @@
 # Java Functional Programming
 
-Basically, functional programming is a style of writing computer programs that treat computations as evaluating mathematical functions.
-
+Functional programming is a style of writing computer programs that treat computations as evaluating mathematical functions.
 In mathematics, a function is an expression that relates an input set to an output set.
-
 Importantly, the output of a function depends only on its input. More interestingly, we can compose two or more functions together to get a new function.
+
+Core Concepts:
+- First-Class Functions
+- Immutability
+- Higher-Order Functions: Takes one or more functions as arguments and returns a function as its result.
+- Function Composition
+- Declarative Programming
+- Lambda Expressions: pass functions as arguments, return them, and store them in variables.
+- Functional Interfaces
+- Stream
+- Optional
+- Method References
 
 A programming language is said to have first-class functions if it treats functions as first-class citizens. This means that functions are allowed to support all operations typically available to other entities. 
 
@@ -90,6 +100,58 @@ final class Student {
 }
 ```
 
+## Functional Interface - Comparator Interface
+
+__A functional interface is an interface that contains exactly one abstract method__.
+
+Example of functional interface:
+```
+@FunctionalInterface
+public interface MathOperation {
+    // Single abstract method
+    int operate(int a, int b);
+
+    // Optional: default method (can have a body)
+    // method defined in an interface that has a method body, can be optionally overridden by implementing classes
+    default int addFive(int a) {
+        return a + 5;
+    }
+
+    // Optional: static method
+    static int multiplyByTwo(int a) {
+        return a * 2;
+    }
+}
+```
+
+How to use it:
+```
+public class Main {
+    public static void main(String[] args) {
+        // Using lambda to define the operate method
+        MathOperation addition = (a, b) -> a + b; // Adds two numbers
+        MathOperation subtraction = (a, b) -> a - b; // Subtracts two numbers
+
+        // Calling the operate method
+        System.out.println("Addition: " + addition.operate(10, 5)); // 15
+        System.out.println("Subtraction: " + subtraction.operate(10, 5)); // 5
+
+        // Using default method
+        System.out.println("Add Five: " + addition.addFive(10)); // 15
+
+        // Using static method
+        System.out.println("Multiply by Two: " + MathOperation.multiplyByTwo(10)); // 20
+    }
+}
+```
+
+The Comparator interface in Java is a functional interface, meaning it has __one abstract method__
+
+The lambda (n1, n2) -> n1.compareTo(n2) is implicitly converted to a Comparator because it matches the compare(T o1, T o2) method signature.
+
+Java infers the types of n1 and n2 from the context, making the lambda fit the Comparator interface.
+
+
 ## Referential Transparency
 
 We call an expression referentially transparent if replacing it with its corresponding value has no impact on the program’s behavior.
@@ -143,16 +205,23 @@ OR
 opt.ifPresent(System.out::println);
 ```
 
-__::__
+### __::__ - method reference
+
 - In Java, :: is called a method reference. It’s a shortcut for writing lambda expressions.
 - Use this method as an implementation.
-- It works only with functional interfaces (like lambdas).
-```
+- It works only with __functional interfaces__ (like lambdas).
+
 Instead of:
+```
 list.forEach(item -> System.out.println(item));
+```
 
 use:
+```
 list.forEach(System.out::println);
+```
+
+forEach() can be used on Iterable interface that is part of java.lang and is the root interface on any collection.
 
 Types of method reference:
 - Static Method Reference
@@ -164,6 +233,7 @@ Types of method reference:
 
 Example:
 ```
+PrintStream printer = System.out;
 printer.print("Hello");  // prints immediately
 
 Consumer<String> consumer = printer::print;     // printer::print is a method reference. nothing is printed
@@ -175,43 +245,40 @@ Consumer<String> has one abstract method: void accept(String value);
 
 Steps:
 - Consumer<String> has one abstract method:
-```
-void accept(String value);
-```
-- Java now asks: “Can printer.print(String) match accept(String)?”
-- If the method signature matches → ✅ compile success
-```
+  - Java now asks: “Can printer.print(String) match accept(String)?”
+  - If the method signature matches → ✅ compile success
+    ```
+    void accept(String value);
+    ```
 
-A method reference can have 2 or more arguments — but ONLY if the target functional interface expects them.
-- Method Reference with TWO Arguments: BiConsumer<T, U>
-```
-BiConsumer<String, Integer> biConsumer = printer::print;
-biConsumer.accept("Hello", 3);
-```
+- A method reference can have 2 or more arguments — but ONLY if the target functional interface expects them.
+  - Method Reference with TWO Arguments: BiConsumer<T, U>
+    ```
+    BiConsumer<String, Integer> biConsumer = printer::print;
+    biConsumer.accept("Hello", 3);
+    ```
+
 - Method Reference with RETURN Value
-```
-Calculator calc = new Calculator();
-BiFunction<Integer, Integer, Integer> addFn = calc::add;
-System.out.println(addFn.apply(2, 3)); // 5
-```
+    ```
+    Calculator calc = new Calculator();
+    BiFunction<Integer, Integer, Integer> addFn = calc::add;
+    System.out.println(addFn.apply(2, 3)); // 5
+    ```
 - Method Reference with THREE Arguments
   - Java doesn’t provide a built-in one — but you can define your own
-```
-@FunctionalInterface
-interface TriConsumer<A, B, C> {
-    void accept(A a, B b, C c);
-}
-
-class Printer {
-    void print(String msg, int count, boolean flag) {
-        System.out.println(msg + " " + count + " " + flag);
+    ```
+    @FunctionalInterface
+    interface TriConsumer<A, B, C> {
+        void accept(A a, B b, C c);
     }
-}
-
-TriConsumer<String, Integer, Boolean> tri = printer::print;
-tri.accept("Hello", 2, true);
-
-```
+    class Printer {
+        void print(String msg, int count, boolean flag) {
+            System.out.println(msg + " " + count + " " + flag);
+        }
+    }
+    TriConsumer<String, Integer, Boolean> tri = printer::print;
+    tri.accept("Hello", 2, true);
+    ```
 
 ### Currying
 
@@ -233,6 +300,7 @@ logger.log(Level.INFO, "My weight on Mars: " + weightOnMars.apply(60.0));
 
 Meaning of Function<Double, Function<Double, Double>> weight:
 - A function that takes a Double, and returns another Function, which takes a Double and returns a Double
+
 
 ### Recursion
 
@@ -361,6 +429,7 @@ Instead, we are transforming the data from one function to another.
 This is another difference between Imperative and Declarative. 
 Not only this but also in the above code of declarative style, every function is a pure function and pure functions don’t have side effects
 
+
 ## Built-in java functional interfaces
 
 Java SE 8 included four main kinds of functional interfaces which can be applied in multiple situations as mentioned below:
@@ -472,3 +541,25 @@ int sum =
 
 System.out.println(sum); // 10
 ```
+
+## Streams vs Iterator
+
+Iterator:
+- allows you to traverse through a collection (e.g., List, Set, etc.) one element at a time.
+- imperative control over iteration
+- The Iterator is stateful: It maintains the position in the collection and you manually control its progression with hasNext() and next()
+- Eager evaluation: The iterator fetches the next element immediately when next() is called
+- Iterators are inherently sequential
+
+Stream:
+- sequence of data elements that can be processed in a functional and declarative manner.
+- stateless: It represents a sequence of elements that are processed in a pipeline
+- immutable: Streams don’t modify the source data; they return a new stream after each transformation
+- Declarative processing: You define what you want to do with the elements (e.g., filtering, mapping, reducing), and the Stream API decides how to process them.
+- functional-style operations such as map(), filter(), reduce(), and collect().
+- lazy evaluation: Streams are evaluated lazily, meaning that intermediate operations (like map(), filter()) are not executed until a terminal operation (like collect(), forEach(), or reduce()) is invoked
+- support short-circuiting operations such as findFirst(), anyMatch(), and allMatch()
+- Streams have built-in parallelism support. By calling .parallel(), you can process elements in parallel without explicitly managing threads.
+
+
+
