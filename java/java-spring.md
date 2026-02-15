@@ -30,7 +30,7 @@ Features:
 - Lightweight - Lightweight IoC containers tend to be lightweight, especially when compared to EJB containers
 - Transaction management - Spring provides a consistent transaction management interface
 
-The technology that Spring is most identified with is the __Dependency Injection__ (DI) flavor of Inversion of Control. 
+The technology that Spring is most identified with is the __Dependency Injection__ (DI) flavor of __Inversion of Control__. 
 
 When writing a complex Java application, application classes should be as __independent as possible__ of other Java classes to increase the possibility to reuse these classes and to test them independently of other classes while unit testing. __Dependency Injection helps in gluing these classes together and at the same time keeping them independent__
 
@@ -1169,3 +1169,50 @@ INSERT INTO countries (id, name) VALUES (4, 'Italy');
 INSERT INTO countries (id, name) VALUES (5, 'Canada');
 ```
 
+## Spring AOP example
+
+In Spring AOP, aspects define cross-cutting concerns using advice and pointcuts. 
+Spring creates proxy objects around target beans, and the proxy intercepts method calls to apply advice before or after method execution.
+
+Create a Service (Business Logic). This is normal business logic — no logging inside.
+```
+@Service
+public class PaymentService {
+    public String processPayment(String user) {
+        System.out.println("Processing payment for " + user);
+        return "SUCCESS";
+    }
+}
+```
+
+Create an Aspect:
+```
+@Aspect
+@Component
+public class LoggingAspect {
+    // Pointcut expression
+    @Pointcut("execution(* com.example.demo.service.*.*(..))")
+    public void serviceMethods() {}
+
+    // Before Advice
+    @Before("serviceMethods()")
+    public void logBefore() {
+        System.out.println("Method execution started");
+    }
+
+    // AfterReturning Advice
+    @AfterReturning(pointcut = "serviceMethods()", returning = "result")
+    public void logAfterReturning(Object result) {
+        System.out.println("Method returned: " + result);
+    }
+
+    // Around Advice
+    @Around("serviceMethods()")
+    public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
+        System.out.println("Before method: " + joinPoint.getSignature().getName());
+        Object result = joinPoint.proceed();  // Calls actual method
+        System.out.println("After method: " + joinPoint.getSignature().getName());
+        return result;
+    }
+}
+```

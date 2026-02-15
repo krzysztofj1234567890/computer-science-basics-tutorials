@@ -562,4 +562,109 @@ Stream:
 - Streams have built-in parallelism support. By calling .parallel(), you can process elements in parallel without explicitly managing threads.
 
 
+# java functional programming interview questions
+
+## Name the four main categories of predefined functional interfaces in java.util.function.
+
+- Function<T,R> → transformation (T → R)
+- Predicate<T> → boolean test
+- Consumer<T> → accepts T, returns nothing
+- Supplier<T> → produces T, takes nothing
+
+## Can a lambda throw a checked exception?
+
+Only if the target functional interface declares it in its abstract method signature. 
+Otherwise, you must wrap it in an unchecked exception or handle inside the lambda.
+
+## When is a constructor reference especially useful?
+
+When collecting to a list/set/map of new objects, e.g. list.stream().map(Person::new).collect(Collectors.toList())
+
+```
+List<String> names = Arrays.asList("John", "Jane", "Mark", "Sarah");
+
+// Using a constructor reference to create a List of Person objects from a List of Strings
+List<Person> persons = names.stream()
+    .map(Person::new) // Constructor reference for the Person(String name) constructor
+    .collect(Collectors.toList());
+
+// Print the resulting list of Person objects
+persons.forEach(System.out::println);
+```
+
+## What is the difference between Collection and Stream?
+
+Collection: data structure that holds elements (eager, modifiable).
+Stream: pipeline for processing elements lazily, once, not a data structure.
+
+## Intermediate vs terminal operations — examples?
+
+Intermediate (lazy, return Stream): filter, map, flatMap, distinct, sorted, peek
+Terminal (trigger computation, return non-Stream): forEach, collect, reduce, count, anyMatch, findFirst
+
+## What happens if you call a terminal operation twice on the same stream?
+
+IllegalStateException — stream has already been operated upon or closed.
+
+## Explain laziness in streams.
+
+Intermediate operations are not executed until a terminal operation is called → allows short-circuiting and optimization.
+
+## Difference between map() and flatMap()?
+
+map() returns a single value for each input, resulting in a stream of the same size, 
+
+flatMap() returns a stream (zero or more values) for each input, which are then merged or "flattened" into a single output stream
+
+map → 1:1 transformation (Stream<T> → Stream<R>)
+
+flatMap → 1:many + flatten (Stream<T> → Stream<Stream<R>> → Stream<R>)
+
+## Explain groupingBy vs partitioningBy.
+
+- partitioningBy() divides elements into exactly two groups based on a Predicate, 
+- groupingBy() categorizes elements into multiple groups based on a general Function
+
+groupingBy → groups by arbitrary key → Map<K, List<T>>
+
+partitioningBy → predicate → splits into two groups → Map<Boolean, List<T>>
+
+```
+List<Person> people = new ArrayList<>();
+people.add(new Person("Kosa", 21));
+people.add(new Person("Saosa", 21));
+people.add(new Person("Tiuosa", 22));
+people.add(new Person("Komani", 22));
+people.add(new Person("Kannin", 25));
+
+// Using groupingBy: groups by an Integer key (age)
+Map<Integer, List<Person>> peopleByAge = people.stream()
+        .collect(Collectors.groupingBy(Person::getAge));
+
+System.out.println("--- GroupingBy result (by age) ---");
+System.out.println(peopleByAge);
+
+// Using partitioningBy: partitions by a Boolean key (age >= 22)
+Map<Boolean, List<Person>> partitionedPeople = people.stream()
+        .collect(Collectors.partitioningBy(p -> p.getAge() >= 22));
+
+System.out.println("\n--- PartitioningBy result (age >= 22) ---");
+System.out.println(partitionedPeople);
+```
+
+## Common Optional methods chain (2026 style)?
+
+opt.map(...).orElse(...).orElseThrow(...)
+
+opt.filter(...).flatMap(...)
+
+## Can you create a recursive lambda? How?
+
+Yes — use Y combinator pattern or local variable with Supplier/Function.
+
+Example: Function<Integer, Integer> fact = n -> n <= 1 ? 1 : n * fact.apply(n-1); (needs tricky self-reference)
+
+## How to handle exceptions in streams/lambdas?
+
+Wrap in unchecked (RuntimeException), or create custom functional interface that allows throws.
 

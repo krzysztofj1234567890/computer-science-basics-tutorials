@@ -65,6 +65,37 @@ __Bean Scopes__
 | application | One per app lifecycle                |
 ```
 
+prototype example:
+```
+Component
+@Scope("prototype")
+public class Task {
+    public Task() {
+        System.out.println("New Task object created");
+    }
+    public void execute() {
+        System.out.println("Executing Task: " + taskId);
+    }
+}
+
+@Component
+public class TestRunner implements CommandLineRunner {
+    private final ApplicationContext context;
+    public TestRunner(ApplicationContext context) {
+        this.context = context;
+    }
+    @Override
+    public void run(String... args) {
+        Task task1 = context.getBean(Task.class);
+        task1.setTaskId("T1");
+        task1.execute();
+        Task task2 = context.getBean(Task.class);
+        task2.setTaskId("T2");
+        task2.execute();
+    }
+}
+```
+
 __Bean Lifecycle__
 - Bean instantiation
 - Dependency injection
@@ -84,13 +115,36 @@ public void destroy() {
 }
 ```
 
+How does Spring decide which bean to inject into another bean:
+- Component Scanning
+- Matching by Type
+- Resolve Multiple Beans matchine by type:
+  - @Qualifier i.e. bean name
+  ```
+  @Service
+  public class PaypalService implements PaymentService { }
+
+  @Service
+  public class StripeService implements PaymentService { }
+  ```
+  - @Primary
+  - Constructor Injection = recomended
+  ```
+  @Component
+  public class OrderService {
+      private final PaymentService paymentService;
+      public OrderService(@Qualifier("stripeService") PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+  }
+  ```
+
 __Spring Annotations__
 - __@Component__: Generic bean
 ```
 import org.springframework.stereotype.Component;
 @Component
 public class EmailSenderService {
-
     public void sendWelcomeEmail(String username, String email) {
         // pretend we're sending an email...
         System.out.println("Sending welcome email to " + username + " <" + email + ">");
@@ -98,6 +152,7 @@ public class EmailSenderService {
     }
 }
 ```
+
 - __@Service__: Business logic layer
   - How @Service is different from @Component: 
     - Both work perfectly — but @Service communicates intent much better.
@@ -110,6 +165,44 @@ public class EmailSenderService {
         - Is a utility (DateUtils, StringUtils, PdfGenerator…)
         - Is a mapper / converter / factory
         - Is an event listener without business logic (@EventListener)
+```
+@Service
+public class AccountService {
+    private final AccountRepository accountRepository;
+    public AccountService(AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+    @Transactional
+    public void transferMoney(Long fromId, Long toId, double amount) {
+        Account from = accountRepository.findById(fromId)
+                .orElseThrow(() -> new RuntimeException("Sender not found"));
+        Account to = accountRepository.findById(toId)
+                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+        if (from.getBalance() < amount) {
+            throw new RuntimeException("Insufficient funds");
+        }
+        from.setBalance(from.getBalance() - amount);
+        to.setBalance(to.getBalance() + amount);
+        accountRepository.save(from);
+        accountRepository.save(to);
+    }
+}
+```
+    - When transferMoney() is called:
+      - Spring AOP creates a proxy for AccountService
+      - Proxy intercepts method call
+      - Transaction starts
+      - Repository operations execute
+      - If method finishes normally → COMMIT
+      - If RuntimeException occurs → ROLLBACK
+    - Spring creates proxies for beans only when:
+      - A bean is eligible for AOP (cross-cutting concern applied)
+      - There is an aspect/advice to apply (like @Transactional, @Cacheable, @Aspect)
+    - If you do NOT add @Transactional, there is no transactional advice for Spring to apply. no proxy is created
+    - No @Transactional → no transaction starts
+      - Each repository call executes in its own default transaction (depends on JPA / DataSource)
+      - No automatic rollback if exception occurs
+
 - __@Repository:__ DAO layer + exception translation: Converts DB exceptions into Spring exceptions.
   - spring will generate "SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:email)"
   - You must write @Query when:
@@ -117,23 +210,42 @@ public class EmailSenderService {
     - Complex joins
     - Subqueries
 ```
-package com.example.users.repository;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import jakarta.transaction.Transactional;
 
-import com.example.users.entity.User;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 
-public interface UserRepository extends JpaRepository<User, UUID> {   // UUID is very common in 2025+
+@Repository
+public interface AccountRepository extends JpaRepository<Account, Long> {
 
-    Optional<User> findByEmailIgnoreCase(String email);
+    // 1️⃣ Find accounts by owner name (derived query)
+    List<Account> findByOwner(String owner);
 
-    boolean existsByEmail(String email);
+    // 2️⃣ Custom JPQL query
+    @Query("SELECT a FROM Account a WHERE a.balance > :minBalance")
+    List<Account> findRichAccounts(@Param("minBalance") double minBalance);
 
-    // Soft-delete support (very popular pattern)
+    // 3️⃣ Update balance using @Modifying + @Query
     @Modifying
-    @Query("UPDATE User u SET u.deleted = true WHERE u.id = :id")
-    void softDeleteById(@Param("id") UUID id);
+    @Transactional
+    @Query("UPDATE Account a SET a.balance = a.balance + :amount WHERE a.id = :id")
+    int deposit(@Param("id") Long id, @Param("amount") double amount);
+
+    // 4️⃣ Native SQL query
+    @Query(value = "SELECT * FROM accounts WHERE currency = :currency", nativeQuery = true)
+    List<Account> findByCurrencyNative(@Param("currency") String currency);
+
+    // 5️⃣ Delete accounts with zero balance
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Account a WHERE a.balance = 0")
+    int deleteEmptyAccounts();
 }
 ```
+  - In Spring Data JPA, the mapping of entities to database tables is done using Java Persistence API (JPA) annotations.
+
 - __@Controller / @RestController__: Web layer, handles HTTP requests
 ```
 import org.springframework.web.bind.annotation.RestController;
@@ -155,6 +267,55 @@ public class UserApiController {
     }
 }
 ```
+  - @RequestMapping: used at the class or method level to define the HTTP method and URL pattern
+  ```
+    @RestController
+    @RequestMapping("/api/accounts")
+    public class AccountController {
+
+        @RequestMapping(value = "/{id}", method = RequestMethod.GET)
+        public Account getAccount(@PathVariable Long id) {
+            return accountService.getAccount(id);
+        }
+    }
+  ```
+  - @GetMapping 
+  - @PostMapping 
+  - @ExceptionHandler
+  ```
+    @RestController
+    @RequestMapping("/api/accounts")
+    public class AccountController {
+
+        @GetMapping("/{id}")
+        public Account getAccount(@PathVariable Long id) {
+            return accountService.getAccount(id);
+        }
+
+        @ExceptionHandler(AccountNotFoundException.class)
+        public ResponseEntity<String> handleAccountNotFound(AccountNotFoundException ex) {
+            return new ResponseEntity<>("Account not found", HttpStatus.NOT_FOUND);
+        }
+    }
+  ```
+
+| **Annotation**    | **Purpose**                                          | **Example**                            |
+| ----------------- | ---------------------------------------------------- | -------------------------------------- |
+| `@RequestMapping` | Generic mapping for any HTTP method.                 | `/api/accounts`                        |
+| `@GetMapping`     | Shortcut for `@RequestMapping(method = GET)`         | `/accounts/{id}`                       |
+| `@PostMapping`    | Shortcut for `@RequestMapping(method = POST)`        | `/accounts`                            |
+| `@PutMapping`     | Shortcut for `@RequestMapping(method = PUT)`         | `/accounts/{id}`                       |
+| `@DeleteMapping`  | Shortcut for `@RequestMapping(method = DELETE)`      | `/accounts/{id}`                       |
+| `@PatchMapping`   | Shortcut for `@RequestMapping(method = PATCH)`       | `/accounts/{id}`                       |
+| `@RequestParam`   | Binds query parameters to method parameters.         | `?currency=USD`                        |
+| `@PathVariable`   | Binds URI template variables to method parameters.   | `/accounts/{id}`                       |
+| `@RequestBody`    | Binds the HTTP request body to a method parameter.   | `{ "owner": "John", "balance": 1000 }` |
+| `@ResponseBody`   | Marks method to return the response body (JSON/XML). | `"Hello, World!"`                      |
+| `@RequestHeader`  | Binds HTTP request headers to method parameters.     | `Authorization: Bearer token`          |
+| `@ResponseStatus` | Specifies HTTP status code for method.               | `HttpStatus.CREATED`                   |
+| `@CrossOrigin`    | Configures CORS support for REST API methods.        | `origins = "http                       |
+
+
 - __@Autowired__: Dependency Resolution:
   - autowiring = automatically providing dependencies: find a bean of this type (or matching this qualifier/name) in the container and inject it here automatically
   - resolves dependencies:
@@ -165,6 +326,7 @@ public class UserApiController {
   - Use @Autowired mainly when:
     - You have multiple constructors and want to mark one
     - You want optional dependencies (required = false)
+
 - __@Configuration__: Marks configuration class.
   - process its @Bean-annotated methods and register the returned objects as Spring-managed beans.
   - It is the modern, Java-based replacement for the old XML <beans> configuration files.
@@ -181,8 +343,11 @@ public class AppConfig {
     }
 }
 ```
+
 - __@Bean__: Creates beans manually.
   - Use when:
+    - explicitly define beans in the Spring application context
+    - allows you to manually register beans with Spring, giving you more control over the creation and configuration of beans.
     - Third-party classes
     - Custom initialization
     - is a factory method — it says "here's exactly how to create this bean".
@@ -241,6 +406,48 @@ app.max-upload-size=10MB
 management.endpoints.web.exposure.include=health,info,metrics
 ```
 
+To use profiles:
+- Using Command Line Arguments
+  ```
+  java -jar myapp.jar --spring.profiles.active=dev
+  ```
+- Using Environment Variables:
+  ```
+  export SPRING_PROFILES_ACTIVE=dev
+  ```
+- Programmatically in Code:
+  ```
+  public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication app = new SpringApplication(MyApplication.class);
+        app.setAdditionalProfiles("dev"); // Sets the active profile programmatically
+        app.run(args);
+    }
+  }
+  ```
+- Create Beans or Configurations for Specific Profiles: 
+  - Mark beans or entire configuration classes that should only be loaded when a specific profile is active. 
+  - This allows you to have profile-specific beans in your application.
+  ```
+    @Configuration
+    public class DatabaseConfig {
+
+        @Bean
+        @Profile("dev")
+        public DataSource devDataSource() {
+            // Create a DataSource bean for the "dev" profile
+            return new DataSource("jdbc:mysql://localhost:3306/dev_db", "dev_user", "dev_password");
+        }
+
+        @Bean
+        @Profile("prod")
+        public DataSource prodDataSource() {
+            // Create a DataSource bean for the "prod" profile
+            return new DataSource("jdbc:mysql://prod-db-server:3306/prod_db", "prod_user", "prod_password");
+        }
+    }
+  ```
+
 How spring does __Component Scanning__ ?
 - automatic discovery mechanism that finds classes annotated with certain stereotypes (like @Component, @Service, @Repository, @Controller, @Configuration, etc.) and registers them as Spring beans — without you having to list them manually with @Bean methods
 
@@ -279,17 +486,15 @@ Some of the main reasons it was developed include:
 __Hello World__ in spring boot:
 ```
 @SpringBootApplication
+@RestController
 public class HelloWorldApplication {
     public static void main(String[] args) {
         SpringApplication.run(HelloWorldApplication.class, args);
     }
-
-    @RestController
-    public class HelloController {
-        @GetMapping("/hello")
-        public String hello() {
-            return "Hello, Spring Boot!";
-        }
+    
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello, Spring Boot!";
     }
 }
 ```
@@ -750,6 +955,44 @@ public User updateBetter(Long id, UserUpdateDto dto) {
 }
 ```
 
+### Example
+
+```
+@Service
+@Transactional
+public class ProductService {
+
+    private final ProductRepository repository;
+
+    public ProductService(ProductRepository repository) {
+        this.repository = repository;
+    }
+
+    public Product create(String name, BigDecimal price) {
+        Product product = new Product(UUID.randomUUID(), name, price);
+        return repository.save(product);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Product> findAll() {
+        return repository.findAll();
+    }
+
+    public Product update(UUID id, String name, BigDecimal price) {
+        Product existing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+        existing.setName(name);
+        existing.setPrice(price);
+
+        // No need to explicitly call save() if entity is managed,
+        // but calling save() is fine and explicit.
+        return repository.save(existing);
+    }
+}
+```
+
+
 
 ### JpaRepository
 
@@ -903,9 +1146,29 @@ Use EntityManager when:
 - Bulk Updates & Delete
 - Batch Inserts / Updates
 
-
+Bulk database update:
 ```
-Example:
+UPDATE product SET price = price * 1.10 WHERE category = 'ELECTRONICS';
+```
+
+Batch database update:
+```
+Connection connection = dataSource.getConnection();
+PreparedStatement ps = connection.prepareStatement(    "UPDATE product SET price = ? WHERE id = ?" );
+
+for (Product p : products) {
+    ps.setBigDecimal(1, p.getPrice());
+    ps.setObject(2, p.getId());
+    ps.addBatch();
+}
+
+ps.executeBatch();  // Executes all updates in one batch
+ps.close();
+connection.close();
+```
+
+EntityManager Example:
+```
 @Service
 @Transactional
 class DocumentService {
@@ -960,8 +1223,39 @@ class DocumentService {
 }
 ```
 
+EntityManager Methods:
+| Category                        | Method                             | Return Type     | Description                                           | Typical Use Case             |
+| ------------------------------- | ---------------------------------- | --------------- | ----------------------------------------------------- | ---------------------------- |
+| **Lifecycle**                   | `persist(entity)`                  | `void`          | Makes a transient entity managed (INSERT on flush)    | Creating new entity          |
+|                                 | `merge(entity)`                    | `T`             | Copies state of detached entity into managed instance | Updating detached entity     |
+|                                 | `remove(entity)`                   | `void`          | Marks managed entity for deletion                     | Deleting entity              |
+|                                 | `find(Class, id)`                  | `T`             | Finds entity by primary key                           | Load by ID                   |
+|                                 | `getReference(Class, id)`          | `T`             | Returns lazy proxy without hitting DB immediately     | Reference without full fetch |
+| **Query Creation**              | `createQuery(String)`              | `Query`         | Creates JPQL query                                    | Custom JPQL                  |
+|                                 | `createQuery(String, Class)`       | `TypedQuery<T>` | Type-safe JPQL query                                  | Typed JPQL                   |
+|                                 | `createNamedQuery(String)`         | `Query`         | Executes named JPQL query                             | Predefined query             |
+|                                 | `createNativeQuery(String)`        | `Query`         | Native SQL query                                      | Raw SQL                      |
+| **Persistence Context Control** | `flush()`                          | `void`          | Synchronizes persistence context to DB                | Force SQL execution          |
+|                                 | `clear()`                          | `void`          | Detaches all managed entities                         | Reset persistence context    |
+|                                 | `detach(entity)`                   | `void`          | Detaches specific entity                              | Stop tracking changes        |
+|                                 | `contains(entity)`                 | `boolean`       | Checks if entity is managed                           | State check                  |
+|                                 | `refresh(entity)`                  | `void`          | Reloads entity from DB                                | Discard in-memory changes    |
+| **Locking & Concurrency**       | `lock(entity, LockModeType)`       | `void`          | Applies optimistic/pessimistic lock                   | Concurrency control          |
+| **Bulk Operations**             | `createQuery(...).executeUpdate()` | `int`           | Executes bulk update/delete                           | Mass update/delete           |
+
+
 
 ## 🔐 5. Exception Handling & Validation <a id="exceptions"></a>
+
+If an exception is not caughtin spring boot:
+- It bubbles up the call stack
+- Spring’s DispatcherServlet catches it
+- An appropriate HTTP response is generated
+
+By default:
+- 500 → for unhandled exceptions
+- 400 → for validation errors
+- 404 → if manually returned
 
 Default Spring Boot Exception Handling (Out of the Box):
 - Spring Boot returns JSON error response
@@ -977,30 +1271,28 @@ Example error response:
 }
 ```
 
-Custom exception:
-```
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public class UserNotFoundException extends RuntimeException {
-    public UserNotFoundException(String msg) {
-        super(msg);
-    }
-}
-```
-
-### @ExceptionHandler
+### Method-Level (@ExceptionHandler inside controller)
 
 @ExceptionHandler is a Spring annotation that marks a method as responsible for handling specific exceptions thrown during request processing in controllers.
 
 It allows you to centralize exception handling logic, return custom HTTP status codes, and provide meaningful error responses (especially important for REST APIs).
 
-Use it:
-- in one @Controller or @RestController
-- recomended: Global (application-wide) @ExceptionHandler inside @ControllerAdvice or @RestControllerAdviceConsistent error responses across all controllers (recommended)Yes — almost always this way
+Use it in one @Controller or @RestController
+
+```
+@RestController
+public class ProductController {
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<String> handleNotFound(ProductNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ex.getMessage());
+    }
+}
+```
 
 ```
 @RestController
 public class UserController {
-
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<String> handle(UserNotFoundException ex) {
         return ResponseEntity.status(404).body(ex.getMessage());
@@ -1084,7 +1376,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 }
 ```
 
-### @ControllerAdvice
+### Global Exception Handling (@RestControllerAdvice) ⭐ Recommended
+
+```
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<String> handleNotFound(ProductNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ex.getMessage());
+    }
+}
+```
 
 @ControllerAdvice is a specialized Spring annotation used to define global behavior for controllers.
 
@@ -1092,6 +1395,23 @@ Most commonly, it’s used for:
 - ✅ Global exception handling
 - ✅ Global data binding
 - ✅ Global model attributes
+
+@ControllerAdvice is triggered during the Spring MVC request lifecycle:
+```
+HTTP Request
+   ↓
+Controller
+   ↓
+Service
+   ↓
+Exception thrown
+   ↓
+DispatcherServlet catches it
+   ↓
+@ControllerAdvice @ExceptionHandler is invoked
+   ↓
+HTTP response returned
+```
 
 ### Custom exceptions
 
@@ -1176,6 +1496,7 @@ public class UserRequest {
 | @Min / @Max | Numeric range        |
 | @Pattern    | Regex                |
 
+Validation does NOT run automatically on entities unless you trigger it.
 
 Triggering Validation in Controller:
 ```
@@ -1188,7 +1509,26 @@ public ResponseEntity<User> createUser(
 
 If validation fails Spring triggers MethodArgumentNotValidException
 
+Handle the exception:
+```
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidation(
+            MethodArgumentNotValidException ex) {
 
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getBindingResult()
+          .getFieldErrors()
+          .forEach(error ->
+              errors.put(error.getField(), error.getDefaultMessage())
+          );
+
+        return ResponseEntity.badRequest().body(errors);
+    }
+}
+```
 
 ## 🔒 6. Spring Security <a id="security"></a>
 
@@ -1324,8 +1664,7 @@ public class AppUser {
 }
 
 @Service
-public class CustomUserDetailsService
-        implements UserDetailsService {
+public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
     private UserRepository repo;
@@ -1344,14 +1683,7 @@ public class CustomUserDetailsService
                 .build();
     }
 }
-
 ```
-
-### JWT authentication (for REST APIs)
-
-JWT-based security is currently (in January 2026) the most popular and recommended stateless authentication mechanism
-
-It replaces session cookies or Basic Auth in microservices, SPAs (React/Vue/Angular), mobile apps, and API-first architectures.
 
 ### Password encryption (BCrypt)
 
@@ -1410,7 +1742,11 @@ public class SecureController {
 }
 ```
 
-### how jwt token authentication works
+### JWT authentication (for REST APIs)
+
+JWT-based security is currently (in January 2026) the most popular and recommended stateless authentication mechanism
+
+It replaces session cookies or Basic Auth in microservices, SPAs (React/Vue/Angular), mobile apps, and API-first architectures.
 
 JWT (JSON Web Token) is a stateless authentication mechanism.
 
@@ -1418,47 +1754,87 @@ The server gives the client a signed token after login, and the __client sends t
 
 A JWT has 3 parts, separated by dots:
 - Header: Algorithm used to sign the token
-```
-{ "alg": "HS256", "typ": "JWT" }     
-```
+  - { "alg": "HS256", "typ": "JWT" }     
 - Payload: actual claims / data
-```
-{ "sub": "user-1234", "name": "Anna Smith", "roles": ["user", "order-manager"], "iat": 1738390400, "exp": 1738391000, "iss": "api.example.com" }
-```
+  - { "sub": "user-1234", "name": "Anna Smith", "roles": ["user", "order-manager"], "iat": 1738390400, "exp": 1738391000, "iss": "api.example.com" }
 - Signature: Cryptographic proof — created using secret key + header + payload
-```
-SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
-```
+  - SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 
 The token when encoded looks like this:
+eyJzdWIiOiJ1c2VyLTEyMzQiLCJuYW1lIjoiQW5uYSBTbWl0aCIsInJvbGVzIjpbInVzZXIiLCJvcmRlci1tYW5hZ2VyIl0sImlhdCI6MTczODM5MDQwMCwiZXhwIjoxNzM4MzkxMDAwLCJpc3MiOiJhcGkuZXhhbXBsZS5jb20ifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+#### how oAuth2  authentication works with example
+
+It allows an application to access a user’s data on another system without knowing the user’s password.
+
+Key Roles in OAuth2:
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMzQiLCJuYW1lIjoiQW5uYSBTbWl0aCIsInJvbGVzIjpbInVzZXIiLCJvcmRlci1tYW5hZ2VyIl0sImlhdCI6MTczODM5MDQwMCwiZXhwIjoxNzM4MzkxMDAwLCJpc3MiOiJhcGkuZXhhbXBsZS5jb20ifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+| Role                     | Meaning                                |
+| ------------------------ | -------------------------------------- |
+| **Resource Owner**       | The user (you)                         |
+| **Client**               | The application (your app)             |
+| **Authorization Server** | Issues tokens (Google, Keycloak, Okta) |
+| **Resource Server**      | Hosts protected APIs                   |
 ```
 
-JWT Authentication Flow:
+OAuth2 Flow (Authorization Code Grant – MOST COMMON):
+1. User clicks Login
+2. App redirects user to Authorization Server
+  - Your app redirects the browser:
+    ```
+    GET https://accounts.google.com/o/oauth2/v2/auth?
+        client_id=abc123
+        &redirect_uri=http://localhost:8080/login/oauth2/code/google
+        &response_type=code
+        &scope=profile email
+    ```  
+3. User logs in & grants consent
+4. Auth Server sends Authorization Code to Client
+5. Client exchanges code for Access Token
+  - request to Authorization server (google):
+    ```
+    POST https://oauth2.googleapis.com/token
+    Content-Type: application/x-www-form-urlencoded
+
+    client_id=abc123
+    client_secret=secret
+    code=4/xyz123
+    grant_type=authorization_code
+    redirect_uri=http://localhost:8080/login/oauth2/code/google
+    ```
+  - google returns:
+    ```
+    {
+        "access_token": "ya29.a0AfH6...",
+        "expires_in": 3600,
+        "refresh_token": "1//0g...",
+        "token_type": "Bearer"
+    }
+    ```
+6. Client calls ResourceServer using Bearer token
+7. Resource Server validates the JWT token: validates the token’s cryptographic signature using a secret key or public key that only the Authorization Server controls.
+
 ```
-1. Client sends login request (username/password)
-2. Server validates credentials
-3. Server generates JWT
-4. Client stores JWT
-5. Client sends JWT in every request (JWT is sent in the HTTP request header)
-```
-GET /api/users
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-6. Server validates JWT
-7. Request allowed or rejected
+User (Browser)        Client App            Authorization Server       Resource Server
+     |                    |                        |                     |
+     |--- Click Login --->|                        |                     |
+     |                    |--- Redirect /authorize --->|                 |
+     |                    |                        |--- Prompt Login & Consent --->|
+     |                    |                        |<-- User submits credentials --|
+     |                    |<-- Authorization Code --|                     |
+     |                    |--- Exchange code for token --->|             |
+     |                    |<-- Access Token (JWT) ---|                     |
+     |                    |                        |                     |
+     |                    |--- API Request ----------------------------->|
+     |                    |      Authorization: Bearer <AccessToken>     |
+     |                    |                        |    Validate JWT --->|          
+     |                    |                        |      (signature, exp, iss, aud)
+     |                    |<--------------------- Protected Resource ----|
+     |<------------------ Response ----------------|                     |
 ```
 
-How Server Validates JWT:
-```
-- Extract token from Authorization header
-- Verify signature using secret key
-- Check expiration
-- Extract user details
-- Set authentication in SecurityContext
-- Continue request
-```
+The Resource Server does NOT need to contact the Authorization Server for every request when validating a JWT access token.
+__JWT (JSON Web Token) is self-contained__ and can verify all of this locally using cryptography
 
 Example of token verification in spring:
 ```
@@ -1487,79 +1863,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 }
 ```
-
-### how oAuth2  authentication works with example
-
-It allows an application to access a user’s data on another system without knowing the user’s password.
-
-Key Roles in OAuth2:
-```
-| Role                     | Meaning                                |
-| ------------------------ | -------------------------------------- |
-| **Resource Owner**       | The user (you)                         |
-| **Client**               | The application (your app)             |
-| **Authorization Server** | Issues tokens (Google, Keycloak, Okta) |
-| **Resource Server**      | Hosts protected APIs                   |
-```
-
-OAuth2 Flow (Authorization Code Grant – MOST COMMON):
-1. User clicks Login
-2. App redirects user to Authorization Server
-  - Your app redirects the browser:
-```
-GET https://accounts.google.com/o/oauth2/v2/auth?
-    client_id=abc123
-    &redirect_uri=http://localhost:8080/login/oauth2/code/google
-    &response_type=code
-    &scope=profile email
-```  
-3. User logs in & grants consent
-4. Auth Server sends Authorization Code to Client
-5. Client exchanges code for Access Token
-  - request to Authorization server (google):
-```
-POST https://oauth2.googleapis.com/token
-Content-Type: application/x-www-form-urlencoded
-
-client_id=abc123
-client_secret=secret
-code=4/xyz123
-grant_type=authorization_code
-redirect_uri=http://localhost:8080/login/oauth2/code/google
-```
-  - google returns:
-```
-{
-  "access_token": "ya29.a0AfH6...",
-  "expires_in": 3600,
-  "refresh_token": "1//0g...",
-  "token_type": "Bearer"
-}
-```
-6. Client calls ResourceServer using Bearer token
-7. Resource Server validates the JWT token: validates the token’s cryptographic signature using a secret key or public key that only the Authorization Server controls.
-
-```
-User (Browser)        Client App          Authorization Server       Resource Server
-     |                    |                        |                     |
-     |--- Click Login --->|                        |                     |
-     |                    |--- Redirect /authorize --->|                 |
-     |                    |                        |--- Prompt Login & Consent --->|
-     |                    |                        |<-- User submits credentials --|
-     |                    |<-- Authorization Code --|                     |
-     |                    |--- Exchange code for token --->|             |
-     |                    |<-- Access Token (JWT) ---|                     |
-     |                    |                        |                     |
-     |                    |--- API Request ----------------------------->|
-     |                    |      Authorization: Bearer <AccessToken>     |
-     |                    |                        |    Validate JWT --->|          
-     |                    |                        |      (signature, exp, iss, aud)
-     |                    |<--------------------- Protected Resource ----|
-     |<------------------ Response ----------------|                     |
-```
-
-the Resource Server does NOT need to contact the Authorization Server for every request when validating a JWT access token.
-JWT (JSON Web Token) is self-contained and can verify all of this locally using cryptography
 
 ### how SAML works
 
@@ -1922,6 +2225,15 @@ class OrderServiceTest {
     }
 }
 ```
+- the real OrderRepository is NOT called in this test
+  - because of @ExtendWith(MockitoExtension.class)
+  - it tells JUnit to use Mockito only, not Spring
+- this: @Mock private OrderRepository orderRepo;
+  - Creates a mock object, not the real repository.
+- when orderRepo.save() Is Called
+  - Mockito intercepts the call
+  - Returns whatever you configured: returns savedOrder
+
 
 Web Layer Test with MockMvc:
 - @WebMvcTest loads only controller layer.
@@ -2154,6 +2466,93 @@ Use Kubernetes native features for:
 
 #### Distributed system with Spring Cloud
 
+#### how is http session managed by spring?
 
+The HTTP session is NOT created by Spring directly. It is managed by the Servlet container (like embedded Tomcat in Spring Boot).
 
+When a request comes in:
+- Client sends request
+- If no session exists → container creates one
+- Container generates JSESSIONID
+- JSESSIONID is sent back as a cookie
+- Browser sends that cookie on every next request
 
+By default (in Spring Boot): Session is stored in: Server memory 
+
+In Spring Boot, session management works automatically because:
+- It uses embedded Tomcat
+- Session tracking via cookies is enabled by default
+
+Spring allows session storage in:
+- Redis
+- JDBC (Database)
+- MongoDB
+
+In REST microservices: Sessions are usually NOT used
+
+#### Create multipart file-upload functionality in java spring boot
+
+application.properties
+```
+# Enable multipart uploads
+spring.servlet.multipart.enabled=true
+
+# Max file size
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# File storage location
+file.upload-dir=uploads
+```
+
+FileStorageService.java:
+```
+@Service
+public class FileStorageService {
+    @Value("${file.upload-dir}")
+    private String uploadDir;
+    private Path uploadPath;
+    ....
+    public String saveFile(MultipartFile file) {
+        try {
+            String fileName = file.getOriginalFilename();
+            Path targetLocation = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("File upload failed");
+        }
+    }
+}
+```
+
+FileController.java
+```
+@RestController
+@RequestMapping("/api/files")
+public class FileController {
+    private final FileStorageService fileStorageService;
+    public FileController(FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
+    }
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadFile(
+            @RequestParam("file") MultipartFile file) {
+
+        String fileName = fileStorageService.saveFile(file);
+        return ResponseEntity.ok("File uploaded successfully: " + fileName);
+    }
+}
+```
+
+The multipart handling is done automatically by Spring Boot / Spring Framework and the underlying Servlet container (Tomcat).
+
+When a client uploads a file using header: Content-Type: multipart/form-data
+
+The HTTP request body is split into multiple parts.
+
+The browser or client (Postman) creates the multipart request. Spring does NOT split the file.
+
+When the request is large:
+- Small files → kept in memory
+- Large files → written to a temporary directory

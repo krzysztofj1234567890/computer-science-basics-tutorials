@@ -144,7 +144,7 @@ public class BasicThreads {
 } 
 ```
 
-Executors provide a layer of indirection between a client and the  execution of a task; instead of a client executing a task directly, an intermediate object executes the task. 
+Executors provide a layer of indirection between a client and the execution of a task; instead of a client executing a task directly, an intermediate object executes the task. 
 Executors allow you to manage the execution of asynchronous tasks without having to explicitly manage the lifecycle of threads
 
 We can use an Executor instead of explicitly creating Thread objects
@@ -320,8 +320,7 @@ public class SynchronizedEvenGenerator extends IntGenerator {
 
 Atomic operations are thus not interruptible by the threading mechanism.
 
-Changes made by one task, even if they’re atomic in the  sense of not being interruptible, might not be visible to other tasks (the changes might be 
-temporarily stored in a local processor cache, for example), so different tasks will have a different view of the application’s state.
+Changes made by one task, even if they’re atomic in the  sense of not being interruptible, might not be visible to other tasks (the changes might be temporarily stored in a local processor cache, for example), so different tasks will have a different view of the application’s state.
 
 ##### Volatile
 
@@ -404,8 +403,12 @@ Each thread has a boolean property that represents its interrupted status. Invok
 
 Someone interrupted your thread. That someone is probably eager to cancel the operation, terminate the program gracefully, or whatever. You should be polite to that someone and return from your method without further ado.
 
+Interruption is a polite request:
+- A thread is never forcefully stopped by another thread
+- It only receives a signal (the interrupted status flag is set)
+
 ##### Solution 1
-The best solution here is to let the InterruptedException propagate through the method call stack, by appending each relevant method signature with the throws InterruptedException statement. This might seem like an easy cop out solution at first glance, but it is, in fact, the correct solution.
+The best solution here is to let the InterruptedException propagate through the method call stack, by appending each relevant method signature with the throws InterruptedException statement. This might seem like an easy cop-out solution at first glance, but it is, in fact, the correct solution.
 
 
 ##### Solution 2
@@ -491,6 +494,17 @@ public class TestShutdownHook {
       }  
  }  
 ```
+
+## wait() 
+
+Object.wait() is a method that:
+- Must be called inside a synchronized block (on the same object you're synchronizing on)
+- Releases the monitor lock (intrinsic lock) of that object
+- Suspends (pauses) the current thread
+- Puts the thread into the object's wait set
+- The thread stays suspended until one of these happens:
+- Another thread calls notify() or notifyAll() on the same object
+- Another thread interrupts the waiting thread → throws InterruptedException
 
 # Java Data structures
 
