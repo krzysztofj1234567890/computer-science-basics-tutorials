@@ -572,19 +572,19 @@ _delta_log/
 
 - __Unified storage & open table formats__ (Iceberg, Delta Lake, Hudi)
   - One copy of data serves batch analytics, real-time, ML feature store AND vector workloads → avoids duplication tax
-- Native vector + multimodal support
+- Native __vector__ + __multimodal__ support
   - Columnar vector indexing (or integration with specialized vector DBs)
   - Embedding storage, similarity search at scale (HNSW, IVF, etc.)
   - Multimodal support (text + image + audio + video embeddings in same table/query)
-- Very high-scale & cost-efficient object storage tier
+- Very high-scale & cost-efficient object __storage__ tier
   - AI training/fine-tuning eats petabytes → must use S3/Azure ADLS/GCS cheaply
-- Real-time & streaming-first ingestion
+- __Real-time__ & streaming-first ingestion
   - Kafka / Pulsar / Redpanda + streaming tables
   - Change Data Capture (CDC) treated as first-class citizen
-- Strong data lineage + observability at column/field level
-- Semantic layer / business glossary enforced at query time
+- Strong data __lineage__ + observability at column/field level
+- __Semantic layer__ / business glossary enforced at query time
   - Prevents hallucination via inconsistent metric/term definitions
-- PII / sensitive data classification + masking / anonymization pipeline
+- PII / __sensitive data__ classification + masking / anonymization pipeline
 - RAG / agent-friendly retrieval patterns
 
 

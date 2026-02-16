@@ -2442,6 +2442,190 @@ Use Kubernetes native features for:
 
 ### Beginner Projects
 
+```
+src
+ main
+  java
+   com.java.example
+  resources
+    application.yaml
+ test
+  java
+    com.java.example
+  resources
+pom.xml
+
+@SpringBootApplication
+public class App {
+	public static void main( Sttring[] args ) {
+		SpringApplication.run( App.class, args ) ;
+	}
+}
+
+@RestController
+@RequestMapping("/api/products")
+public class Rest {
+    private final Service service;
+
+    public Rest(Service service) {
+        this.service = service;
+    }
+
+    @PostMapping
+    public ResponseEntity<ProductResponse> create( @Valid @RequestBody ProductRequest request) {
+
+        Product product = service.create(
+                request.name(),
+                request.price()
+        );
+
+        ProductResponse response = ProductMapper.toResponse(product);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<List<ProductResponse>> getAll() {
+
+        List<ProductResponse> products = service.findAll()
+                .stream()
+                .map(ProductMapper::toResponse)
+                .toList();
+
+        return ResponseEntity.ok(products);
+    }
+}
+
+public record ProductResponse (
+	UUid id,
+	String name,
+	Decimal price
+)
+{}
+
+public record ProductRequest (
+	@NotBlank String name,
+	@NotNull @Positive Decimal price
+)
+{}
+
+@Service
+@Transactional 
+public class ProductService {
+	private final ProductRepository repository ;
+	
+	public ProductService( ProductRepository repository ) {
+		this.repository = repository;
+	}
+	public Product create( String name, Decimal price ) {
+		Product product = new Product( name, price ) ;
+		return repository.save( product ) ;
+	}
+
+	@Transactional(readOnly = true)
+	public List<Product> findAll() {
+        	return repository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Product findById(UUID id) {
+       	return repository.findById(id)
+               	.orElseThrow(() -> new ProductNotFoundException(id));
+    }
+}
+
+@Entity
+@Table(name = "products")
+public class Product {
+	@id
+    @GeneratedValue
+	private UUID id ;
+
+	@Column(nullable = false)
+	private String name;
+
+	@Column(nullable = false)
+	private Decimal price ;
+
+	protected Product() {}
+
+	public Product( String name, String amount ) {
+   	}
+        // getters
+}
+
+public class ProductMapper {
+	public static ProductResponse toResponse( Product product ) {
+		return new ProductResponse( product.getId()...) ;
+	}
+}
+
+// Exception handling
+public class ProductNotFoundException extends RuntimeException {
+    public ProductNotFoundException(UUID id) {
+        super("Product not found with id: " + id);
+    }
+}
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+	@ExcepitionHandler( ProductNotFoundException.class )
+	public ResponseEntity<ErrorResponse> handleNotFound() {
+		ErrorResponse error = new ErrorResponse(
+                	HttpStatus.NOT_FOUND.value(),
+                	ex.getMessage(),
+                	LocalDateTime.now()
+        	);
+
+        	return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+}
+
+public record ErrorResponse(
+        int status,
+        String message,
+        LocalDateTime timestamp
+) {}
+
+
+// Security
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+	@Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http.
+			.authoriszeHttpRequests(
+			)
+			.httpBasic(...)
+		return http.build() ;
+	}
+
+	@Bean
+    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+	    UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder().encode("admin123"))
+                .roles("ADMIN")
+                .build();
+
+        UserDetails user = User.builder()
+                .username("user")
+                .password(passwordEncoder().encode("user123"))
+                .roles("USER")
+                .build();
+	}
+
+	@Bean
+    	public PasswordEncoder passwordEncoder() {
+        	return new BCryptPasswordEncoder();
+    	}
+}
+
+```
+
 #### Student Management System
 
 #### Todo REST API
