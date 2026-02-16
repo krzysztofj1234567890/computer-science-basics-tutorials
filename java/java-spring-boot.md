@@ -2626,6 +2626,89 @@ public class SecurityConfig {
 
 ```
 
+#### GraphQL in Spring Boot using Spring for GraphQL
+
+Spring automatically looks for schema files in: src/main/resources/graphql/
+
+GraphQL Controller:
+```
+@Controller
+public class ProductGraphQLController {
+
+    private final ProductService service;
+
+    public ProductGraphQLController(ProductService service) {
+        this.service = service;
+    }
+
+    @QueryMapping
+    public List<Product> products() {
+        return service.findAll();
+    }
+
+    @QueryMapping
+    public Product productById(@Argument UUID id) {
+        return service.findById(id);
+    }
+
+    @MutationMapping
+    public Product createProduct(
+            @Argument String name,
+            @Argument Double price) {
+        return service.create(name, price);
+    }
+}
+```
+
+GraphQL requests:
+```
+{
+  "query": "query { products { id name price } }"
+}
+
+OR
+
+{
+  "query": "query { productById(id: \"550e8400-e29b-41d4-a716-446655440000\") { id name price } }"
+}
+```
+
+Example of Strongly Typed Product API GraphQL schema in src/main/resources/graphql/schema.graphqls
+```
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query {
+    products: [Product!]!
+    productById(id: ID!): Product
+}
+
+type Mutation {
+    createProduct(input: CreateProductInput!): Product!
+}
+
+type Product {
+    id: ID!
+    name: String!
+    price: Float!
+    status: ProductStatus!
+    createdAt: String!
+}
+
+input CreateProductInput {
+    name: String!
+    price: Float!
+}
+
+enum ProductStatus {
+    AVAILABLE
+    OUT_OF_STOCK
+    DISCONTINUED
+}
+```
+
 #### Student Management System
 
 #### Todo REST API
