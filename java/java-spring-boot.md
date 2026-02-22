@@ -2288,6 +2288,72 @@ It provides monitoring, metrics, health checks, and management endpoints out of 
 | `/actuator/httptrace`  | Recent HTTP request traces                   |
 ```
 
+### Observability Tracing using SpringBoot
+
+Distributed tracing allows you to track requests as they travel across multiple services.
+Key concepts:
+- Trace – The journey of a request through multiple services.
+- Span – A single operation within that trace.
+- Context propagation – Passing trace IDs between services.
+
+Tools/Frameworks Commonly Used:
+| Tool                    | Purpose                                                               |
+| ----------------------- | --------------------------------------------------------------------- |
+| **OpenTelemetry**       | Open standard for instrumentation (tracing, metrics)                  |
+| **Jaeger**              | Distributed tracing backend and UI                                    |
+| **Zipkin**              | Another tracing backend                                               |
+| **Spring Cloud Sleuth** | Simplifies tracing in Spring Boot apps, integrates with Zipkin/Jaeger |
+
+How to do tracing using Tracing with Spring Boot + OpenTelemetry + Jaeger:
+- Configure OpenTelemetry (application.yml):
+    ```
+    opentelemetry:
+    traces:
+        exporter:
+        jaeger:
+            endpoint: http://localhost:14250
+            service-name: order-service
+    ```
+- Start a Jaeger Backend
+- Automatic Instrumentation: If you use Spring Web / RestController, OpenTelemetry auto-instruments
+  - Every incoming HTTP request becomes a span.
+    ```
+    @RestController
+    @RequestMapping("/orders")
+    public class OrderController {
+
+        @GetMapping("/{id}")
+        public Order getOrder(@PathVariable String id) {
+            // This method will automatically be traced
+            return orderService.getOrderById(id);
+        }
+    }
+    ```
+- Custom Spans (Optional):
+    ```
+    import io.opentelemetry.api.trace.Span;
+    import io.opentelemetry.api.trace.Tracer;
+
+    @Service
+    public class PaymentService {
+
+        private final Tracer tracer;
+
+        public PaymentService(Tracer tracer) {
+            this.tracer = tracer;
+        }
+
+        public void processPayment(Order order) {
+            Span span = tracer.spanBuilder("process-payment").startSpan();
+            try {
+                // business logic
+            } finally {
+                span.end();
+            }
+        }
+    }
+    ```
+- Observing Traces: Open Jaeger UI: http://localhost:16686 and search for order-service
 
 
 ### Logging (Logback, SLF4J)
