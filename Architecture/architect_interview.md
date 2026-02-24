@@ -2,8 +2,8 @@
 
 - Define and Communicate the Architectural Vision
   - Create high-level architecture diagrams (services, data flow, boundaries)
-  - Clearly define principles (e.g. modularity, scalability, eventual consistency)
-  - Identify key non-functional requirements (e.g. latency, availability, maintainability)
+  - Clearly define principles (e.g- modularity, scalability, eventual consistency)
+  - Identify key non-functional requirements (e.g- latency, availability, maintainability)
 - Break It Down Into Subsystems
   - Decompose architecture into domains, bounded contexts, and modules
   - Assign teams to clear domains of responsibility
@@ -16,7 +16,7 @@
   - Run architecture syncs, office hours, and design reviews
   - Collect feedback on pain points and technical debt
 - Review Progress and Adjust Design When Needed
-  - Are key architectural goals being met (e.g. latency, modularity)?
+  - Are key architectural goals being met (e.g- latency, modularity)?
   - Are teams building throwaway scaffolding or anti-patterns?
   - Is the system evolving as planned or diverging?
 - Foster a Culture of Ownership and Empowerment
@@ -53,5 +53,49 @@
 | MTTR (Mean Time to Repair) | Customer satisfaction, churn   |
 | Code delivery frequency    | Speed to market                |
 
+## How do you provide technical strategy providing reliability and resiliency across our enterprise SaaS-based ecosystem
 
+- get business goals: Availability: 
+  - Uptime targets (e.g., 99.99%),
+  - Fault Tolerance: System continues operating despite failures
+  - Scalability: Can handle increased traffic or data growth
+  - Recoverability: Fast recovery from incidents (RTO/RPO)
+  - Observability:
+- current and target architecture
+- Create Reference Architecture – Include redundancy, failover, service mesh, and monitoring.
+- cloud native principles
+- resilient arch: 
+  - Deploy services across multiple zones/regions
+  - Use replication for databases
+  - Implement auto-scaling for critical workloads
+  - Circuit Breakers & Retry Patterns
+  - Failover Strategies
+    - Active-active or active-passive setups
+    - Load balancers and DNS failover for service routing
+- Enterprise SaaS Considerations: 
+  - Multi-tenant data isolation
+  - High-volume traffic: Horizontal scaling, caching (Redis, CDN)
+  - Multi-cloud resilience: Replicate services across
+- Define SLOs and KPIs
+  - Start With the Business, Not the Metrics:
+    - What does “reliable” mean to customers?
+    - What user journeys generate revenue?
+    - What would customers notice if it failed?
+  - Define SLIs (Service Level Indicators) = metrics
+    - Availability: “Was the request successful?”
+    - Latency
+    - Error rate
+  - Define SLOs (Service Level Objectives)
 
+ ## HA on AWS:
+ 
+- Understand the SLA & Availability Targets
+- Multi-AZ / Multi-Region Deployment
+- Stateless Services
+- Resilient Databases & Storage
+- Auto-Scaling & Load Balancing
+- Failover & Disaster Recovery
+- Redundant Networking
+- Use Route 53 (AWS), Azure Traffic Manager, or GCP Cloud DNS to implement: Failover routing, Latency-based routing
+- Service Mesh & Network Resilience
+- Automation & Self-Healing
