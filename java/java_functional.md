@@ -668,3 +668,28 @@ Example: Function<Integer, Integer> fact = n -> n <= 1 ? 1 : n * fact.apply(n-1)
 
 Wrap in unchecked (RuntimeException), or create custom functional interface that allows throws.
 
+## show me example of java stream reading a large file
+
+```
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+
+public class LargeFileReader {
+
+    public static void main(String[] args) {
+        Path path = Path.of("largefile.txt");
+
+        try (Stream<String> lines = Files.lines(path)) {
+
+            lines
+                .filter(line -> line.contains("ERROR"))
+                .forEach(System.out::println);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
