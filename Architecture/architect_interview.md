@@ -55,8 +55,6 @@
 
 ## How do you provide technical strategy providing reliability and resiliency across our enterprise SaaS-based ecosystem
 
-
-
 - Current Architecture:
   - Understand the __Current State__ of the Ecosystem:
     - __Infrastructure Audit__: Evaluate the existing infrastructure (cloud providers, data centers, services, etc.) and its reliability.
@@ -123,7 +121,7 @@
     - Periodic Audits: Conduct regular system audits and performance reviews to identify any weak points in your architecture.
     - Customer Feedback: Actively gather and analyze feedback from customers to identify pain points or reliability concerns.
 
-## how can I influence the architecture of our environments,
+## how can I influence the architecture of our environments
 
 ### Develop a Strong Technical Vision
 
@@ -194,8 +192,15 @@ As an architect or technical leader, you’ll likely be involved in regular arch
   - Redundant Components
   - Database Replication
   - AWS: EC2 Auto Scaling, Aurora Multi-AZ, RDS Read Replicas, DynamoDB Global Tables.
+    - In AWS Aurora Multi-AZ deployments, you can only write to one primary node (writer) in a single region at a time. However, you can have multiple read replicas in the same or different Availability Zones (AZs) within that region.
+    - If you need write capability across multiple regions, you might be referring to Aurora Global Databases, which supports cross-region replication
+    - Write Operations: Only one region can handle writes at a time. However, you can failover the primary writer region to another region in case of a failure.
+    - with Amazon DynamoDB Global Tables, you can write to multiple regions simultaneously.
 - High-Performance and Redundant Networking
   - AWS: Elastic Load Balancing (ELB), Route 53 DNS Failover, Direct Connect.
+    - AWS load balancers are typically designed to be highly available and can distribute traffic across multiple Availability Zones (AZs) within a region
+    - With AWS Direct Connect, you establish a direct physical connection between your on-premises network and AWS. This private link provides better security, reliability, and performance than using the public internet.
+      - alternative: AWS Site-to-Site VPN
 - Service-Level Monitoring, Alerts, and Automated Recovery
   - Proactive Monitoring:
   - Auto-Healing and Self-Healing Systems
