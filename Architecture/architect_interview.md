@@ -284,6 +284,13 @@ AWS CloudTrail: Enable CloudTrail to capture all API activity across your AWS ac
 - Adopt Feature Flagging for Continuous Control and Experimentation
 - Use Architectural Decision Records (ADR) for Transparent and Collaborative Decisions
 
+## Define SLIs, SLOs, and error budgets that balance feature velocity with platform stability, supporting a shift to service ownership.
+
+- error rate
+- throughput
+- latency
+- correctness
+
 ## Explain in detail and with examples Kubernetes / EKS architecture, including multi-cluster management and stateful workloads.
 
 Kubernetes (K8s) is an open-source container orchestration platform that automates the deployment, scaling, and management of containerized applications. Amazon EKS (Elastic Kubernetes Service) is a fully managed Kubernetes service offered by AWS, which simplifies the operation of Kubernetes clusters in the cloud.
