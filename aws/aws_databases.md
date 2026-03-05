@@ -25,6 +25,14 @@ Supports the following database engines:
 
 You can run your DB instance in several Availability Zones, an option called a Multi-AZ deployment. When you choose this option, Amazon automatically provisions and maintains one or more secondary standby DB instances in a different AZ. 
 
+Without Multi-AZ: You get only one DB instance, No synchronous standby replica, No automatic failover
+
+With Multi-AZ Enabled
+- RDS creates a standby replica in another Availability Zone
+- Replication is synchronous
+- Automatic failover happens if the primary fails
+- Used for high availability, not for read scaling
+
 ## RDS monitoring
 
 - __DB instance status and recommendations__: View details about the current status of your instance by using the Amazon RDS console, AWS CLI, or RDS API. You can also respond to automated recommendations for database resources, such as DB instances, read replicas, and DB parameter groups
@@ -87,7 +95,12 @@ psql --host=endpoint --port=5432 --dbname=postgres --username=postgres
 
 - Use metrics to monitor your memory, CPU, replica lag, and storage usage ( Amazon CloudWatch)
 - Scale up your DB instance when you are approaching storage capacity limits
+  - brief downtime is required for most engines.
+  - RDS performs a reboot to apply the new instance class.
+  - Downtime typically lasts 1–5 minutes, sometimes longer for large instances.
 - Enable automatic backups
+  - No downtime in most cases
+  - If you are turning backups on for an instance that previously had them disabled, RDS may require a brief I/O suspension while configuring backups
 - If your client application is caching the Domain Name Service (DNS) data of your DB instances, set a time-to-live (TTL) value of less than 30 seconds. The underlying IP address of a DB instance can change after a failover. Caching the DNS data for an extended time can thus lead to connection failures. 
 - Test failover for your DB instance to understand how long the process takes
 - Memory: allocate enough RAM so that your working set resides almost completely in memory. The working set is the data and indexes that are frequently in use on your instance.
@@ -124,12 +137,19 @@ Two types of DB instances make up an Aurora DB cluster:
 
 ## Aurora Features
 
-- blue-green deployments: By using Amazon RDS Blue/Green Deployments, you can make changes to the database in the staging environment without affecting the production environment. 
-- export data to S3: You can export Aurora DB cluster data to an Amazon S3 bucket. After the data is exported, you can analyze the exported data directly through tools like Amazon Athena or Amazon Redshift Spectrum
-- global databases: An Aurora global database is a single database that spans multiple AWS Regions, enabling low-latency global reads and disaster recovery from any Region-wide outage
-- zero-ETL: Amazon Aurora zero-ETL integrations with Amazon Redshift is a fully managed solution for making transactional data available in Amazon Redshift after it's written to an Aurora cluster.
-- RDS proxy: Amazon RDS Proxy is a fully managed, highly available database proxy that makes applications more scalable by pooling and sharing established database connections.
-- Serverless: Aurora Serverless v2 is an on-demand, auto-scaling feature designed to be a cost-effective approach to running intermittent or unpredictable workloads on Amazon Aurora. It automatically scales capacity up or down as needed by your applications.
+- __blue-green deployments__: By using Amazon RDS Blue/Green Deployments, you can make changes to the database in the staging environment without affecting the production environment. 
+  - you create a separate, synchronized copy of your production database to safely test changes before switching traffic — with minimal downtime (typically under a minute).
+  - ideal for:
+  - Major database version upgrades
+  - Schema changes
+  - Parameter group changes
+  - Performance testing
+  - Infrastructure changes (instance class, storage config)
+- __export data to S3__: You can export Aurora DB cluster data to an Amazon S3 bucket. After the data is exported, you can analyze the exported data directly through tools like Amazon Athena or Amazon Redshift Spectrum
+- __global databases__: An Aurora global database is a single database that spans multiple AWS Regions, enabling low-latency global reads and disaster recovery from any Region-wide outage
+- __zero-ETL__: Amazon Aurora zero-ETL integrations with Amazon Redshift is a fully managed solution for making transactional data available in Amazon Redshift after it's written to an Aurora cluster.
+- __RDS proxy__: Amazon RDS Proxy is a fully managed, highly available database proxy that makes applications more scalable by pooling and sharing established database connections.
+- __Serverless__: Aurora Serverless v2 is an on-demand, auto-scaling feature designed to be a cost-effective approach to running intermittent or unpredictable workloads on Amazon Aurora. It automatically scales capacity up or down as needed by your applications.
 
 ## Aurora global databases
 
@@ -167,9 +187,13 @@ https://aws.amazon.com/blogs/database/is-amazon-rds-for-postgresql-or-amazon-aur
 
 Aurora PostgreSQL uses a __high-performance storage subsystem__ customized to take advantage of __fast distributed storage__. 
 The underlying storage __grows automatically in segments of 10 GiB, up to 128 TiB__. 
+Data is replicated 6 times across 3 Availability Zones.
 Aurora __improves__ upon PostgreSQL for __massive throughput and highly concurrent workloads__
+Aurora can tolerate:
+- Loss of 2 copies without affecting writes
+- Loss of 3 copies without affecting reads
 
-Aurora PostgreSQL uses a single, virtual cluster volume that is supported by storage nodes using locally attached SSDs. 
+Aurora PostgreSQL uses a single, virtual cluster volume that is supported by storage nodes using __locally attached SSDs__. 
 A cluster volume consists of copies of the data across multiple Availability Zones in a single AWS Region. 
 Aurora storage automatically increases the size of the database volume as the database storage grows.
 
