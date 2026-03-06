@@ -221,12 +221,22 @@ Aurora PostgreSQL backs up DB cluster volume automatically and retains backups f
 Aurora automated backups are continuous and incremental. 
 Restore time depends on the volume size and number of transactions logged that need to be restored. 
 There is no performance impact or interruption of database service during backups
+In Aurora: Backups are stored in S3, but you don’t access them directly; AWS handles it.
+
+To restore backup: 
+- choose: Restore time: pick the time you want (the system shows the available backup window).
+- DB instance identifier: this will be the new cluster name (you can’t overwrite the existing cluster)
 
 vs
 
 Amazon RDS automatically takes daily backups of PostgreSQL DB instances one time during a backup window. 
 There is a slight performance impact when the backup initiates for single Availability Zone deployments. 
 In addition, it also continuously archives transaction logs (WALs)
+
+To restore backup: 
+- choose: Restore time
+- DB instance identifier: name for the new instance.
+
 
 ### Scalability
 
@@ -240,21 +250,30 @@ All Aurora readers are synced with the writer DB instance with minimal replica l
 
 Usually, this replica lag is a few hundred milliseconds
 
+Replication Between Writer and Readers: 
+- Aurora MySQL / Aurora PostgreSQL read replicas are not classic replicas. They don’t replicate data via traditional MySQL/PostgreSQL replication protocols.
+- Instead, they read from the same distributed storage layer as the writer.
+- Because of this:
+  - Replication is very fast (typically <10ms lag) but not strictly synchronous.
+  - Aurora guarantees “read-after-write” consistency within the cluster
+
 vs
 
 With RDS for PostgreSQL, you can create three levels of cascaded read replicas, 5 replicas per instance up to total 155 read replicas per source instance.
 Cascading read replicas help scale reads without adding overhead to source PostgreSQL DB instance.
 
-ou can also promote read replicas when needed to become standalone DB instances. 
+You can also promote read replicas when needed to become standalone DB instances. 
 RDS for PostgreSQL also supports five cross-Region read replicas. 
 Replicas are synced with the source DB instance using PostgreSQL streaming replication. 
 
- High write activity at source DB instance, storage type mismatch, and DB instance class mismatch can cause high replication lag. 
- This lag can be up to several minutes. 
- With optimal configurations and workload, in Amazon RDS for PostgreSQL the replica lag is typically a few seconds. 
+High write activity at source DB instance, storage type mismatch, and DB instance class mismatch can cause high replication lag. 
+This lag can be up to several minutes. 
+With optimal configurations and workload, in Amazon RDS for PostgreSQL the replica lag is typically a few seconds. 
 
 ### Failover
 
+Failover is the process of promoting a read replica to become the new writer when the current writer. 
+Aurora handles this automatically.
 Multi-AZ Aurora PostgreSQL, the failover time is typically within __30 seconds__, which consists of DNS propagation, and recovery
 
 VS 
@@ -264,6 +283,19 @@ In the case of failover, read/write connections are automatically redirected to 
 
 In Amazon RDS for Multi-AZ PostgreSQL, the failover time is typically around __1-2 minutes__
 
+### Data Load into Aurora
+
+- Native Bulk Load
+  - MySQL: LOAD DATA INFILE
+- AWS Database Migration Service (DMS)
+  - For large datasets or replication
+  - Can migrate existing RDS / on-premise DBs
+  - Supports CDC for ongoing changes
+- Parallel Inserts
+  - Break data into multiple files / threads
+  - Insert in parallel to improve throughput
+- Import from S3
+  - Aurora supports LOAD DATA FROM S3 for MySQL-compatible clusters
 
 ### Summary
 
@@ -271,7 +303,7 @@ Amazon Aurora advantages include:
 - Offers up to __5X better__ performance than conventional MySQL databases and up to 3X better than PostgreSQL DBs.
 - Aurora delivers up to __3X read replicas__ than Amazon RDS.
 - The service delivers __low-latency read replicas__ across multiple Availability Zones in an AWS Region.
-- Amazon Aurora delivers outstanding automated backups and supports__ data recoveries up to the last five minutes__.
+- Amazon Aurora delivers outstanding automated backups and supports __data recoveries up to the last five minutes__.
 - The Aurora architecture makes it faster, more durable, and cloud-native than RDS on Amazon EC2.
 - Aurora __Serverless__ is highly performant and cost-effective for unpredictable database workloads.
 
@@ -280,6 +312,7 @@ Amazon Aurora limitations include:
 - Aurora is limited to the __InnoDB storage engine__.
 - While Amazon RDS enables you to try it out for a year on the AWS Free Tier, there’s no such offer for Aurora.
 - It’s t__ough to predict Amazon Aurora Serverless costs in advance__.
+
 
 # DynamoDB <a id="DynamoDB"></a>
 
@@ -394,7 +427,7 @@ Local secondary indexes (__LSIs__) – You can define a maximum of five local se
 
 Global secondary indexes (__GSIs__) – There is a default quota of 20 global secondary indexes per table
 
-A __table__ is a collection of items, and each __item__ is a collection of __attributes__. Table is __schemaless__, which means that neither the attributes nor their data types need to be defined beforehand. Each item can have its own distinct attributes.  DynamoDB supports __nested attributes__ up to 32 levels deep.
+A __table__ is a collection of items, and each __item__ is a collection of __attributes__. Table is __schemaless__, which means that neither the attributes nor their data types need to be defined beforehand. Each item can have its own distinct attributes. DynamoDB supports __nested attributes__ up to 32 levels deep.
 
 DynamoDB uses __primary keys to uniquely identify each item__ in a table and __secondary indexes__ to provide more querying flexibility.
 
@@ -450,11 +483,13 @@ A single Scan request can retrieve a maximum of 1 MB of data.
 
 Scan, as the name suggests, will browse table items from start to finish. The sort-key allows to determine the scanning order direction.
 
-It is possible to apply filtersto both a Query and a Scan operation and control which items are returned. Filters do not contribute to optimizing the operation. They are applied after the operation execution and before results are returned.
+It is possible to apply __filters__ to both a Query and a Scan operation and control which items are returned. Filters do not contribute to optimizing the operation. They are applied after the operation execution and before results are returned.
 
 Running a Scan is expensive and inefficient, thus should be avoided in almost all use cases. Unless one really needs to browse the entire set of items, for instance.
 
 Querying by the primary-key is the most efficient manner of retrieving data from a DynamoDB table.
+
+Scan: No → you don’t provide the partition key. That’s why it reads the whole table.
 
 ### PartiQL
 
@@ -511,6 +546,8 @@ __Eventually consistent is the default read consistent model__ for all read oper
 
 Read operations such as GetItem, Query, and Scan provide an optional __ConsistentRead parameter__. If you set ConsistentRead to true, DynamoDB returns a response with the most up-to-date data, reflecting the updates from all prior write operations that were successful. Strongly consistent reads are only supported on tables and local secondary indexes.
 
+Strongly consistent reads are only supported within a single region
+
 ### global tables
 
 Specific benefits for using global tables include:
@@ -518,7 +555,8 @@ Specific benefits for using global tables include:
 - Eliminating the difficult work of replicating data between Regions and resolving update conflicts, so you can focus on your application's business logic.
 - Helping your applications stay highly available even in the unlikely event of isolation or degradation of an entire Region.
 
-Transactional operations provide atomicity, consistency, isolation, and durability (ACID) guarantees only within the region where the write is made originally. Transactions are not supported across regions in global tables. 
+Transactional operations provide atomicity, consistency, isolation, and durability (ACID) guarantees only within the region where the write is made originally. 
+__Transactions are not supported across regions in global tables__. 
 
 There is no performance impact on source regions when adding new replicas.
 
@@ -540,7 +578,13 @@ To help ensure eventual consistency, DynamoDB global tables use a __last writer 
 
 You can use the DynamoDB transactional read and write APIs to manage complex business workflows that require adding, updating, or deleting multiple items as a single, all-or-nothing operation.
 
-With the transaction write API, you can group multiple __Put, Update, Delete, and ConditionCheck actions__. You can then submit the actions as a single __TransactWriteItems__ operation that either succeeds or fails as a unit. The same is true for __multiple Get actions__, which you can group and submit as a single __TransactGetItems__ operation.
+With the transaction write API, you can group multiple __Put, Update, Delete, and ConditionCheck actions__. 
+You can then submit the actions as a single __TransactWriteItems__ operation that either succeeds or fails as a unit. 
+The same is true for __multiple Get actions__, which you can group and submit as a single __TransactGetItems__ operation.
+
+TransactWriteItems – allows multiple write operations (put, update, delete) to one or more tables in a single transaction.
+
+TransactGetItems – allows multiple read operations across one or more tables in a single transaction.
 
 The aggregate size of the items in the transaction cannot exceed 4 MB
 
@@ -605,6 +649,18 @@ try {
 DAX is a DynamoDB-compatible caching service that enables you to benefit from fast __in-memory__ performance for demanding applications.
 
 As an in-memory cache, DAX reduces the response times of __eventually consistent read workloads__ by an __order of magnitude__ from single-digit milliseconds to microseconds
+
+### Data loading into Dynamodb
+
+- DynamoDB BatchWriteItem
+  - Writes up to 25 items per request
+  - Good for small/medium datasets
+- AWS Data Pipeline / Glue
+  - Can transform and load large datasets
+  - Integrates with S3
+- DynamoDB Import from S3 (Zero-ETL for Redshift)
+  - Load large CSV, JSON, or Parquet files from S3 directly
+  - Example: AWS Console → Import table → select S3 bucket
 
 ### Data modeling
 
@@ -721,8 +777,7 @@ Every time a user writes a post, their follower list is read and their userID an
 
 ## DynamoDB vs DocumentDB
 
-DynamoDB: serverless, fully managed NoSQL, supports key-value and document data models, single-digit millisecond latency, 20 million requests per second, well-suited for applications requiring consistent, 
-low-latency data access at any scale.
+DynamoDB: serverless, fully managed NoSQL, supports key-value and document data models, single-digit millisecond latency, 20 million requests per second, well-suited for applications requiring consistent, low-latency data access at any scale.
 
 DynamoDB Accelerator (DAX) to improve read performance
 
@@ -736,8 +791,7 @@ Row / Attribute level access control: DynamoDB supports while DocumentDB does no
 
 VS
 
-DocumentDB: fully managed NoSQL, JSON data models, fully scalable, low-latency for MongoDB workloads, automatically replicates six copies of your data across three availability zones,
-can serve millions of requests per second.
+DocumentDB: fully managed NoSQL, JSON data models, fully scalable, low-latency for MongoDB workloads, automatically replicates six copies of your data across three availability zones, can serve millions of requests per second.
 
 does not support a key-value data model
 
@@ -769,10 +823,10 @@ __Redshift Serverless__ features:
 - spatial functions
 - __federated queries__: queries to join data with other Redshift databases, __Aurora DB__ cluster , __Amazon RDS__ databases, __S3__
 - HyperLogLog functions
-- Data sharing
+- Data sharing: lets multiple Redshift clusters or accounts securely access the same live data without copying or moving it. The cluster that owns the data creates a datashare object.
 - Semistructured data querying
 - __Massively parallel processing__ (MPP) enables fast run of the most complex queries operating on large amounts of data. 
-Multiple compute nodes handle all query processing leading up to final result aggregation
+Multiple compute nodes handle all query processing leading up to final result aggregation. It is built-in.
 - __Columnar storage__ for database tables drastically reduces the overall disk I/O requirements and is an important factor in optimizing analytic query performance.
 - __Data compression__ reduces storage requirements, thereby reducing disk I/O, which improves query performance
 - Amazon Redshift __caches__ the results of certain types of queries in memory on the leader node
@@ -789,15 +843,19 @@ https://docs.aws.amazon.com/redshift/latest/dg/c_high_level_system_architecture.
 - __Leader node__: manages communications with client programs and all communication with compute nodes. 
 It parses and develops execution plans to carry out database operations, in particular, the series of steps necessary to obtain results for complex queries. 
 Based on the execution plan, the leader node compiles code, distributes the compiled code to the compute nodes, and assigns a portion of the data to each compute node.
+  - If the leader node fails:
+    - Redshift detects the failure automatically
+    - AWS provisions a new leader node
+    - Queries may temporarily fail or disconnect
+    - Applications must retry queries
 - __Compute nodes__: run the compiled code and send intermediate results back to the leader node for final aggregation.
 Each compute node has its own dedicated CPU and memory, which are determined by the node type. 
 As your workload grows, you can increase the compute capacity of a cluster by increasing the number of nodes, upgrading the node type, or both.
-- __Managed Storage__: data is stored in a separate storage tier Redshift Managed Storage (RMS). RMS provides the ability to scale your storage to petabytes using Amazon S3 storage. 
-RMS lets you scale and pay for computing and storage independently, so that you can size your cluster based only on your computing needs. 
+- __Managed Storage__: data is stored in a separate storage tier Redshift Managed Storage (RMS). RMS provides the ability to scale your storage to petabytes using Amazon S3 storage. RMS lets you scale and pay for computing and storage independently, so that you can size your cluster based only on your computing needs. 
 - __Node slices__: A compute node is partitioned into slices. 
-Each slice is allocated a portion of the node's memory and disk space, where it processes a portion of the workload assigned to the node. 
-The leader node manages distributing data to the slices and apportions the workload for any queries or other database operations to the slices. 
-The slices then work in parallel to complete the operation.
+  - Each slice is allocated a portion of the node's memory and disk space, where it processes a portion of the workload assigned to the node. 
+  - The leader node manages distributing data to the slices and apportions the workload for any queries or other database operations to the slices. 
+  - The slices then work in parallel to complete the operation.
 - __Databases__: A cluster contains one or more databases. User data is stored on the compute nodes. 
 SQL client communicates with the leader node, which in turn coordinates query run with the compute nodes.
 It is a relational database management system (RDBMS).
@@ -837,7 +895,7 @@ Example:
 
 ### Snowflake schema
 
-The snowflake schema aims to normalize the star schema's denormalized data. 
+The snowflake schema aims to __normalize the star schema's denormalized data__. 
 When the star schema's dimensions are intricate, highly structured, and have numerous degrees of connection, and the kid tables have several parent tables, the snowflake structure emerges
 
 Snowflake schema divides the Dimension Tables into several tables, resulting in a snowflake pattern. 
@@ -871,7 +929,7 @@ Amazon Redshift Serverless __adjusts capacity in seconds__ to deliver consistent
 When queries run, you're billed according to the capacity used in a given duration, in RPU hours on a per-second basis. 
 When no queries are running, you aren't billed for compute capacity. You are also charged for Redshift Managed Storage (RMS), based on the amount of data stored. 
 
-### Bulling
+### Billing
 
 To keep costs predictable for Amazon Redshift Serverless, you can set the __Maximum RPU hours used per day__, per week, or per month
 
@@ -901,7 +959,7 @@ However, you can run them in your VPC: When using EC2-VPC, your cluster runs in 
 
 ## Zero-ETL integrations
 
-Zero-ETL integration is a fully managed solution that makes transactional and operational data available in Amazon Redshift from multiple operational and transactional sources
+Zero-ETL integration is a fully managed solution that makes transactional and operational data available in Amazon Redshift from multiple operational and transactional sources. Zero-ETL relies on continuous change replication (CDC) from transactional systems.
 
 The following sources are currently supported for zero-ETL integrations:
 - Amazon Aurora MySQL
@@ -1011,7 +1069,9 @@ Batch processing workloads do not require manual intervention they enable full u
 ### How is Amazon RDS, DynamoDB and Redshift different?
 
 Amazon RDS is a database management service for relational databases, it manages patching, upgrading, backing up of data etc. of databases for you without your intervention. RDS is a Db management service for structured data only.
+
 DynamoDB, on the other hand, is a NoSQL database service, NoSQL deals with unstructured data.
+
 Redshift, is an entirely different service, it is a data warehouse product and is used in data analysis.
 
 ### If I am running my DB Instance as a Multi-AZ deployment, can I use the standby DB Instance for read or write operations along with primary DB instance?
