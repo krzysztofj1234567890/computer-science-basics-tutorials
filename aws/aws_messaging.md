@@ -38,6 +38,7 @@ Queue Types:
   - Best-effort ordering
   - Durability and redundancy – Standard queues ensure high durability by storing multiple copies of each message across multiple AWS Availability Zones. 
   - Visibility timeout – Amazon SQS allows you to configure a visibility timeout to control how long a message stays hidden after being received, ensuring that other consumers do not process the message until it has been fully handled or the timeout expires.
+  - If a message is not deleted by the consumer, it stays in the queue until this period expires. You can configure from 60 seconds (1 minute) to 14 days (336 hours)
 - FIFO
   - High throughput – When you use batching, FIFO queues process up to 3,000 messages per second per API method ( 300 API calls/s * batch of 10 message)
   - Exactly-once processing – FIFO queues deliver each message once and keep it available until you process and delete it.
@@ -45,6 +46,7 @@ Queue Types:
   - Key terms:
     - Message deduplication ID: A token used in Amazon SQS FIFO queues to uniquely identify messages and prevent duplication. If multiple messages with the same deduplication ID are sent within a 5 minute deduplication interval, they are treated as duplicates, and only one copy is delivered. If you don't specify a deduplication ID and content-based deduplication is enabled, Amazon SQS generates a deduplication ID by hashing the message body.
     - Message group ID: The tag that specifies that a message belongs to a specific message group. Messages that belong to the same message group are always processed one by one, in a strict order relative to the message group
+      - By using Message Group IDs, SQS can maintain strict ordering for each group, while still allowing high throughput across multiple groups.
     - Sequence number: The large, non-consecutive number that Amazon SQS assigns to each message
     - Sending messages: messages are ordered based on message group ID. If multiple hosts (or different threads on the same host) send messages with the same message group ID to a FIFO queue, Amazon SQS stores the messages in the order in which they arrive for processing.
     - Receiving a message: You can't request to receive messages with a specific message group ID. When receiving messages from a FIFO queue with multiple message group ID
@@ -54,6 +56,7 @@ Dead Letter queues:
 - Amazon SQS supports dead-letter queues (DLQs), which source queues can target for messages that are not processed successfully. 
 - For optimal performance, it is a best practice to keep the source queue and DLQ within the same AWS account and Region
 - You can Move messages out of the dead-letter queue using dead-letter queue redrive.
+  - __Redrive__ is the process of moving messages from a DLQ back to the source queue or another queue after fixing the underlying problem.
 - Amazon SQS does not create the dead-letter queue automatically. You must first create the queue before using it as a dead-letter queue. 
 - The dead-letter queue of a FIFO queue must also be a FIFO queue. Similarly, the dead-letter queue of a standard queue must also be a standard queue.
 - Use a redrive policy to specify the maxReceiveCount. The maxReceiveCount is the number of times a consumer can receive a message from a source queue before it is moved to a dead-letter queue. For example, if the maxReceiveCount is set to a low value such as 1, one failure to receive a message would cause the message to move to the dead-letter queue.
