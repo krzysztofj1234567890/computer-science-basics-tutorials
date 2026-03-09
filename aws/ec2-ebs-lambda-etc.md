@@ -19,6 +19,11 @@ For example:
 Features:
 - Use __environment variables__ to adjust your function's behavior without updating code.
 - Manage the deployment of your functions with __versions__, so that, for example, a new function can be used for beta testing
+  - invoke specific version: arn:aws:lambda:region:account:function:my-function:5
+  - Use Aliases for Environments: Aliases act like pointers to versions
+  - aws lambda create-alias --function-name my-function --name prod --function-version 5
+  - Aliases allow weighted routing between versions: Example: send 10% traffic to a new version: 
+    - aws lambda update-alias --function-name my-function --name prod --routing-config '{"AdditionalVersionWeights":{"6":0.1}}'
 - Create a __container image__ for a Lambda function by using an AWS provided base image
 - Package __libraries__ and other dependencies to reduce the size of deployment archives
 - Add a dedicated __HTTP(S) endpoint__ to your Lambda function.
@@ -55,14 +60,70 @@ def calculate_area(length, width):
 
 handler function is always the entry point to your code
 
-The function __lambda_handler__ takes two arguments, event and context. An __event__ in Lambda is a JSON formatted document that contains data for your function to process.
-If your function is invoked by another AWS service, the event object contains information about the event that caused the invocation. For example, if an Amazon Simple Storage Service (Amazon S3) bucket invokes your function when an object is uploaded, the event will contain the name of the Amazon S3 bucket and the object key.
+The function __lambda_handler__ takes two arguments, event and context. 
+An __event__ in Lambda is a JSON formatted document that contains data for your function to process.
+If your function is invoked by another AWS service, the event object contains information about the event that caused the invocation. 
+For example, if an Amazon Simple Storage Service (Amazon S3) bucket invokes your function when an object is uploaded, the event will contain the name of the Amazon S3 bucket and the object key.
 
-The second argument your function takes is __context__. Lambda passes the context object to your function automatically. The context object contains information about the function invocation and execution environment.
+The second argument your function takes is __context__. 
+Lambda passes the context object to your function automatically. 
+The context object contains information about the function invocation and execution environment.
 
 With Python, you can use either a print statement or a Python logging library to send information to your function's log. 
 
 You can invoke the Lambda function using console. Just create an event and run a test.
+
+## Creating a container image for an AWS Lambda function
+
+### Step 1 — Write the Lambda Function
+
+```
+# app.py
+def lambda_handler(event, context):
+    return {
+        "statusCode": 200,
+        "body": "Hello from container Lambda!"
+    }
+```
+
+### Step 2 — Create a Dockerfile
+
+```
+FROM public.ecr.aws/lambda/python:3.12
+
+# Copy function code
+COPY app.py ${LAMBDA_TASK_ROOT}
+
+# Command that Lambda runs
+CMD ["app.lambda_handler"]
+```
+
+### Step 3 — Build the Container Image
+
+```
+docker build -t my-lambda-image .
+```
+
+### Step 4 — Create an Amazon ECR Repository
+
+### Step 5 — Tag and Push the Image
+
+```
+docker tag my-lambda-image:latest \
+<account-id>.dkr.ecr.<region>.amazonaws.com/my-lambda-image:latest
+
+docker push <account-id>.dkr.ecr.<region>.amazonaws.com/my-lambda-image:latest
+```
+
+### Step 6 — Create the Lambda Function
+
+```
+aws lambda create-function \
+ --function-name my-container-lambda \
+ --package-type Image \
+ --code ImageUri=<account-id>.dkr.ecr.<region>.amazonaws.com/my-lambda-image:latest \
+ --role arn:aws:iam::<account-id>:role/lambda-execution-role
+```
 
 ## lambda application
 
@@ -91,8 +152,92 @@ You can deploy your app manually by creating and configuring resources with the 
 - You deploy your Lambda function code using a __deployment package__. Lambda supports two types of deployment packages: zip and container.
 - The __runtime__ provides a language-specific environment that runs in an execution environment. Example: python3.12, python3.11, java21
 - A Lambda __layer__ is a .zip file archive that can contain additional code or other content. A layer can contain libraries, a custom runtime, data, or configuration files.
+  - Layers allow multiple Lambda functions to share the same dependencies
+  - This reduces package size and simplifies deployments.
+  ```
+  resource "aws_lambda_function" "my_lambda" {
+    function_name = "example_lambda"
+
+    filename      = "lambda.zip"
+    handler       = "handler.lambda_handler"
+    runtime       = "python3.11"
+    role          = aws_iam_role.lambda_role.arn
+
+    source_code_hash = filebase64sha256("lambda.zip")
+
+    layers = [
+      aws_lambda_layer_version.python_deps.arn
+    ]
+  }
+  ```
 - When you invoke or view a function, you can include a __qualifier__ to specify a version or alias. A version is an immutable snapshot of a function's code and configuration that has a numerical qualifier. For example, my-function:1
 - A __destination__ is an AWS resource where Lambda can send events from an asynchronous invocation. 
+  - You can define two destinations:
+    - On success: if the Lambda completes successfully
+    - On failure: if the Lambda throws an error or times out
+  - Supported destination services
+    - Amazon SQS → messages queued for later processing
+    - Amazon SNS → notify subscribers
+    - Amazon EventBridge → trigger downstream workflows
+    - Another Lambda function → chain Lambda functions together
+    ```
+    resource "aws_lambda_function_event_invoke_config" "example" {
+      function_name = aws_lambda_function.my_lambda.function_name
+
+      destination_config {
+        on_success {
+          destination = aws_sqs_queue.success_queue.arn
+        }
+        on_failure {
+          destination = aws_sns_topic.failure_topic.arn
+        }
+      }
+    }
+    ```
+
+How to monitor and debug Lambda functions using Amazon CloudWatch:
+- Automatic logging: Lambda automatically sends stdout and stderr output to CloudWatch Logs.
+- CloudWatch provides built-in Lambda metrics
+- Tracing & Debugging:
+  - Enable AWS X-Ray for Lambda to trace function executions.
+    - Identify performance bottlenecks
+    - Trace downstream service calls
+    - Visualize Lambda execution across microservices
+
+How to design a __serverless event-driven architecture__ using Lambda and other AWS services:
+- Core Principles
+  - A __serverless__, event-driven architecture means:
+  - Components __react to events__ rather than direct calls.
+  - You minimize servers — use fully managed services.
+  - Systems are __loosely coupled__, scalable, and resilient.
+- Example Workflow:
+  - User uploads image → S3 bucket
+  - S3 Event Notification triggers a Lambda function (validation & metadata extraction)
+  - Lambda publishes a message to SQS queue for processing
+  - Another Lambda consumes SQS messages to perform image resizing and watermarking
+  - Processed images are saved to S3 output bucket
+  - SNS notification sent to users when processing completes
+  ```
+    User
+    │
+    ▼
+  Amazon S3 (uploads)
+    │ (event)
+    ▼
+  Lambda 1 (validation + metadata)
+    │
+    ▼
+  Amazon SQS
+    │
+    ▼
+  Lambda 2 (processing)
+    │
+    ▼
+  Amazon S3 output / DynamoDB status
+    │
+    ▼
+  Amazon SNS notification
+  ```
 
 ## Programing environment
 
@@ -149,11 +294,21 @@ Resources:
       # Other function properties...
 ```
 - Giving Lambda functions access to resources in an __Amazon VPC__
+  - lets the function access private resources like databases, caches, or internal services
+  - attach it to subnet: aws lambda update-function-configuration --function-name my-function --vpc-config SubnetIds=subnet-123,subnet-456,SecurityGroupIds=sg-123
+  - Once Lambda is in a VPC: It loses default internet access
 - You can configure your Lambda function URLs to __stream response__ payloads back to clients. Response streaming can benefit latency sensitive applications by improving time to first byte (TTFB) performance.
+- To access a AWS Lambda function from the internet using a REST API call, place it behind Amazon API Gateway.
+
+How Lambda Calls Other AWS Services: allow IAM policy to access a aws service
+
 
 ## Invocation
 
 When you invoke a function, you can choose to invoke it __synchronously__ or __asynchronously__. With synchronous invocation, you wait for the function to process the event and return a response. With asynchronous invocation, Lambda queues the event for processing and returns a response immediately. The InvocationType request parameter in the Invoke API determines how Lambda invokes your function. A value of __RequestResponse indicates synchronous invocation__, and a value of __Event indicates asynchronous invocation__.
+
+In synchronous invocation the client waits for the response, for example when using Amazon API Gateway.
+In asynchronous invocation the event is placed in a queue and Lambda processes it later, which is common with services like Amazon S3 or Amazon SNS. The invocation type can be specified using the InvocationType parameter.
 
 If the function invocation results in an __error__, for synchronous invocations, view the error message in the response and retry the invocation manually. For asynchronous invocations, Lambda handles retries automatically and can send invocation records to a destination.
 

@@ -297,6 +297,22 @@ In Amazon RDS for Multi-AZ PostgreSQL, the failover time is typically around __1
 - Import from S3
   - Aurora supports LOAD DATA FROM S3 for MySQL-compatible clusters
 
+### Aurora Multi-AZ and RDS Multi-AZ
+
+| Feature          | Aurora Multi-AZ                                               | RDS Multi-AZ                                        |
+| ---------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| Architecture     | Distributed storage shared across instances                   | Primary DB with standby replica                     |
+| Data replication | Storage replicated automatically across **6 copies in 3 AZs** | **Synchronous replication** from primary to standby |
+| Storage layer    | **Decoupled compute and storage**                             | Storage attached to each DB instance                |
+| Standby usage    | Multiple reader instances possible                            | Standby used **only for failover**                  |
+| Read scaling     | Up to **15 read replicas**                                    | Requires **Read Replicas** (separate from Multi-AZ) |
+| Failover time    | Typically **~10–30 seconds**                                  | Typically **~60–120 seconds**                       |
+| Replication lag  | Very low due to shared storage                                | Minimal (sync replication) but failover slower      |
+| Availability     | Designed for **higher fault tolerance**                       | High availability via standby instance              |
+| Performance      | Higher throughput and scalability                             | Depends on instance type                            |
+| Cost             | Generally **more expensive**                                  | Usually **cheaper** than Aurora                     |
+
+
 ### Summary
 
 Amazon Aurora advantages include:
@@ -446,6 +462,11 @@ __table classes__:
 -  DynamoDB Standard-Infrequent Access (DynamoDB Standard-IA) table class is optimized for tables where storage is the dominant cost. For example, tables that store infrequently accessed data, such as application logs, old social media posts, e-commerce order history, 
 
 Amazon DynamoDB stores data in partitions. A __partition__ is an allocation of storage for a table, backed by solid state drives (SSDs) and automatically replicated across multiple Availability Zones within an AWS Region. Partition management is handled entirely by DynamoDB—you never have to manage partitions yourself. DynamoDB uses the value of the partition key as input to an internal hash function. The output value from the hash function determines the partition in which the item will be stored. tends to keep items which have the same value of partition key close together and in sorted order by the sort key attribute's value.
+
+Throughput Limits Per Partition: Each partition has limits (roughly):
+- ~10 GB storage
+- ~3000 RCU
+- ~1000 WCU
 
 ### expression attribute values
 
