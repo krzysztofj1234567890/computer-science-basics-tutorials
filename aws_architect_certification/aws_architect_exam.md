@@ -722,9 +722,7 @@ __User data__ is data that gets supplied in the form of a script and that runs a
 
 User Data is generally used to perform common automated configuration tasks and even __run scripts after the instance starts__. When you launch an instance in Amazon EC2, you can pass two types of user data - shell scripts and cloud-init directives. You can also pass this data into the launch wizard as plain text or as a file.
 
-By default, scripts entered as user data are __executed with root user privileges__
-
-Scripts entered as user data are executed as the root user, __hence do not need the sudo command in the script__. Any files you create will be owned by root; if you need non-root users to have file access, you should modify the permissions accordingly in the script.
+Scripts entered as __user data__ are executed as the__ root user__, __hence do not need the sudo command in the script__. Any files you create will be owned by root; if you need non-root users to have file access, you should modify the permissions accordingly in the script.
 
 By default, user data scripts and cloud-init directives __run only during the boot cycle when you first launch an instance__. __You can update your configuration to ensure that your user data scripts and cloud-init directives run every time you restart your instance__.
 
