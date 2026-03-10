@@ -150,40 +150,6 @@ Server certificates and certificate-based authentication:
 - CBA requires a private certificate authority (CA) to create private certificates to identify users.
 - Short-lived certificates are used with CBA to reduce the potential impact of a compromised credential.
 
-### IAM Policies <a id="IAMPolicies"></a>
-
-- IAM AWS Managed policy: 
-  - created and managed by aws (can update at any time), common use cases, might add policies to other related aws services.
-  - cannot specify specific resource, no customization, broad range
-```
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:ListAllMyBuckets",
-        "s3:GetBucketLocation",
-        "s3:ListBucket",
-        "s3:GetObject"
-      ],
-      "Resource": [
-        "arn:aws:s3:::*",
-        "arn:aws:s3:::*/*"
-      ]
-    }
-  ]
-}
-```
-
-- Customer Managed Policies:
-  - created and managed by users, total control on a permission, fine grained
-  - contains many permissions
-- Inline policy: 
-  - direct association to user, group or role, does not have ARN
-  - use it when ou have specific job needs, short term project
-- Use IAM Policy Similator to check the policy
-
 ### IAM Entities <a id="IAMEntities"></a>
 
 __IAM users:__ individuals
@@ -207,6 +173,7 @@ __IAM groups:__ collection of IAM users (can belong to many groups)
 - You __can't nest groups__
 - __Groups cannot be specified in the policy document__. Only users and roles
 - add policy (with many permissions)
+- AWS Doesn't Allow Roles on Groups: Groups are simply permission containers, while roles require an assume-role action (sts:AssumeRole), which must be granted to identities (users or services) — not groups.
 
 __IAM Roles:__
 - Roles are created and then __assumed by trusted entities__.
@@ -220,6 +187,23 @@ __IAM Roles:__
 - __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
 - you __can share IAM roles between AWS accounts__ using cross-account IAM role assumption. 
 - you __cannot directly transfer or share IAM users or groups across AWS accounts__, __you can share IAM permissions__ (through roles and policies) between AWS accounts by using cross-account access.
+- A __trust policy__ in AWS Identity and Access Management is a special policy attached to an IAM Role that defines who (which entities) is allowed to assume the role.
+  - It only defines who is trusted to take on the role.
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "ec2.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }
+  ``` 
+
 
 __IAM Policies__:
 - Policies are documents that define the permissions and they can be applied to users, groups, and roles
@@ -262,14 +246,70 @@ __IAM Policies__:
 }
 ```
 
-__Types of IAM policy__:
-- __identity-based policies__ which you can attach to users, groups, or roles.
-- __resource-based policies__. They get attached to resources like S3 buckets, and you can define permissions for principals accessing the resources using a resource policy.
-- __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity. Created by IAM Administrators or Users with Necessary Permissions
-- __organizations service__ control policies. These specify the maximum permissions for an organization or an OU. Can be created by AWS Organizations Administrator or  IAM Users/Roles with Explicit Permissions
-- __session policies__ that are used with Assume Role API actions.
+### IAM Policies <a id="IAMPolicies"></a>
 
-__IAM best practices__:
+- Identity-Based Policies: Policies attached to IAM identities: Users, Groups, Roles
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["s3:GetObject"],
+        "Resource": "arn:aws:s3:::company-data/*"
+      }
+    ]
+  }
+  ```
+- Resource-Based Policies: Policies attached directly to a resource. They define who can access that resource.
+  ```
+  {
+    "Effect": "Allow",
+    "Principal": {
+      "AWS": "arn:aws:iam::111122223333:root"
+    },
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::shared-bucket/*"
+  }
+  ```
+- __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity. Created by IAM Administrators or Users with Necessary Permissions
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["s3:*"],
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+- __Service Control Policies__ aka __organizations service__ control policies. These specify the maximum permissions for an organization or an OU. Can be created by AWS Organizations Administrator or  IAM Users/Roles with Explicit Permissions
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Deny",
+        "Action": "s3:DeleteBucket",
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+- __session policies__ that are used with Assume Role API actions. Temporary policies applied during role sessions.
+
+- Customer Managed Policies:
+  - created and managed by users, total control on a permission, fine grained
+  - contains many permissions
+- Inline policy: 
+  - direct association to user, group or role, does not have ARN
+  - use it when ou have specific job needs, short term project
+- Use IAM Policy Similator to check the policy
+
+### IAM best practices
+
 - __lock__ away your account __root user__ access keys,
 - create individual users,
 - use __groups__ to assign __permissions to users__,
@@ -379,6 +419,8 @@ Attribute Based Access Control (ABAC):
 - With ABAC, permissions scale - it is no longer necessary for administrator to update existing policies.
 - ABAC requires fewer policies
 
+
+
 ### Architecture Patterns
 
 #### select group of users only should be allowed to change their IAM password
@@ -388,6 +430,138 @@ Create a group for the users and apply a permissions policy that grants the iam:
 #### an Amazon EC2 instance must be delegated with permissions to an Amazon DynamoDB table.
 
 Create a role, assign a permissions policy to the role that grants access to the DynamoDB database service.
+
+Create IAM Role for EC2: This trust policy allows EC2 to assume the role defined here:
+```
+// IAM Role for EC2 - meaning EC2 is cllowed to assume this role
+resource "aws_iam_role" "ec2_dynamodb_role" {
+  name = "ec2-dynamodb-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+// IAM Policy for DynamoDB Access
+resource "aws_iam_policy" "dynamodb_access_policy" {
+  name = "dynamodb-access-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = "arn:aws:dynamodb:us-east-1:123456789012:table/Orders"
+      }
+    ]
+  })
+}
+
+// Attach Policy to Role
+resource "aws_iam_role_policy_attachment" "attach_policy" {
+  role       = aws_iam_role.ec2_dynamodb_role.name
+  policy_arn = aws_iam_policy.dynamodb_access_policy.arn
+}
+
+// Create the Instance Profile
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "ec2-dynamodb-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
+// Attach the Instance Profile to an EC2 Instance
+resource "aws_instance" "app_server" {
+  ami           = "ami-0abcdef1234567890"
+  instance_type = "t2.micro"
+
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+
+  tags = {
+    Name = "AppServer"
+  }
+}
+```
+
+for lambda:
+```
+// Create the IAM Role (Lambda Trust Policy)
+resource "aws_iam_role" "lambda_role" {
+  name = "lambda-dynamodb-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+// Attach a Policy to the Role (DynamoDB Access)
+resource "aws_iam_policy" "lambda_dynamodb_policy" {
+  name = "lambda-dynamodb-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = "arn:aws:dynamodb:us-east-1:123456789012:table/Orders"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_lambda_policy" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_dynamodb_policy.arn
+}
+
+// Create the Lambda Function, Attach the role directly to the Lambda function:
+resource "aws_lambda_function" "my_lambda" {
+  function_name = "my-dynamodb-lambda"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "index.handler"
+  runtime       = "python3.9"
+
+  filename = "lambda_function.zip"  # Your packaged code
+
+  environment {
+    variables = {
+      TABLE_NAME = "Orders"
+    }
+  }
+}
+```
+
 
 #### A company has created their first AWS account. They need to assign permissions to users based on job function.
 
