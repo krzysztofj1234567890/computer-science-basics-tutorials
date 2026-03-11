@@ -2133,7 +2133,7 @@ With AWS Transit Gateway, you can simplify the connectivity between multiple VPC
 
 You can store any type of file.
 
-Files can be anywhere from __0 bytes to 5TB__.
+Files can be anywhere from __0 bytes to 50TB__.
 
 There is virtually unlimited storage available.
 
@@ -2146,7 +2146,7 @@ There's __no hierarchy__ for objects within a bucket.
 S3 delivers __strong read-after-write consistency__.
 
 - HA: 99.99% (standard)
-- Max file size 5TB
+- Max file size 50TB
 - Data Consistency: 
   - read-after-write for PUTS of new objects
   - eventual consistency for overwrite PUTs and DELETE
@@ -2184,7 +2184,6 @@ S3 Lifecycle rules
 - applied to filtered objects: prefix, tags, object size (range)
 - you can setup for versioned and not versioned objects
 
-
 By default __bucket owner__ pays for: storage, data transfer, PUT or GET user requests
 __Requester__ if authenticated (must have aws account) can be made to pay for: data transfer and request cost. Requested must have a specific http header. To enable it you must:
 - make S3 bucket public
@@ -2201,15 +2200,14 @@ __S3 pre-signed url__: __allow access to private S3 objects for limited time__
 
 __S3 MFA delete for bucket__: must aws cli and you must have MFA on for your aws user.
 
-
-
-
 __VPC Gateway Endpoint for S3__
 - only S3 and DynamoDB
 - no additional cost
 - integrates directly into VPC route table (creates entry)
 
 __S3 Access Point__
+- Instead of giving every application direct access to the same bucket with complicated policies, you create multiple access points, each with its own permissions and network controls.
+- An S3 Access Point is a custom doorway into an S3 bucket with its own permissions and network rules
 - you can always use url to s3
 - S3 access point help you to control who and how they can access S3 bucket
 - Useful if bucket is accessed from many (like 500) applications/users  (doing it in bucket policy will be complex)
@@ -2217,7 +2215,12 @@ __S3 Access Point__
 - ability to restrict access from specific VPC of IP address
 - support network based restrictions
 - you have to delegate your __bucket policy__ to delegate the management to access point
+  - Before access points existed, everything was controlled through one bucket policy.
+  - problem:
+    - One policy becomes very large and hard to manage
+    - Risk of breaking permissions for other apps
 
+__S3 Object Lambda__: Feature: Modify S3 data dynamically before returning it to users.
 
 ### Storage classes <a id="S3StorageClasses"></a>
 
@@ -2294,6 +2297,12 @@ __Bucket Policy__
 - Bucket policies, they can only be attached to Amazon S3 buckets.
 - you __can assign the same policy to many S3 buckets, but not directly__ by referencing one policy across multiple buckets
 - __cannot assign a bucket policy directly to an individual S3 object__.
+- Common Uses of Bucket Policies
+  - ✅ Public file hosting
+  - ✅ Cross-account access
+  - ✅ Restrict access by IP
+  - ✅ Enforce HTTPS
+  - ✅ Allow CloudFront access
 - example of bucket policy that will protect S3 bucket:
 ```
 {
@@ -2319,6 +2328,15 @@ __Bucket Policy__
   ]
 }
 ```
+
+| Feature              | Bucket Policy             | IAM Policy           |
+| -------------------- | ------------------------- | -------------------- |
+| Policy type          | Resource-based            | Identity-based       |
+| Attached to          | S3 bucket                 | IAM user/role/group  |
+| Controls             | Who can access the bucket | What the user can do |
+| Cross-account access | Very common               | Harder               |
+| Public access        | Yes                       | No                   |
+| Scope                | Single bucket             | Many AWS services    |
 
 
 __S3 ACL = Access Control Lists__ - disabled by default
@@ -2378,23 +2396,27 @@ __Multipart upload__:
 - uploads objects in parts, independently, in parallel and in any order
 - It's performed using the Multipart upload API
 - recommended for objects __above 100 MB__.
-- can be used for objects from 5MB up to the maximum file size, which is __5TB__.
+- can be used for objects from 5MB up to the maximum file size, which is __50TB__.
 - it has to be used for any objects larger than 5GB.
+- Multipart upload to Amazon S3 does support __retries__
+  - AWS SDK (Java, Python, Node, etc.)
+    - Most SDKs automatically retry failed parts using built-in retry logic.
+  - AWS CLI: retries automatically.
 __S3 Multipart Upload__ (mandatory for files >5GB):
 - get uploadId: 
-```
-aws s3api create-multipart-upload --bucket kjbucket --key kjfilename
-```
+  ```
+  aws s3api create-multipart-upload --bucket kjbucket --key kjfilename
+  ```
 - compress + split file ( 7-zip )
 - upload file parts <5MB
-```
-aws s3api upload-part --bucket kjbucket --key kjfilename --part-number1 --upload-id <id> --body .\you_file_name_part
-```
+  ```
+  aws s3api upload-part --bucket kjbucket --key kjfilename --part-number 1 --upload-id <id> --body .\you_file_name_part
+  ```
 - get ETag to track
 - send request with uploadID and ETAGs to assemble file
-```
-aws s3api complete-multipart-upload --bucket....
-```
+  ```
+  aws s3api complete-multipart-upload --bucket....
+  ```
 
 __S3 copy API__:
 - you can copy objects __up to 5GB__.
@@ -2415,7 +2437,7 @@ __Server Access Logging__:
 - you can specify a prefix if you want to.
 - You must also grant write permission to the Amazon S3 Log Delivery group on the destination bucket.
 
-__Cloud Trail events__: logs in json of all cations on your objects - __all details__ like: requestor, operation
+__Cloud Trail events__: logs in json of all actions on your objects - __all details__ like: requestor, operation
 
 __Cross Account Access Methods:__
 - Resource-based policies and IAM policies can be used for programmatic access to S3 bucket objects,
@@ -2423,8 +2445,12 @@ __Cross Account Access Methods:__
 - If you need programmatic and console access, you can use cross account IAM roles.
 
 __Performance optimizations__:
-- S3 does support at least 3,500 PUT, COPY, POST, DELETE, or 5,500 GET HEAD requests per second per prefix in a bucket.
+- S3 does support at least 3,500 PUT, COPY, POST, DELETE, or 5,500 GET HEAD requests per second __per prefix__ in a bucket.
+  - to reach 10,000 PUT/sec, you simply distribute the requests across multiple prefixes
+  - A prefix is the logical path before the object name.
+  - Example objects: bucket/logs/a/file1 preffix is: logs/a
 - You can increase, read or write performance by parallelizing reads.
+  - multiple requests happen at the same time instead of sequentially
 - You can use Byte-Range Fetches.
 - You can retry requests for latency sensitive applications
 - you can combine S3 and EC2 in the same region for better performance.
@@ -2459,11 +2485,11 @@ Transfer acceleration is as secure as a direct upload to S3
 - it is using aws global network and edge locations
 - speeds-up 50-500% faster
 - enable it and get new url
+- you can perform PUT, POST, and DELETE, along with other standard object operations
 
 Must use one of the following endpoints:
 - .s3-accelerate.amazonaws.com.
 - .s3-accelerate.dualstack.amazonaws.com (dual-stack option)
-
 
 ### S3 encryption <a id="S3Encryption"></a>
 
@@ -2487,16 +2513,15 @@ S3 encryption:
      - you manage they keys outside of aws
      - provide keys when uploading/downloading the object
      - create key using OpenSSL: 
-```
-# create key
-openssl rand 32 > sse-c.key 
-# encode it to base64
-key=$(cat sse-c.key | base64)
-# create md5 hash
-keymd5=$( cat sse-c.key | openssl dgst -md5 -binary | base64)
-```
+      ```
+      # create key
+      openssl rand 32 > sse-c.key 
+      # encode it to base64
+      key=$(cat sse-c.key | base64)
+      # create md5 hash
+      keymd5=$( cat sse-c.key | openssl dgst -md5 -binary | base64)
+      ```
       - aws console cannot open this file
-
 - CSE (client side)
   - need to use AWS encryption SDK or OpenSSL or other to encrypt
 
@@ -2576,6 +2601,13 @@ CORS with Amazon S3:
 - These settings are defined using rules
 - the rules are added using JSON files in Amazon S3.
 
+Example problem without CORS:
+- If the browser tries to fetch or upload a file from S3, the request may be blocked by the browser unless the S3 bucket explicitly allows it via CORS configuration
+```
+Frontend app: https://app.example.com
+S3 bucket:    https://mybucket.s3.amazonaws.com
+```
+
 ### S3 Object Lock <a id="S3ObjectLock"></a>
 
 S3’s Object Lock feature allows you to enforce the “Write Once Read Many” (WORM) paradigm. 
@@ -2610,6 +2642,7 @@ There are three ways in which you can use Object Lock:
   Lifecycle policies cannot delete an object version with a legal hold.
   This feature lets you keep an object version for as __long as needed__
   Once the legal hold is removed, the object version can be deleted.
+  To remove a Legal Hold on an object in Amazon S3, you must disable the legal hold status for that specific object version.
 - __Retention Period__
   We can also protect an object version from deletion or modification by __specifying a retention period__
   - In __Governance Mode__, anyone with __S3:BypassGovernanceRetention__ permission can override retention configuration and delete the object version
@@ -2638,7 +2671,7 @@ You can configure __separate S3 Lifecycle rules on the source and destination bu
 
 - Storage Limits:
   - Unlimited Storage: You can store an unlimited amount of data in S3. 
-  - Individual Object Size: Objects can range from 0 bytes to 5 TB in size. 
+  - Individual Object Size: Objects can range from 0 bytes to 50 TB in size. 
 Single PUT Operation: The largest object you can upload in a single PUT operation is 5 GB. 
 Multipart Upload: For objects larger than 100 MB, it's recommended to use the Multipart Upload feature for optimal performance. 
 Bucket Size: There is no limit on the total size of data stored in a bucket. 
