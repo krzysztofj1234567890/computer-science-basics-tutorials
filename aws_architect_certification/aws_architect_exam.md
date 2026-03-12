@@ -2732,7 +2732,7 @@ If VPC endpoint is used, S3 is accessed using AWS private network. In this case,
 ####  You want to distribute content in S3 bucket using CloudFront edge locations. You also want to restrict access to the content to only the users who are authorized by your application.
 
 Configure content to be accessible only using signed URLs or signed cookies
-Create CloudFront user nad grant read access to S3
+Create CloudFront user and grant read access to S3
 Remove permissions for anywone to directly access S3 bucket
 
 #### An object of size 10 KB is stored in S3 using Standard - IA storage class. How is the pricing computed for this object?
@@ -5093,6 +5093,52 @@ Amazon RedShift always keeps three copies of your data:
 - A replica of compute nodes (within the cluster).
 - A backup copy on S3.
 
+How to optimize redshift queries:
+- Distribution Styles: Use the right distribution style for your tables to minimize data movement during joins:
+  - KEY – distribute rows based on a join key.
+  - EVEN – default; distributes rows evenly across nodes.
+  - ALL – small dimension tables replicated to all nodes for faster joins.
+- Sort Keys:
+  - Define sort keys on columns frequently used in WHERE clauses, joins, or aggregations.
+  - Redshift stores data physically sorted by these keys, speeding up range-restricted scans.
+- Compression Encodings:
+  - Apply column compression (like ZSTD or LZO) to reduce I/O and improve query performance.
+  - Use ANALYZE COMPRESSION to automatically suggest optimal encodings.
+- Vacuum & Analyze:
+  - Regularly run VACUUM to reclaim space from deleted rows.
+  - Run ANALYZE to update table statistics so the query planner makes optimal decisions.
+- Query Optimization:
+  - Avoid SELECT *; select only required columns.
+  - Push filters early in the query to reduce scanned data.
+  - Break complex queries into staging tables if needed for large joins.
+- Workload Management (WLM):
+  - Configure queues and concurrency limits to prioritize critical queries and avoid resource contention.
+- Partitioning & Indexing?
+  - Redshift does NOT support traditional indexes like OLTP databases.
+  - Instead, you rely on sort keys, distribution keys, and interleaved sort keys to achieve similar performance benefits.
+
+Amazon Redshift has two deployment modes:
+- Provisioned Redshift (classic):
+  - You provision clusters with fixed node types and sizes.
+  - You manage scaling manually (or with Elastic Resize for limited adjustments).
+  - Not serverless—you pay for cluster uptime, even if queries aren’t running.
+- Redshift Serverless:
+  - AWS introduced Redshift Serverless, which automatically scales compute capacity based on workload.
+  - You don’t manage clusters; you only pay for the compute you use and storage.
+  - Ideal for sporadic or unpredictable workloads.
+
+Redshift Serverless – Use when:
+- Workloads are sporadic, unpredictable, or highly variable.
+- You don’t want to manage clusters or worry about resizing nodes.
+- You want pay-per-use pricing based on actual query compute time.
+- Good for ad-hoc analytics, development, testing, or small-to-medium production workloads.
+
+Provisioned Redshift (Cluster-based) – Use when:
+- Workloads are steady, predictable, or very high-volume.
+- You need maximum performance and full control over node types, distribution, and concurrency.
+- You are running large-scale ETL, complex joins, or heavy BI workloads.
+- Can optimize costs via Reserved Instances for long-term, predictable usage.
+
 ### Architectural Patterns
 
 #### Each Read Capacity Unit provisioned in a DynamoDB table translates to
@@ -5239,7 +5285,11 @@ The automated backup feature of Amazon RDS enables point-in-time recovery for yo
 
 ### Amazon Kinesis <a id="Kinesis"></a>
 
-Kinesis is a collection of services for processing streams of various data
+Kinesis is a collection of 4 services for processing streams of various data:
+- Amazon Kinesis Data Streams
+- Amazon Kinesis Data Firehose
+- Amazon Kinesis Data Analytics
+- Amazon Kinesis Video Streams
 
 Data is processed in “shards” – with each shard able to ingest 1000 records per second. One shard provides a capacity of 1MB/sec data input and 2MB/sec data output
 
@@ -5247,7 +5297,7 @@ A record consists of a partition key, sequence number, and data blob (up to 1 MB
 
 Transient data store – default retention of 24 hours but can be configured for up to 7 days
 
-#### Kinesis Data Streams <a id="KinesisDataStreams"></a>
+#### Kinesis Data Streams <a id="KinesisDataStreams"></a> = Kafka
 
 Records are organized in partitions (shards).
 
@@ -5263,7 +5313,12 @@ Records are ordered by arrival time.
 - enables real time processing of streaming big data.
 - can move data off data producers and then process that data.
 - Producers send data to Kinesis and it's stored in shards for __24 hours__, and that's the default, up to seven days.
-- Consumers then take the data and process it, and they can save it to another service.
+  - Applications can push data directly using the Kinesis APIs such as PutRecord or PutRecords
+  - Several AWS services can send data directly or via integration to Kinesis streams (Amazon CloudWatch, Amazon EventBridge, Lambda)
+- Consumers then take the data and process it, and they can save it to another service
+  - Lambda
+  - Kinesis Data Analytics: reads streaming data from Kinesis and runs SQL or Apache Flink applications to analyze it in real time.
+  - Amazon Kinesis Data Firehose can consume data from Kinesis Data Streams and deliver it to storage or analytics systems
 - allows for the later processing by applications rather than with Firehose where it delivers the data directly to an AWS service.
 - Kinesis data streams is real time with around 200 milliseconds of delay.
 - The Client Library helps you consume and process data from the Kinesis Stream, and each shard is processed by exactly one KCL worker and has one corresponding record processor.
@@ -5278,11 +5333,11 @@ Records are ordered by arrival time.
 
 Use Amazon Kinesis Data Streams to ingest the data, process it using AWS Lambda or run analytics using Amazon Kinesis Data Analytics
 
-Amazon Kinesis Data Streams (KDS) is a massively scalable and durable real-time data streaming service with support for retry mechanism. KDS can continuously capture gigabytes of data per second from hundreds of thousands of sources such as website clickstreams, database event streams, financial transactions, social media feeds, IT logs, and location-tracking events. The data collected is available in milliseconds to enable real-time analytics use cases such as real-time dashboards, real-time anomaly detection, dynamic pricing, and more.
+Amazon Kinesis Data Streams (KDS) is a massively scalable and durable __real-time data streaming service__ with support for retry mechanism. KDS can continuously capture gigabytes of data per second from hundreds of thousands of sources such as website clickstreams, database event streams, financial transactions, social media feeds, IT logs, and location-tracking events. The data collected is available in milliseconds to enable real-time analytics use cases such as real-time dashboards, real-time anomaly detection, dynamic pricing, and more.
 
 KDS makes sure your streaming data is available to multiple real-time analytics applications, to Amazon S3, or AWS Lambda within 70 milliseconds of the data being collected. Amazon Kinesis data streams scale from megabytes to terabytes per hour and scale from thousands to millions of PUT records per second. You can dynamically adjust the throughput of your stream at any time based on the volume of your input data.
 
-#### Kinesis Data Firehose <a id="KinesisFirehose"></a>
+#### Kinesis Data Firehose <a id="KinesisFirehose"></a> = Kafka Connectors
 
 - No need to worry about shards and streams
 - __captures, transforms, and load streaming data__.
@@ -5296,7 +5351,7 @@ KDS makes sure your streaming data is available to multiple real-time analytics 
 - Kinesis Data Streams can be used as the source(s) to Kinesis Data Firehose
 - No shards, totally automated
 
-#### Kinesis data analytics <a id="KinesisDataAnalytics"></a>
+#### Kinesis data analytics <a id="KinesisDataAnalytics"></a> = Kafka streams
 
 Use it to transform and __analyze incoming streaming data__ from Kinesis Data Streams in real time. Kinesis Data Analytics takes care of everything required to run streaming applications continuously, and __scales automatically__ to match the volume and throughput of your incoming data. With Amazon Kinesis Data Analytics, there are __no servers to manage, no minimum fee or setup cost__, and you only pay for the resources your streaming applications consume.
 
@@ -5334,17 +5389,50 @@ Use it to transform and __analyze incoming streaming data__ from Kinesis Data St
 - Glue discovers data and stores the associated metadata in the __Glue data catalog__
 - it works with data lake, so data on __S3, data warehouses like Redshift, and data stores, including on RDS and EC2__.
 - You can use a __crawler__ to populate the Glue data catalog with tables.
-- the crawler can crawl multiple data stores in a single run.
-- Upon completion, the crawler creates or updates one or more tables in your data catalog.
+  - the crawler can crawl multiple data stores in a single run.
+  - Upon completion, the crawler creates or updates one or more tables in your data catalog.
 - ETL jobs that you define in Glue use the data catalog tables as sources and targets.
 
 #### AWS Glue DataBrew
 
 AWS Glue DataBrew is a fully managed, serverless __data preparation tool__ that enables users to __visually clean, transform, and normalize__ raw datasets—all without writing any code. It is specifically designed for data analysts, business users, and data engineers who need to prepare data for analytics or machine learning workflows using an intuitive point-and-click interface
 
+Typical Workflow
+- Import data from a source
+- Explore the dataset
+- Apply transformations visually
+- Save the transformation steps as a recipe
+- Run the recipe as a data preparation job
+
+Recipes are executed through DataBrew jobs, not standard Glue ETL jobs.
+They run on DataBrew’s own service infrastructure, not Spark.
+
 #### AWS Glue Studio
 
-While AWS Glue Studio does offer a __low-code visual interface for building ETL workflows__, it is still primarily intended for developers and data engineers. The canvas generates and __manages Apache Spark scripts__, which may require customization and still involve code for advanced logic. More importantly, Glue Studio does not natively provide built-in data profiling or column-level statistics, unlike AWS Glue DataBrew. Additionally, Glue Studio is __less suited for collaboration__ among non-technical users, and lacks the ability to share visual "recipes" with reusable, human-readable steps like DataBrew offers.
+While AWS Glue Studio does offer a __low-code visual interface for building ETL workflows__, it is still primarily intended for developers and data engineers. 
+The canvas generates and __manages Apache Spark scripts__, which may require customization and still involve code for advanced logic. 
+More importantly, Glue Studio does not natively provide built-in data profiling or column-level statistics, unlike AWS Glue DataBrew. 
+Additionally, Glue Studio is __less suited for collaboration__ among non-technical users, and lacks the ability to share visual "recipes" with reusable, human-readable steps like DataBrew offers.
+AWS Glue Studio creates Glue ETL jobs.
+
+Both DataBrew recipes and Glue Studio scripts belong to the AWS Glue ecosystem, but they run as different types of jobs and are not executed the same way.
+They still be orchestrated together. Both can be part of pipelines using:
+- AWS Glue Workflows
+- AWS Step Functions
+- Amazon EventBridge
+
+#### AWS Glue Workflows
+
+AWS Glue Workflows orchestrate data pipelines built with AWS Glue components.
+
+They coordinate:
+- AWS Glue jobs
+- AWS Glue Crawlers
+- Glue triggers
+
+Both AWS Glue Workflows and AWS Step Functions are used to orchestrate workflows.
+- Glue Workflows → orchestration specifically for Glue ETL pipelines
+- Step Functions → orchestration for any AWS service or application
 
 
 ### Architecture Patterns
@@ -5573,6 +5661,9 @@ Failure scenario:
 5. Message not deleted
 6. Queue unlocked the message and assigns to next consumer
 
+Retention Period:
+- Default: 4 days
+- Configurable range: 1 minute to 14 days
 
 #### FIFO Queue
 
@@ -5580,6 +5671,8 @@ __FIFO queue__:
 - strict ordering of messages
 - require the __message group ID__ and __message deduplication ID__ parameters to be added to messages.
 - The message group ID: is a tag that indicates that a message belongs to a certain group.
+  - In a FIFO queue, messages are **ordered **within the same Message Group ID.
+  - All messages with the same group ID are delivered in the exact order they were sent.
 - The deduplication ID is used for deduplication of messages within a specific interval.
 - Make sure that the name of the FIFO (First-In-First-Out) queue ends with the __.fifo suffix__
 - You __can't convert an existing standard queue into a FIFO queue__. To make the move, you must either create a new FIFO queue for your application or delete your existing standard queue and recreate it as a FIFO queue.
@@ -5630,6 +5723,14 @@ SNS plus SQS:
 SNS Topic Types:
 - Standard Topic: Out of order and duplicate messages possible
 - FIFO Topic: Preserves order of messages Message group and deduplication (similar to SQS FIFO)
+
+Retention Period:
+- SNS does not store messages long-term by default.
+- For most subscribers (Lambda, HTTP/S, email, SMS), messages that can’t be delivered immediately are retried for a short duration:
+  - HTTP/S endpoints: Retry for up to 4 days (configurable with a delivery policy).
+  - Other endpoints (Lambda, SQS): Delivery is immediate; if the target is unavailable:
+    - For SQS endpoints, the message stays in the queue subject to SQS retention, not SNS.
+    - For Lambda endpoints, messages are retried based on the Lambda retry policy.
 
 ####  SNS vs SQS
 
