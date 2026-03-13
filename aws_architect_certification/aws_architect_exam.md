@@ -622,7 +622,7 @@ __Availability zone__ = one or more discrete data centers with redundant power, 
 
 __Local Zone__ (30+) = data center outside of a region. Its purpose is to run full applicatins closer to users. Supports: EC2, EDB, ECS, EKS, RDS etc.
 
-__Wavelength__: mobile only apps accessing vis 5G
+__Wavelength__: mobile only apps accessing via 5G
 
 __AWS Outpost__: aws hardware installed on private cound that can be managed via aws console
 
@@ -743,7 +743,6 @@ An Amazon Machine Image provides the __information required to launch an instanc
 
 If you create custom AMI then to use it and create new EC2 from it, you need to change the administrator password. Else you will not be able to login to this new EC2.
 
-
 AMI includes:
 - a __template__ for the root volume of the instance,
 - __launch permissions__
@@ -800,7 +799,6 @@ Process:
 - Pick an appropriate size [small, large, 2xlarge and so forth]
 - Run performance tests to right-size
 
-
 ### IP addresses <a id="IP"></a>
 
 public IP address:
@@ -839,6 +837,10 @@ elastic IP address:
   - SSM Agent: The SSM Agent must be installed and running on the EC2 instance. Most Amazon Linux 2, Ubuntu, and Windows AMIs have the SSM Agent pre-installed. If you're using custom AMIs, you need to ensure the agent is installed.
   - VPC Configuration: If the EC2 instance is in a private subnet (without a public IP), it should be able to connect to the Systems Manager endpoint. You need to ensure that your EC2 instance can reach the SSM endpoints either via the internet (if your instance has a NAT gateway or public IP) or via a VPC endpoint for Systems Manager.
   - AWS Systems Manager (SSM) offers a Session Manager feature that __allows you to SSH into your private EC2 instances without needing an SSH key__ or direct network access.
+- You don’t need a VPN, bastion host, or open SSH ports on the EC2 instance.
+- Requirements on your laptop
+  - Install AWS CLI (v2 recommended).
+  - Install Session Manager plugin for AWS CLI.
 
 3. __VPN or Direct Connect__
 - Set Up a VPN Connection: Establish a VPN connection between your on-premises network and your AWS VPC
@@ -868,13 +870,14 @@ elastic IP address:
 
 #### EBS - see 'File Share' section
 
-
 ### Placement groups <a id="PlacementGroups"></a>
 
 - __Cluster placement group__ is designed to keep instances very close for low latency. Think about high performance computing, tightly coupled applications where you've got node to node communication
 - __Partition__ will spread your instances across logical partitions so that the groups in one partition don't share the same underlying hardware with other groups of instances. So you can use this for high availability. It's usually used with distributed and replicated workloads. For example, Hadoop, Cassandra and Kafka.
-  - When you create a Partition Placement Group, you define the number of partitions. AWS will then ensure that your instances are distributed across the given number of partitions. 
+  - When you create a Partition Placement Group, you define the number of partitions. AWS will then ensure that your instances are distributed across the given number of partitions.
+  - Each partition is placed on different racks (separate power, networking).
 - __Spread placement group__: This will place a small group of instances across distinct underlying hardware to reduce any kind of correlated failures.
+  - Each partition is placed on different racks (separate power, networking).
 
 ### NAT <a id="NAT"></a>
 
@@ -5646,6 +5649,7 @@ Timeouts:
 - Multiple messages and multiple consumers
 - Messages are processed concurrently
 - Message arrival order and processing order is different in a standard queue
+- Standard queues support a very high, nearly unlimited number of API calls per second, per action (SendMessage, ReceiveMessage, or DeleteMessage). 
 
 Standard Queue - Lifecycle of a message:
 1. Consumer received the message and receipt handle
@@ -5676,6 +5680,8 @@ __FIFO queue__:
 - The deduplication ID is used for deduplication of messages within a specific interval.
 - Make sure that the name of the FIFO (First-In-First-Out) queue ends with the __.fifo suffix__
 - You __can't convert an existing standard queue into a FIFO queue__. To make the move, you must either create a new FIFO queue for your application or delete your existing standard queue and recreate it as a FIFO queue.
+- Each partition in a FIFO queue is limited to 300 transactions per second, per API action (SendMessage, ReceiveMessage, and DeleteMessage). This limit applies specifically to non-high throughput mode.
+- If you use batching, non-high throughput FIFO queues support up to 3,000 messages per second, per API action 
 
 FIFO Queue - Lifecycle of a message:
 1. Consumer receives the message and receipt handle
@@ -5723,6 +5729,7 @@ SNS plus SQS:
 SNS Topic Types:
 - Standard Topic: Out of order and duplicate messages possible
 - FIFO Topic: Preserves order of messages Message group and deduplication (similar to SQS FIFO)
+- An Amazon SNS FIFO topic always delivers messages to subscribed Amazon SQS queues in the exact order in which the messages are published to the topic, and only once.
 
 Retention Period:
 - SNS does not store messages long-term by default.
@@ -6091,6 +6098,15 @@ EC2 metrics:
 - Custom metrics are one of the following resolutions:
   - standard with one minute granularity
   - high resolution with granularity of one second.
+- Events such as those generated by Amazon EC2 are:
+  - Not stored long-term
+  - Kept only briefly inside the service (roughly 24 hours) for retry/delivery purposes
+  - Dropped after delivery or retry window expires
+- If you want to keep them, you must send them to a storage target:
+  - Amazon CloudWatch Logs – searchable event history
+  - Amazon S3 – cheap long-term archive
+  - AWS Lambda – process events
+  - Amazon SNS – notifications
 
 ![ CloudWatch metrics ](./images/cloudwatch_metrics.jpg)
 
@@ -6127,6 +6143,7 @@ EC2 metrics:
 - Metric Filters convert log file events to CloudWatch data points
 - Specify retention period for events kept in CloudWatch logs
 - Expired log events are deleted automatically
+- logs are retained indefinitely by default.
 
 ### CloudTrail <a id="CloudTrail"></a>
 
@@ -6149,7 +6166,6 @@ AWS Config vs CloudTrail:
 AWS CloudWatch vs CloudTrail:
 - CloudWatch: monitor and optimise resources vs CloudTrail: action taken and who did it
 
-
 ### CloudWatch events <a id="CloudWatchEvents"></a>
 - can be triggered based on API calls in CloudTrail.
 - Events can also be streamed to CloudWatch logs.
@@ -6157,6 +6173,52 @@ AWS CloudWatch vs CloudTrail:
   - __management events__: this is information about management operations being performed on your resources.
   - __Data events__: provide lots more detailed information about resource operations performed on actual resources.
   - __Insights events__ are there to identify and respond to unusual activity associated with writes API calls.
+
+### X-Ray
+
+X-Ray collects traces of requests as they move through services in Amazon Web Services.
+
+X-Ray automatically generates and propagates a Trace ID.
+
+A trace represents one user request, and it is composed of segments from each service involved
+
+```
+User request
+   ↓
+API Gateway
+   ↓
+Lambda
+   ↓
+EC2 service
+   ↓
+RDS query
+```
+
+In the X-Ray console you get several visualizations:
+- Service Map: Shows all services and latency between them.
+- Trace timeline: For a single request, you can see a timeline like
+
+tracing a single request in AWS using logs, traces, and infrastructure metrics:
+- Identify the request in X-Ray
+  - Open AWS X-Ray.
+  - Use the trace search feature and filter by time (14:05).
+- Correlate with CloudWatch Logs
+  - In Amazon CloudWatch Logs, search for the request ID or X-Amzn-Trace-Id that X-Ray generated.
+  - Look at application logs, error messages, or stack traces at 14:05.
+  - Outcome: You get detailed error information that traces alone don’t show.
+- Check infrastructure metrics
+  - In Amazon CloudWatch, review metrics for the affected services around 14:05:
+    - EC2: CPU, memory, disk I/O, network
+    - ELB: target response time, 5XX counts, unhealthy hosts
+    - Lambda: duration, error count, throttles
+  -  Outcome: Confirms whether the error was caused by infrastructure limits or application logic.
+- Synthesize the findings
+  - Combine all three signals:
+  - Trace → tells you where the request failed
+  - Logs → tell you why it failed
+  - Metrics → tell you if infrastructure contributed  
+- Create a CloudWatch Alarm or X-Ray Insights rule to detect similar failures automatically.
+
 
 ### Architecture Patterns
 
