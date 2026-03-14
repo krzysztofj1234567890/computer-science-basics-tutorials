@@ -3860,6 +3860,8 @@ ECS cluster = many docker hosts acting as one + container orchestration
 - provides a pool of resources where you can schedule anr run containers
 - Infrastructure:
   - Fargate - serverless, fast launch time, per per use (cpu, memory), needs VPC
+    - You do NOT pay for EC2 instances at all.
+    - You pay per vCPU-second and per GB-second that your container actually runs
   - EC2 instances witch auto-scaling, full control over instances
     - ALB can send traffic directly to containers
     - needs agent on ec2
@@ -3883,7 +3885,6 @@ ECS cluster = many docker hosts acting as one + container orchestration
   - Fargate and Farget stop - always included
   - EC2. AWS will automatically create: auto-scaling group, launch template
     - use ecs optimized AMI else you need to install ESC agent yourself
-
 
 Launch types: determine the type of infrastructure on which your tasks and services are hosted:
 - Amazon __EC2 launch type__
