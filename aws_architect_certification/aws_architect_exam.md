@@ -896,7 +896,7 @@ NAT instances versus NAT gateways:
   - You get more scalability over NAT gateway.
   - The only real limitations of the NAT gateway are things like you can't use it as a bastion host, but you should probably separate that into a different instance anyway.
   - There are also __no security groups with a NAT gateway__, whereas there are with a NAT instance.
-  - __NAT gateway is deployed inside a subnet and it can scale only inside that subnet in specific AZ__. 
+  - __NAT gateway is deployed inside a subnet with a route from the private subnet and it can scale only inside that subnet in specific AZ__. 
   - For fault tolerance, __it is recommended that you deploy one NAT gateway per availability zone__
 
 
@@ -1193,6 +1193,10 @@ Scaling Policies:
   - dynamic scaling: define parameters that control rge auto-scaling process (uncertain workload). __Uses CloudWatch Alarm__
     - simple: single threashold (add 1 ec2 when cpu utilization>50%)
     - step: multiple threasholds
+      - Step Scaling uses CloudWatch alarms with scaling steps.
+      - different scaling actions depending on how far the metric crosses a threshold:
+        - > 60% add 1 instance
+        - > 75% add 2 instances
     - target tracking: use metric type (cpu utilization, network bytes out or request count per target) to automatically add capacity. Set __instance warup time__
   - predictive scaling: based on predicted traffic (needs 3 weeks)
   - instance Maintenance policy: after added a new template. Use 'instance refresh' to start:
@@ -1242,6 +1246,21 @@ It provides fault tolerance for applications.
     - graceful shutdown of application
     - data backup
     - integration with external systems 
+- A Launch Template stores configuration such as:
+  - AMI ID (the machine image)
+  - Instance type (e.g., t3.micro)
+  - Key pair
+  - Security groups
+  - IAM role
+  - User data scripts
+  - Block storage configuration (EBS volumes)
+  - Network settings
+  - Instance purchasing options (On-Demand or Spot)
+  
+Launch Template vs Launch Configuration:
+- Launch Templates are the modern and recommended approach.
+- Launch Templates support multiple versions.
+- Supports Spot Instances, Mixed Instance Policies, and newer EC2 features.
 
 ### Auto-scaling timers <a id="AutoScalingTimers"></a>
 
@@ -1331,6 +1350,9 @@ __ALB will do https decryption__ with the SSL certificate you provide - need to 
 - sticky essions using cookies
 - idle connection timeout
 - Static IP address __NOT supported__
+- can terminate HTTPS and forward traffic as HTTP to your targets
+- New connections per second: Tens of thousands to hundreds of thousands, depending on traffic patterns.
+- Active connections: ALB can handle millions of concurrent connections.
 
 Routing:
 - __path-based__ (exampple.com/images or example.com/orders) and __host-based__ routing (images.example.com or orders.example.com)
@@ -1391,6 +1413,11 @@ NLB - ACL:
   - HA case is GWLB instead of EC2
 - GWLB does not have url or IP address. It only has endpoint in your VPC
 - GWLB should be setup in a separate VPC and you have an endpoint in your VPC
+- Typical Use Cases
+  - Deploying third-party firewalls (e.g., Palo Alto, Fortinet, Check Point) in AWS.
+  - Intrusion detection/prevention for VPC traffic.
+  - Centralized deep packet inspection across multiple subnets or VPCs.
+  - Traffic mirroring / monitoring for security or compliance.
 
 #### Cross-zone load balancing <a id="Cross-zone"></a>
 - when cross-zone load balancing is enabled, each load balancer node will distribute traffic across the register targets in all enabled AZ.
@@ -1424,7 +1451,20 @@ AWS Global Accelerator creates two IPv4 static IPs when you create an accelerato
 
 AWS Global Accelerator solves this by providing you with two static IPs that are anycast from our globally distributed edge locations, giving you a single entry point to your application, regardless of how many AWS Regions it’s deployed in. This allows you to add or remove origins, Availability Zones or Regions without reducing your application availability. Your traffic routing is managed manually, or in console with endpoint traffic dials and weights. If your application endpoint has a failure or availability issue, AWS Global Accelerator will automatically redirect your new connections to a healthy endpoint within seconds.
 
-
+Step by step. Configuring AWS Global Accelerator to route traffic to two ALBs in different regions:
+- Create your ALBs
+- Create a Global Accelerator
+  - You’ll get two static IP addresses automatically (or can bring your own).
+  - These static IPs are anycast, meaning traffic will route to the nearest AWS edge location.
+- Add Global Accelelator Listeners for the port your application uses (HTTP 80 or HTTPS 443)
+- Add Endpoint Groups
+  - Endpoint Groups correspond to regions.
+  - Add two endpoint groups:
+    - Region A → attach ALB in Region A.
+    - Region B → attach ALB in Region B.
+  - For each group, configure:
+    - Traffic dial: percentage of traffic to that region (e.g., 50%-50% or weighted by capacity).
+    - Health checks: configure a path (like /health) so Global Accelerator knows which ALB is healthy.
 
 ### Auto scaling vs ELB
 
@@ -1795,7 +1835,7 @@ The names of availability zones are mapped to different zones for different uses
 
 __Components of a VPC__:
 - __subnet__: segments of a VPC's IP range where you can place groups of isolated resources and they map to a single AZ.
-  - AWS subnet is alswys in one AZ
+  - AWS subnet is always in one AZ
   - Azure subnet can span multiple AZ
   - By default 2 subnets are connected to each other via Route Table and EC2 can communicate with private IP
 - __Internet gateway__ is the VPC side of a connection to the public internet.
@@ -1979,7 +2019,6 @@ You have to create Route Table
 - associate public subnet with public route table and
 - add route to Internet Gateway (destination: 0.0.0.0/0; target: InternetGateway)
 
-
 To enable access to or from the Internet for instances in a VPC subnet, you must do the following:
 - Attach an Internet Gateway to your VPC
 - Ensure that your subnetʼs route table points to the Internet Gateway
@@ -1992,24 +2031,23 @@ __Managed Prefix List__
 - use it for outboud traffic
 - Example:
   - Instead of allowing 0.0.0.0/0 or manually maintaining all S3 IP ranges, you can do:
-```
-{
-  "IpProtocol": "tcp",
-  "FromPort": 443,
-  "ToPort": 443,
-  "PrefixListId": "pl-63a5400a"
-}
-```
+  ```
+  {
+    "IpProtocol": "tcp",
+    "FromPort": 443,
+    "ToPort": 443,
+    "PrefixListId": "pl-63a5400a"
+  }
+  ```
   - Bad solution:
-```
-Type: HTTPS
-Protocol: TCP
-Port Range: 443
-Destination: 52.216.0.0/15
-Destination: 54.231.0.0/17
-...
-
-```
+  ```
+  Type: HTTPS
+  Protocol: TCP
+  Port Range: 443
+  Destination: 52.216.0.0/15
+  Destination: 54.231.0.0/17
+  ...
+  ```
 
 ### VPC Endpoint <a id="VPCEndpoint"></a>
 
@@ -2020,6 +2058,7 @@ Destination: 54.231.0.0/17
 - Limits to access specific service (through load balancer). VPC Peering - access everything
 - Endpoint is always in the same region
 - To access endpoint from another region use VPC peering
+- Gateway endpoints work through route tables, not the Internet Gateway.
 
 Interface Endpoint:
 ![ Gateway endpoints ](./images/interface_endpoints.jpg)
@@ -2930,7 +2969,7 @@ Two types of DNS record:
   - Example of CNAME use:
     - www.example.com points to another domain: 
     - www.example.com.    IN CNAME    myapp.hostingprovider.com.
-  - Things that do not work for Alias but wirk with CANME:
+  - Things that do not work for Alias but work with CANME:
     - CNAME Points to non-AWS domains (Alias cannot)
     - Supported outside AWS Route 53
 - __A__ record:
@@ -2975,6 +3014,34 @@ You can combine Geoproximity Routing with Failover Routing in Amazon Route 53, b
   - A secondary (failover) endpoint with Failover = Secondary
 - If the primary health check fails, Route 53 automatically sends traffic to the secondary
 
+Configure Routte 53 routing policy that routes to closest region and has automatic failover if one region fails:
+- With latency routing, failover is handled via health checks, not by specifying a failover region manually.
+- if us-east-1 becomes unhealthy, Amazon Route 53 will automatically stop returning that endpoint and send users to the other region (e.g., eu-west-1) as long as health checks are configured
+```
+api.example.com → latency record → us-east-1 ALB
+api.example.com → latency record → eu-west-1 ALB
+
+// US record
+Record name: api.example.com
+Record type: A
+Routing policy: Latency
+Region: US East (N. Virginia)
+Alias: Yes
+Alias target: ALB in us-east-1
+Health check: us-east-api
+Evaluate target health: Yes
+
+// EU record
+Record name: api.example.com
+Record type: A
+Routing policy: Latency
+Region: EU (Ireland)
+Alias: Yes
+Alias target: ALB in eu-west-1
+Health check: eu-west-api
+Evaluate target health: Yes
+```
+
 ### Amazon CloudFront <a id="CloudFront"></a>
 
 To use CloudFront to distribute your website content, create a distribution and specify settings for it.
@@ -2993,14 +3060,18 @@ __Field level encryption__:
 - Use __field level encryption__ in Amazon CloudFront to protect sensitive data for specific content: Field-level encryption allows you to enable your users to securely upload sensitive information to your web servers. The sensitive information provided by your users is encrypted at the edge, close to the user, and remains encrypted throughout your entire application stack. This encryption ensures that only applications that need the data—and have the credentials to decrypt it—are able to do so.
 - To use field-level encryption, when you configure your Amazon CloudFront distribution, specify the set of fields in POST requests that you want to be encrypted, and the public key to use to encrypt them. You can encrypt up to 10 data fields in a request. (You can’t encrypt all of the data in a request with field-level encryption; you must specify individual fields to encrypt.)
 
+TLS (used in HTTPS) encrypts the transport channel between two points.
+Typical path with CloudFront:
+```
+User Browser  --HTTPS-->  CloudFront Edge  --HTTPS-->  Origin Server: decrypts request --HTTP--> ALB
+```
+
 | Security Layer           | HTTPS (TLS)                     | Field-Level Encryption (FLE)                                   |
 | ------------------------ | ------------------------------- | -------------------------------------------------------------- |
 | Encrypts                 | Entire HTTP request/response    | Specific fields within the body (e.g., JSON field, form input) |
 | Visibility to CloudFront | Full request visible            | Encrypted fields are unreadable even by CloudFront             |
 | Use case                 | Protects data in transit        | Protects sensitive fields end-to-end                           |
 | Who can decrypt          | Any system handling the request | Only **specific backend app** with private key                 |
-
-
 
 - Cache copies of content close to your users
 - CloudFront routes request to nearest edge location
@@ -3026,6 +3097,10 @@ __Field level encryption__:
 - Custom header: additional header you want to pass to origin (authentication)
 - Origin shield: additional layer of caching (edge locations + regional cache already does caching)
   - origin shield adds 3 layer of caching (last one) to reduce the load
+- __CloudFront does not internally enable Global Accelerator.__
+  - When a user makes a request: User → CloudFront Edge → Origin
+  - The edge location closest to the user receives the request.
+  - CloudFront then fetches data from the origin (your ALB, EC2, or S3 bucket). __By default it goes though public internet!__ You need global accelerator
 
 __CloudFront setup__:
 - setup static website
@@ -3164,9 +3239,10 @@ Customize application behavior – without touching origin systems
 
 __Global Accelerator Setup__
 - no region selection
+- Create the accelerator: you will get 2 static IPs and DNS name that never change
 - listener setup: tcp:port or udp:port
 - endpoint group: define region and weight, health checks and muliple targets (ALB, NLB, EC2, Elastic IP)
-
+- Add endpoints: Inside each endpoint group you attach: ALB, NLB, EC2 instance, Elastic IP
 
 #### Traffic flow cloudfront, aws route 53 and aws s3
 
