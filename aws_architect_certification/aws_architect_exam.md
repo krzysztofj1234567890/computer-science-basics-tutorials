@@ -3862,6 +3862,7 @@ ECS cluster = many docker hosts acting as one + container orchestration
   - Fargate - serverless, fast launch time, per per use (cpu, memory), needs VPC
     - You do NOT pay for EC2 instances at all.
     - You pay per vCPU-second and per GB-second that your container actually runs
+    - Fargate task, can access the internet even if it is running in private subnet: you need a NAT Gateway or NAT instance in a public subnet.
   - EC2 instances witch auto-scaling, full control over instances
     - ALB can send traffic directly to containers
     - needs agent on ec2
@@ -3870,8 +3871,17 @@ ECS cluster = many docker hosts acting as one + container orchestration
       - bridge: one NIC and bridge sends to different containers, one port
         - bridge dynamic port mapping: solves this problem
       - VPC: separate NIC for each container. You can attach security group
-- task definition
-- service: includes load balancer and auto-scaling
+- task definition:
+  - define containers and resource requirements
+  - container image, environment variables, volumes, ports, and networking mode
+  - Task placement on EC2: ECS decides where to place tasks based on multiple factors:
+    - Resource availability: CPU, memory, ports on each EC2 instance.
+    - Placement constraints and strategies: You can use rules like “distinctInstance,” “memberOf” (labels), “binpack,” or “spread.”
+    - Custom instance attributes (labels): Only one part of the placement logic.
+- service:
+  - includes load balancer and auto-scaling
+  - Ensures the desired number of task copies are always running (replicas).
+  - Can automatically replace failed tasks.
 - ECS anywhere: add VMs from your data center. You need to:
   - install SSM agent to register VM with AWS Systems Manager 
   - set IAM role
