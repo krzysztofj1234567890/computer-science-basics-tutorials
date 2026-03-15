@@ -3269,7 +3269,10 @@ Step-by-Step Breakdown:
 - Sends the response back to the browser.
 - The user sees the website content.
 
-
+Multi-region replication architectures:
+- __Active-Active__ (Globally Distributed): Applications run concurrently in multiple regions, serving local traffic and enabling instantaneous failover. Data is replicated, often requiring specialized, conflict-resolving databases
+- __Active-Passive__ (Primary-Secondary): One region handles all writes while others act as read replicas. This offers high consistency (strong) but introduces write latency for users far from the primary region
+- __Warm Standby / Pilot Light__: A cost-effective passive approach where the secondary region runs minimal services, scaling up only when a failover occurs, 
 
 ### Architecture Patterns
 
@@ -4155,7 +4158,7 @@ Lambda Alias:
 - Alias enables you to promote new lambda function versions to production and if you need to rollback a function, you can simply update the alias to point to the desired version
 - allows you to trigger lambda version you want
 
-__Cold start__: o process new request, Lambda must initialize new instances – slowness in response (Cold Start)
+__Cold start__: to process new request, Lambda must initialize new instances – slowness in response (Cold Start)
 
 For Latency sensitive applications, keep lambda instances always ready! Configured using “__Provisioned concurrency__” setting.
 
@@ -4163,7 +4166,7 @@ Since AWS Lambda functions can __scale extremely quickly__, this means you __sho
 
 Different types of function invocation:
 - synchronous
-  - CLI,SDK, or API Gateway.
+  - CLI, SDK, or API Gateway.
   - result gets returned immediately.
   - Error handling happens on the client side
 - Asynchronous:
@@ -4299,15 +4302,16 @@ build APIs for services behind private ALBs, private NLBs, and IP-based services
 
 - fully managed service for publishing, maintaining, monitoring and securing APIs
 - An API endpoint type refers to the hostname of the API.
-- all of the APIs created with API Gateway expose HTTPS endpoints only.
+- all of the APIs created with __API Gateway expose HTTPS endpoints only__.
 - The endpoint type can be edge-optimized if you've got a global user base, regional if your user base is within a region or private if you want to provide access only within a VPC or to computers connected over a Direct Connect connection.
 - API Gateway also has caching.
 - you can add caching to API calls by provisioning the cache and specifying its size in gigabytes. That means you can cache the end points response.
-- Caching can reduce the number of API calls to your backend and improve latency.
-- Throttling with API Gateway, where you're setting a limit on the steady state rate and the burst of request submissions against the APIs in your account.
-- By default, API Gateway limits to steady state requests to 10,000 requests per second and the maximum concurrent request is 5,000 across all APIs within the account. If you go over those limits, you get a 429 too many requests error message.
+- __Caching__ can reduce the number of API calls to your backend and improve latency.
+- __Throttling__ with API Gateway, where you're setting a limit on the steady state rate and the burst of request submissions against the APIs in your account.
+- By default, API Gateway limits to steady state requests to __10,000 requests per second__ and the maximum concurrent request is 5,000 across all APIs within the account. If you go over those limits, you get a 429 too many requests error message.
 - if those exceptions occur, then you'll need your client application to resubmit the failed requests in a way that doesn't exceed those rate limits again.
 - Amazon API Gateway creates RESTful APIs that enable __stateless__ client-server communication and Amazon API Gateway also creates WebSocket APIs that adhere to the __WebSocket__ protocol, which enables stateful, full-duplex communication between client and serve
+- API Gateway is a regional service: When you create an API in API Gateway, it exists in a __region__, not in a specific Availability Zone (AZ).
 
 #### API Gateway endpoints
 
@@ -4331,7 +4335,7 @@ API Gateway caches responses for a specific amount of time (time to live or TTL)
 
 API Gateway sets a limit on a steady-state rate and a burst of request submissions against all APIs in your account.
 
-By default API Gateway limits the steady-state request rate to 10,000 requests per second.
+By default API Gateway limits the steady-state request rate to __10,000 requests per second__.
 The maximum concurrent requests is 5,000 requests across all APIs within an AWS account
 
 Default scaling up to 10,000 requests/second
