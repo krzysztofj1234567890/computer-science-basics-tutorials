@@ -3568,6 +3568,13 @@ Amazon EFS is a fully managed service for hosting Network File System (__NFS__) 
 - __accessible from ec2, ecs, eks or from on premises__
 - DR: you can move files to S3 using: DataSync (EFS->EFS or EFS->S3), scripts, or AWS Backup (EFS->S3)
 
+| **Storage Type**   | **Throughput**                                     | **Latency**        | **IOPS**         | **Durability**            | **Scalability**                    | **Use Case**                                      |
+| ------------------ | -------------------------------------------------- | ------------------ | ---------------- | ------------------------- | ---------------------------------- | ------------------------------------------------- |
+| **Instance Store** | Very High (up to 1 GB/s depending on instance)     | Very Low (< 1 ms)  | Very High        | Low (ephemeral)           | Limited (instance size)            | Temporary storage for caching, scratch space      |
+| **EBS**            | 100 MB/s to 16,000 MB/s (depending on volume type) | Low (~1–10 ms)     | 100–64,000 IOPS  | High (99.999%)            | Scalable (up to 64 TiB per volume) | Persistent storage for databases, file systems    |
+| **S3**             | High (up to 5 GB/s per request)                    | Higher (1–10 ms)   | Not Applicable   | Very High (99.999999999%) | Virtually Unlimited                | Object storage for backups, media, big data       |
+| **EFS**            | Scales up to 10 GB/s                               | Moderate (1–20 ms) | High concurrency | High (99.999999999%)      | Scalable (petabytes)               | Shared file storage for web apps, content systems |
+
 
 Access control:
 - use IAM to control who can administer your file system.
@@ -4536,6 +4543,16 @@ RDS Maintenance Windows:
 - Operating system and database patching can require taking that database offline,
 - those tasks take place during a maintenance window
 - by default, a weekly maintenance window is configured, but you can choose your own.
+
+Combining Multi-AZ and Read Replicas
+- Yes, you can combine Multi-AZ with read replicas
+- Multi-AZ Primary:
+  - Your RDS instance is configured as Multi-AZ for high availability.
+  - It has a synchronous standby in another AZ for failover.
+- Read Replicas:
+  - You can create read replicas from the primary Multi-AZ instance.
+  - Read replicas can be used for read-heavy workloads.
+  - These replicas are asynchronously replicated.
 
 #### RDS Security
 
@@ -6034,7 +6051,7 @@ If you have an existing application that uses standard queues and you want to ta
 
 ### AWS Config <a id="AWSConfig"></a>
 
-AWS Config provides a detailed view of the configuration of AWS resources in your AWS account. This includes how the resources are related to one another and how they were configured in the past so that you can see how the configurations and relationships change over time.
+AWS Config provides a __detailed view of the configuration__ of AWS resources in your AWS account. This includes how the resources are related to one another and how they were configured in the past so that you can see how the configurations and relationships change over time.
 
 AWS Config provides AWS-managed rules, which are predefined, customizable rules that AWS Config uses to evaluate whether your AWS resources comply with common best practices. You can leverage an AWS Config managed rule to check if any ACM certificates in your account are marked for expiration within the specified number of days. Certificates provided by ACM are automatically renewed. ACM does not automatically renew the certificates that you import. The rule is NON_COMPLIANT if your certificates are about to expire.
 
@@ -6475,7 +6492,7 @@ Identity providers and federation :
 - __External users sign in for a well known IDP such as login with Facebook, Amazon or Google__,
 - IAM supports IDPs that are compatible with openID Connect or SAML 2.0.
 
-__IAM Identity center__ = SSO for aws
+__IAM Identity center__ = SSO for aws = Okta = Microsift Entra ID
 - centrally manage access to multiple AWS accounts and business applications
 - easily manage SSO access and user permissions to all your accounts in organizations centrally,
 - IAM Identity Center also includes built in integrations to many business applications like Salesforce, Box and office 365.
@@ -6494,7 +6511,7 @@ __IAM Identity center__ = SSO for aws
   - You cannot assign users to other AWS accounts
 - AWS Cloud Trail - logs everything
 
-### KMS <a id="KMS"></a>
+### KMS <a id="KMS"></a> = Key Management Service
 
 - enables you to create and manage cryptographic keys.
 - You can control your key usage across services and in applications.
@@ -6539,6 +6556,37 @@ KMS key types and how are they rotataed:
 - __KMS – External Key Origin keys__ are rotated: __Never__. Automatic key rotation is not supported when you use External Key Origin
 - __KMS – Custom key stores (CloudHSM)__ keys are rotated: __Never__. Automatic key rotation is not supported when you use CloudHSM
 
+Data Keys:
+- can be either symmetric or asymmetric depending on your encryption requirements.
+- Encryption/Decryption: You use data keys to encrypt/decrypt data locally, and the KMS service can wrap these keys in a master key (CMK) for storage.
+- Steps to Use KMS for Data Key Management:
+  - Create a Key (CMK): You start by creating a customer-managed key (CMK) in KMS.
+  - Generate Data Keys
+  - Encrypt Data
+  - Encrypt Data Key:
+    - Use Encrypt in KMS to wrap the data key with the master key (CMK).
+    - Store the encrypted data key alongside the encrypted data.
+      - If you're storing encrypted data in DynamoDB, you would likely need to store the encrypted data key as an additional attribute of the item (typically a "data_key" attribute).
+  ```
+  import boto3
+
+  # Initialize KMS client
+  kms = boto3.client('kms')
+
+  # Generate a data key
+  response = kms.generate_data_key(
+      KeyId='arn:aws:kms:region:account-id:key/key-id',  # Your CMK ARN
+      KeySpec='AES_256'
+  )
+
+  data_key = response['Plaintext']  # The plaintext data key
+  encrypted_data_key = response['CiphertextBlob']  # The encrypted data key
+
+  # Use the data key to encrypt your data
+  encrypted_data = encrypt_data(data_key, data_to_encrypt)
+
+  # Store encrypted data and encrypted data key
+  ```
 
 #### difference between aws ssm parameter store and kms and secrets manager
 
@@ -6589,12 +6637,12 @@ KMS key types and how are they rotataed:
 - configure HTTPS ALB and provide certificate from CM
 - create record in DNS (Route 53)
 
-### Wweb Application Firewall - WAF <a id="WAF"></a>
+### Web Application Firewall - WAF <a id="WAF"></a>
 
-- This service lets you create rules to filter web traffic based on conditions such as IP addresses, http headers and body or custom URIs.
-- It makes it easy to create rules that block common web exploits like sequel injection and cross site scripting.
--  Web Application Firewall allows you to enforce country-specific rules. You can block or allow traffic from specific countries.
-- Monitor requests to Application Load Balancer, CloudFront, API Gateway (and more)
+- This service lets you create rules to filter web traffic based on conditions such as __IP addresses, http headers and body or custom URIs__.
+- It makes it easy to create rules that block common web exploits like __sequel injection__ and cross site scripting.
+- Web Application Firewall allows you to enforce country-specific rules. You can block or allow traffic from specific countries.
+- Monitor requests to __Application Load Balancer, CloudFront, API Gateway__ (and more)
 - Secure at the edge (with CloudFront, CloudFront query parameter whitelist)
 - Only in fort of (protects): ALB, CloudFront, API Gateway, AppSync API
 - __block: IP (need to create IP Sets), Country, String in request__
@@ -6634,7 +6682,7 @@ These are various different ways of identifying traffic that could be malicious 
 
 #### WAF – Managed Rule Groups
 
-Preconfigured set of rules managed by AWS and Marketplace Sellers:
+__Preconfigured set of rules__ managed by AWS and Marketplace Sellers:
 - OWASP Top 10
 - Common Vulnerabilities and Exposure (CVE)
 - AWS IP Reputation List – Block addresses associated with bots and other threats
@@ -6643,8 +6691,8 @@ Preconfigured set of rules managed by AWS and Marketplace Sellers:
 
 ### AWS shield <a id="Shield"></a>
 
-- Protection against Layer 3 and 4 attacks
-- managed distributed denial of service (DDOS) protection service.
+- Protection against __Layer 3 and 4 attacks__
+- managed distributed denial of service (__DDOS__) protection service.
 - It safeguards web applications running on AWS with always on detection and automatic in line mitigations.
 - It helps to minimize application downtime and latency.
 - Protection against regional and global resources
@@ -6657,9 +6705,9 @@ Preconfigured set of rules managed by AWS and Marketplace Sellers:
 
 ### Amazon Cognito <a id="Cognito"></a>
 
-AWS Cognito works with external identity providers that support SAML or OpenID Connect, social identity providers (such as Facebook, Twitter, Amazon)
+AWS Cognito works with external identity providers that support __SAML__ or __OpenID Connect__, social identity providers (such as Facebook, Twitter, Amazon)
 
-Federation allows users to authenticate with a Web Identity Provider (e.g. Google, Facebook, Amazon).
+Federation allows __users to authenticate with a Web Identity Provider__ (e.g. Google, Facebook, Amazon).
 
 The user authenticates first with the Web ID provider and receives an authentication token, which is then exchanges for temporary AWS credentials allowing them to assume an IAM role allowing access to the required resources.
 
@@ -6668,7 +6716,7 @@ Cognito is an Identity Broker which handles interaction between your application
 - add user sign-up and sign-in and access control to your web and mobile apps.
 - A __user pool__ is a directory for managing sign-in and sign-up
 - users can be stored in a user pool or can sign in using social IDPs.
-- It supports SAML and OIDC compatible IDPs.
+- It supports __SAML__ and __OIDC__ compatible IDPs.
 - Cognito acts as an identity broker between the IDP and AWS.
 - __Identity pools__ are used to obtain temporary limited privilege credentials for AWS services using the STS service.
 - IAM role is assumed providing access to those services.
