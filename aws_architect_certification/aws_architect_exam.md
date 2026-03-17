@@ -1177,7 +1177,7 @@ Scaling Policies:
 - Maintain
 - Scheduled
 
-### Auto Scaling Group <a id="AutoScalingGroup"></a>
+### Auto Scaling Group <a id="AutoScalingGroup"></a> = to scale EC2
 - Auto Scaling __launches and terminates EC2 instance__ is automatically.
 - __Scaling is horizontal__, it scales out.
 - It provides elasticity and scalability
@@ -1278,6 +1278,16 @@ Launch Template vs Launch Configuration:
 The __health check grace period__:
 - how long to wait before checking the health status of an instance after it's been launched into an Auto Scaling group.
 - Auto Scaling does not act on health checks until the grace period expires.
+
+### AWS Auto Scaling
+
+Automatically increase or decrease the number of resources based on load. It works with several AWS services, mainly compute resources and some databases.
+This service is embedded into other services like:
+- Containers (ECS): You can scale container services running on Amazon Elastic Container Service
+- Kubernetes pods: If you're using Amazon Elastic Kubernetes Service, you can auto scale: pods (Horizontal Pod Autoscaler) or worker nodes
+- DynamoDB throughput: Amazon DynamoDB can auto scale its: read capacity or write capacity
+- Aurora database replicas: Amazon Aurora can automatically add/remove read replicas.
+
 
 
 ### Load Balancing <a id="LoadBalancing"></a>
@@ -3600,6 +3610,14 @@ Replication:
 - Data is transferred based on the __Last synced time__ for the replication.
 - To __back up__ EFS data to __S3__, you can use the AWS CLI 'sync'__ command or use AWS Backup for a more managed approach
 
+Mount to mount it on linux
+- Use AWS Client VPN: Connect your laptop to the VPC using AWS Client VPN
+  - Amazon Elastic File System creates mount targets, and each mount target lives in one subnet inside a Amazon Virtual Private Cloud.
+- Install dependencies: sudo yum install -y amazon-efs-utils
+- Create a mount directory: sudo mkdir -p /mnt/efs
+- Mount the EFS filesystem: sudo mount -t efs fs-12345678:/ /mnt/efs
+
+
 #### FSx
 
 - provides a fully managed third-party file system.
@@ -5046,7 +5064,10 @@ __DynamoDB Kinesis Data Stream:__ integrates with many aws services, separate co
   - Permissions to access DynamoDB
 - Each table has endpoint
 - Clients use DAX client (or DynamoDB client) and uses 'table' endpoint
-
+- When using Amazon DynamoDB Accelerator (DAX): you create a DAX cluster made up of nodes. 
+  - Recommended production setup continas 3 nodes: 1 primary node + 2 replica nodes
+  - nodes run inside your VPC, specifically in subnets you choose
+- Your application does NOT connect directly to nodes. Instead it connects to a single DAX cluster endpoint
 
 #### DynamoDB Transactions
 

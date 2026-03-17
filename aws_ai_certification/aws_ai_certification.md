@@ -896,7 +896,7 @@ Choosing a Database for RAG:
 - Graph database (i.e., Neo4j) for retrieving product recommendations or relationships between items
 - Elasticsearch/OpenSearch or something for traditional text search (TF/IDF)
 
-RAG process:
+__RAG process__:
 - Populate vector database with relevant documents
 - Get prompt
 - Compute embeddings from the prompt
