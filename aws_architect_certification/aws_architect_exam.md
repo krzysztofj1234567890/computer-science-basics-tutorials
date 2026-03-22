@@ -433,7 +433,7 @@ Create a role, assign a permissions policy to the role that grants access to the
 
 Create IAM Role for EC2: This trust policy allows EC2 to assume the role defined here:
 ```
-// IAM Role for EC2 - meaning EC2 is cllowed to assume this role
+// IAM Role for EC2 - meaning EC2 is allowed to assume this role
 resource "aws_iam_role" "ec2_dynamodb_role" {
   name = "ec2-dynamodb-role"
 
@@ -579,6 +579,23 @@ In this case, you can instruct the developer to create a set of access keys and 
 
 Create a permissions policy that uses a wildcard for the action element relating to EC2. And that would look like the (ec2:*) action.
 
+```
+resource "aws_iam_group" "ec2_full_access_group" {
+  name = "ec2-full-access-group"
+}
+resource "aws_iam_group_policy_attachment" "ec2_full_access_attach" {
+  group      = aws_iam_group.ec2_full_access_group.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+}
+resource "aws_iam_user" "user1" {
+  name = "user1"
+}
+resource "aws_iam_user_group_membership" "user1_membership" {
+  user   = aws_iam_user.user1.name
+  groups = [aws_iam_group.ec2_full_access_group.name]
+}
+```
+
 #### You would like to revoke programmatic access for an IAM user. What steps do you need to take?
 
 Remove access key credentials
@@ -597,6 +614,12 @@ The best option is to use AWS organizations to consolidate all accounts under a 
 You can enable single sign-on to manage cross-account access. 
 IAM role is the second-best option; however, you need to configure and manage roles manually.
 
+- Centralize identity: Use: IAM Identity Center (recommended) Employees: Log in once
+- Use roles per account
+  - Create roles like: DevAdminRole (broad access), ProdReadOnlyRole (restricted access)
+  - Each role has: Different permissions depending on the account
+- Assign roles to users/groups
+
 #### A systems administrator is creating IAM policies and attaching them to IAM identities. After creating the necessary identity-based policies, the administrator is now creating resource-based policies. Which is the only resource-based policy that the IAM service supports?
 
 You manage access in AWS by creating policies and attaching them to IAM identities (users, groups of users, or roles) or AWS resources. A policy is an object in AWS that, when associated with an identity or resource, defines their permissions. Resource-based policies are JSON policy documents that you attach to a resource such as an Amazon S3 bucket. These policies grant the specified principal permission to perform specific actions on that resource and define under what conditions this applies.
@@ -605,8 +628,34 @@ Trust policy
 
 Trust policies define which principal entities (accounts, users, roles, and federated users) can assume the role. An IAM role is both an identity and a resource that supports resource-based policies. For this reason, you must attach both a trust policy and an identity-based policy to an IAM role. The IAM service supports only one type of resource-based policy called a role trust policy, which is attached to an IAM role.
 
+#### What is a trust policy? How does it differ from an identity-based policy?
 
+Trust policy: JSON policy attached to an IAM role that defines who can assume the role (principal + sts:AssumeRole).
 
+Identity-based policy: Grants permissions to perform actions after assuming the role.
+
+#### How does AWS evaluate permissions when multiple policies apply (identity-based, resource-based, SCP, boundary, session policy)?
+
+```
+Start with all identity-based policies attached to the user or role.
+Apply resource-based policies.
+Apply permissions boundaries (limits maximum permissions).
+Apply SCPs if account is in AWS Organizations.
+Apply session policies if using STS temporary credentials.
+Explicit Deny overrides everything.
+If no explicit allow → access denied by default.
+```
+
+#### You have Account A and Account B. You want a user in Account B to access an S3 bucket in Account A. How would you configure this securely?
+
+- Create IAM role in Account A with a trust policy allowing Account B user/group to assume it.
+- Attach identity-based policy to the role granting S3 bucket access.
+- User in Account B uses STS AssumeRole to assume the role in Account A.
+
+#### What is a permissions boundary? Give a scenario where it’s useful.
+
+Permissions boundary = maximum allowed permissions for an IAM user or role.
+It does not grant permissions, it limits them.
 
 
 
@@ -1063,6 +1112,15 @@ To prevent this situation, you can enable the new “unlimited” mode in bursta
 
 System status check would identify AWS infrastructure related issues. Instance status check would also fail if a system status check fails. So, either one can be used
 
+AWS performs two types of status checks for each EC2 instance:
+- System status check:	Underlying hardware, network, power, hypervisor, AWS infrastructure issues
+- Instance status check: Software and OS on your instance (boot issues, stuck processes, networking)
+
+How to view status checks:
+- ec2 console
+- AWS CLI
+- CloudWatch: EC2 system and instance status checks emit CloudWatch metrics automatically
+
 #### You need to allow remote SSH login to the private EC2 instances from the on-premises network.
 
 Using the Session Manager (part of the system manager service), authorized employees can log in to their EC2 instances using IAM credentials. 
@@ -1070,6 +1128,9 @@ Session Manager does not use SSH or RDP ports.
 Bastion Host is another option – however, this requires additional servers, and you need to keep the SSH port open
 - Configure a bastion host within your VPC that can be accessed from your on-premises network, then use that bastion host to connect to the private EC2 instances via SSH
 - AWS Session Manager allows remote SSH login to private EC2 instances from an on-premises network, as it establishes a secure tunnel through the AWS infrastructure without requiring any open inbound ports on the EC2 instance or a public IP address, making it ideal for accessing private instances within a VPC; you only need the SSM Agent installed on the EC2 instance and appropriate IAM permissions to connect
+
+Most modern Amazon Linux, Amazon Linux 2, and Ubuntu AWS AMIs have SSM Agent pre-installed.
+If not use user-data.
 
 #### When you recover an EC2 instance using CloudWatch Alarm, what happens to the instance?
 
@@ -1091,7 +1152,8 @@ The launch template is immutable, and you need to create a new version with the 
 
 Auto Scaling automatically handles spot interruptions, deregisters the instance from the load balancer, and initiates steps to launch a replacement instance
 
-In addition, EC2 service publishes a capacity-rebalance early warning event when a spot pool is likely to get interrupted. In this case, Auto Scaling can take proactive action to launch a new replacement instance from another spot pool with less likelihood of interruption
+In addition, EC2 service publishes a capacity-rebalance early warning event when a spot pool is likely to get interrupted. 
+In this case, Auto Scaling can take proactive action to launch a new replacement instance from another spot pool with less likelihood of interruption
 
 #### As part of application configuration step in an EC2 instance, the configuration script needs user data specified when launching the EC2 instance.  What mechanism can the script use to get this data?
 
@@ -1107,7 +1169,8 @@ Instance store SSD is not the right choice as the question asks for a persistent
 
 #### Can I use default password to login to EC2 created from custom AWS AMI ubuntu?
 
-No: you cannot use a default password to log into an EC2 instance launched from a custom AWS AMI based on Ubuntu. The default Ubuntu AMI and other custom AMIs typically use SSH key-based authentication for login, not passwords
+No: you cannot use a default password to log into an EC2 instance launched from a custom AWS AMI based on Ubuntu. 
+The default Ubuntu AMI and other custom AMIs typically use SSH key-based authentication for login, not passwords
 
 #### What is aws launch template instance tenancy?
 
@@ -1116,25 +1179,42 @@ In AWS Launch Templates, the Instance Tenancy setting controls how your EC2 inst
 - dedicated Run on dedicated hardware — a physical server fully isolated for your use
 - host Use a specific Dedicated Host, giving you control over instance placement (BYOL, compliance)
 
-When you create a Launch Template, the default value for the instance tenancy is shared and the instance tenancy is controlled by the tenancy attribute of the VPC. If you set the Launch Template Tenancy to shared (default) and the VPC Tenancy is set to dedicated, then the instances have dedicated tenancy. If you set the Launch Template Tenancy to dedicated and the VPC Tenancy is set to default, then again the instances have dedicated tenancy.
+When you create a Launch Template, the default value for the instance tenancy is shared and the instance tenancy is controlled by the tenancy attribute of the VPC. 
+If you set the Launch Template Tenancy to shared (default) and the VPC Tenancy is set to dedicated, then the instances have dedicated tenancy. 
+If you set the Launch Template Tenancy to dedicated and the VPC Tenancy is set to default, then again the instances have dedicated tenancy.
 
 #### The engineering team has been seeing recurrent issues wherein the in-flight requests from the ELB to the Amazon EC2 instances are getting dropped when an instance becomes unhealthy. Which of the following features can be used to address this issue?
 
 Connection Draining
 
-To ensure that Elastic Load Balancing stops sending requests to instances that are de-registering or unhealthy while keeping the existing connections open, use connection draining. This enables the load balancer to complete in-flight requests made to instances that are de-registering or unhealthy. The maximum timeout value can be set between 1 and 3,600 seconds (the default is 300 seconds). When the maximum time limit is reached, the load balancer forcibly closes connections to the de-registering instance
+To ensure that Elastic Load Balancing stops sending requests to instances that are de-registering or unhealthy while keeping the existing connections open, use connection draining. 
+This enables the load balancer to complete in-flight requests made to instances that are de-registering or unhealthy. 
+The maximum timeout value can be set between 1 and 3,600 seconds (the default is 300 seconds). 
+When the maximum time limit is reached, the load balancer forcibly closes connections to the de-registering instance
 
 #### A medium-sized business has a taxi dispatch application deployed on an Amazon EC2 instance. Because of an unknown bug, the application causes the instance to freeze regularly. Then, the instance has to be manually restarted via the AWS management console. Which of the following is the MOST cost-optimal and resource-efficient way to implement an automated solution until a permanent fix is delivered by the development team?
 
-Setup an Amazon CloudWatch alarm to monitor the health status of the instance. In case of an Instance Health Check failure, an EC2 Reboot CloudWatch Alarm Action can be used to reboot the instance
+Setup an Amazon CloudWatch alarm to monitor the health status of the instance. 
+In case of an Instance Health Check failure, an EC2 Reboot CloudWatch Alarm Action can be used to reboot the instance
 
-Using Amazon CloudWatch alarm actions, you can create alarms that automatically stop, terminate, reboot, or recover your Amazon EC2 instances. You can use the stop or terminate actions to help you save money when you no longer need an instance to be running. You can use the reboot and recover actions to automatically reboot those instances or recover them onto new hardware if a system impairment occurs.
+Using Amazon CloudWatch alarm actions, you can create alarms that automatically stop, terminate, reboot, or recover your Amazon EC2 instances. 
+You can use the stop or terminate actions to help you save money when you no longer need an instance to be running. 
+You can use the reboot and recover actions to automatically reboot those instances or recover them onto new hardware if a system impairment occurs.
 
-You can create an Amazon CloudWatch alarm that monitors an Amazon EC2 instance and automatically reboots the instance. The reboot alarm action is recommended for Instance Health Check failures (as opposed to the recover alarm action, which is suited for System Health Check failures).
+You can create an Amazon CloudWatch alarm that monitors an Amazon EC2 instance and automatically reboots the instance. 
+The reboot alarm action is recommended for Instance Health Check failures (as opposed to the recover alarm action, which is suited for System Health Check failures).
 
+#### Explain the difference between stopping and terminating an EC2 instance. What happens to the EBS volumes in each case?
 
+| Action    | Instance State | EBS Root Volume                                 | EBS Data Volumes                                             |
+| --------- | -------------- | ----------------------------------------------- | ------------------------------------------------------------ |
+| Stop      | Stopped        | Persisted (unless `DeleteOnTermination=true`)   | Persisted                                                    |
+| Terminate | Terminated     | Deleted by default (`DeleteOnTermination=true`) | Persisted or deleted depending on `DeleteOnTermination` flag |
 
-
+- Stopping → instance can be restarted later (private IP changes unless using Elastic IP).
+- Termination → instance is permanently removed.
+- Only EBS-backed instances can be stopped. Instance-store-backed instances cannot be stopped; they are lost on shutdown.
+- once an EC2 instance is terminated, you cannot recover it.
 
 
 
@@ -1363,6 +1443,7 @@ __ALB will do https decryption__ with the SSL certificate you provide - need to 
 - can terminate HTTPS and forward traffic as HTTP to your targets
 - New connections per second: Tens of thousands to hundreds of thousands, depending on traffic patterns.
 - Active connections: ALB can handle millions of concurrent connections.
+- ALB uses DNS names (e.g., my-alb-123456.us-east-1.elb.amazonaws.com)
 
 Routing:
 - __path-based__ (exampple.com/images or example.com/orders) and __host-based__ routing (images.example.com or orders.example.com)
@@ -1494,7 +1575,8 @@ Use a Network Load Balancer with a UDP listener.
 #### Clients needs to white list static IP addresses for a highly available load balanced application and in an AWS region.
 
 Use a Network Load Balancer, you can create static IP addresses in each AZ.
-Remember, with an ALB, you don't get static IP addresses, so you wouldn't be able to do that. You would know the DNS name, but the IP addresses might change over time.
+Remember, with an ALB, you don't get static IP addresses, so you wouldn't be able to do that. 
+You would know the DNS name, but the IP addresses might change over time.
 
 #### An application on EC2 in an Auto Scaling group requires disaster recovery across regions.
 
@@ -1509,7 +1591,8 @@ Use Auto Scaling and a step scaling policy. And you configure a larger capacity 
 
 #### You need to scale EC2 instances behind an ALB based on the number of requests completed by each instance.
 
-In this case, you can use an Auto Scaling group and a target tracking policy. Using the ALBRequestCountPerTarget metric, and that's the number of requests that are outstanding for an individual target.
+In this case, you can use an Auto Scaling group and a target tracking policy. 
+Using the ALBRequestCountPerTarget metric, and that's the number of requests that are outstanding for an individual target.
 
 #### An application runs on EC2 instances behind an ALB, once authenticated, users should not need to reauthenticate if an instance fails.
 
@@ -1523,12 +1606,24 @@ Use a Gateway Load Balancer in front of the virtual appliances.
 
 No action needed. Internet gateway is a managed service and automatically scales, redundant and highly available
 
+Internet Gateway is horizontally scaled, so it can handle very large volumes of traffic.
+AWS does not publish a strict bandwidth limit, but performance can be affected by:
+- EC2 instance bandwidth
+- VPC route table configurations
+
 #### If an instance fails the health check, Elastic Load Balancer would:
 
-Load Balancer stops new traffic to the instance - Load balancer monitors all registered instances for health. 
-If an instance fails the health check, the load balancer stops new traffic to the instance. 
-ELB continues to perform health checks, even on unhealthy instances. 
-If the instance becomes healthy again, ELB will start using the instance
+- Load Balancer stops new traffic to the instance - Load balancer monitors all registered instances for health. 
+- If an instance fails the health check, the load balancer stops new traffic to the instance. 
+- ELB continues to perform health checks, even on unhealthy instances. 
+- If the instance becomes healthy again, ELB will start using the instance
+- Once the instance passes consecutive health checks (healthy threshold), it is marked healthy, and ELB resumes sending traffic.
+
+To handle instances that never recover:
+- Attach ELB/ALB target group to an Auto Scaling group
+- Auto Scaling monitors instance health using ELB health checks
+- When an instance fails health checks for the unhealthy threshold, Auto Scaling terminates it
+- Auto Scaling launches a new instance to maintain desired capacity
 
 #### An organization's security policy requires client apps to communicate only with the whitelisted IP Addresses. You need to build a new service on AWS that would be used by client applications. Which of these architectural options would reliably allow whitelisting of the load balancer IP address at the client?
 
@@ -1565,10 +1660,10 @@ An in-depth health check on other dependent services requires careful assessment
 
 #### Which of these options maintains a scaled-down infrastructure in another region and requires only scaling after a disaster?
 
-- Warm Standby maintains a continuously replicated copy of data, and a scaled-down infrastructure is always running for the rest of the components. Warm Standby can meet more stringent RTO/RPO in minutes.
-- Backup and Restore only maintains a backup in another region. After a disaster, we need to restore the data and bring the entire infrastructure up in the second region, so the RTO/RPO is in hours.
-- Pilot light maintains a continuously replicated copy of the data in another region; however, the rest of the infrastructure needs to be brought up after the disaster. So, the RTO/RPO is in 10s of minutes.
-- Multi-site Active/Active is a zero-downtime solution with infrastructure in multiple regions. The application request is routed to any of the regions. This option can meet real-time RTO/RPO requirements.
+- __Backup and Restore__ only maintains a backup in another region. After a disaster, we need to restore the data and bring the entire infrastructure up in the second region, so the RTO/RPO is in hours.
+- __Pilot light__ maintains a continuously replicated copy of the data in another region; however, the rest of the infrastructure needs to be brought up after the disaster. So, the RTO/RPO is in 10s of minutes.
+- __Warm Standby__ maintains a continuously replicated copy of data, and a scaled-down infrastructure is always running for the rest of the components. Warm Standby can meet more stringent RTO/RPO in minutes.
+- Multi-site __Active/Active__ is a zero-downtime solution with infrastructure in multiple regions. The application request is routed to any of the regions. This option can meet real-time RTO/RPO requirements.
 
 #### You would like to automatically replace instances that are not healthy due to underlying infrastructure or common guest OS related issues. In order to do so with AutoScaling, you need to
 
@@ -1578,11 +1673,13 @@ Autoscaling automatically does this for you
 
 Use Auto Scaling Launch Template and specify the on-demand and spot portion of the capacity that the auto scaling group needs to maintain
 
-You can specify a percentage distribution of on-demand and spot instances. To maximize the chances of fulfilling spot requests, you can specify a range of values for vCPU and memory configuration. Auto Scaling will identify a list of instance families that meet the criteria.
+You can specify a percentage distribution of on-demand and spot instances. 
+To maximize the chances of fulfilling spot requests, you can specify a range of values for vCPU and memory configuration. 
+Auto Scaling will identify a list of instance families that meet the criteria.
 
 #### The DevOps team at an e-commerce company wants to perform some maintenance work on a specific Amazon EC2 instance that is part of an Auto Scaling group using a step scaling policy. The team is facing a maintenance challenge - every time the team deploys a maintenance patch, the instance health check status shows as out of service for a few minutes. This causes the Auto Scaling group to provision another replacement instance immediately
 
-- Put the instance into the Standby state and then update the instance by applying the maintenance patch. Once the instance is ready, you can exit the Standby state and then return the instance to service
+- Put the instance into the __Standby state__ and then update the instance by applying the maintenance patch. Once the instance is ready, you can exit the Standby state and then return the instance to service
 - Suspend the ReplaceUnhealthy process type for the Auto Scaling group and apply the maintenance patch to the instance. Once the instance is ready, you can manually set the instance's health status back to healthy and activate the ReplaceUnhealthy process type again
 
 #### A retail company wants to rollout and test a blue-green deployment for its global application in the next 48 hours. Most of the customers use mobile phones which are prone to Domain Name System (DNS) caching. The company has only two days left for the annual Thanksgiving sale to commence. As a Solutions Architect, which of the following options would you recommend to test the deployment on as many users as possible in the given time frame?
@@ -1596,6 +1693,14 @@ AWS Global Accelerator uses endpoint weights to determine the proportion of traf
 While relying on the DNS service is a great option for blue/green deployments, it may not fit use-cases that require a fast and controlled transition of the traffic
 
 Elastic Load Balancing (ELB) can distribute traffic across healthy instances. You can also use the Application Load Balancers weighted target groups feature for blue/green deployments as it does not rely on the DNS service. In addition you don’t need to create new ALBs for the green environment. As the use-case refers to a global application, so this option cannot be used for a multi-Region solution which is needed for the given requirement.
+
+How DNS + GA works step by step
+- Client queries www.example.com.
+- DNS returns the two static GA IP addresses.
+- Client connects to the nearest anycast IP.
+- AWS Global Accelerator uses health checks to route traffic to the closest healthy endpoint (NLB/ALB/EC2/EIP).
+- If an endpoint fails, GA automatically reroutes traffic to another healthy endpoint without the client needing to update DNS.
+- Key point: DNS never needs to change during endpoint failover — GA handles routing at the network layer.
 
 #### The engineering team at a logistics company has noticed that the Auto Scaling group (ASG) is not terminating an unhealthy Amazon EC2 instance. As a Solutions Architect, which of the following options would you suggest to troubleshoot the issue? 
 
@@ -1658,8 +1763,11 @@ An Auto Scaling group contains a collection of Amazon EC2 instances that are tre
 
 Application Load Balancer automatically distributes incoming application traffic across multiple targets, such as Amazon EC2 instances, containers, and AWS Lambda functions. It can handle the varying load of your application traffic in a single Availability Zone or across multiple Availability Zones.
 
-If the Auto Scaling group (ASG) is using EC2 as the health check type and the Application Load Balancer (ALB) is using its in-built health check, there may be a situation where the ALB health check fails because the health check pings fail to receive a response from the instance. At the same time, ASG health check can come back as successful because it is based on EC2 based health check. Therefore, in this scenario, the ALB will remove the instance from its inventory, however, the Auto Scaling Group will fail to provide the replacement instance. This can lead to the scaling issues mentioned in the problem statement.
+If the Auto Scaling group (ASG) is using EC2 as the health check type and the Application Load Balancer (ALB) is using its in-built health check, there may be a situation where the ALB health check fails because the health check pings fail to receive a response from the instance. At the same time, ASG health check can come back as successful because it is based on EC2 based health check. 
 
+Therefore, in this scenario, the ALB will remove the instance from its inventory, however, the Auto Scaling Group will fail to provide the replacement instance. This can lead to the scaling issues mentioned in the problem statement.
+
+__By default, Auto Scaling does NOT use ALB health checks unless you explicitly configure it. Enable ELB/ALB health checks in Auto Scaling group!__
 
 
 
