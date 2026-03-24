@@ -1873,15 +1873,86 @@ Create an AWS Organization and send an invite to each developer's AWS account to
 
 #### You have multiple AWS accounts within a single AWS Region managed by AWS Organizations and you would like to ensure all Amazon EC2 instances in all these accounts can communicate privately. Which of the following solutions provides the capability at the CHEAPEST cost?
 
-Create a virtual private cloud (VPC) in an account and share one or more of its subnets with the other accounts using Resource Access Manager
+Create a virtual private cloud (VPC) in an account and share one or more of its subnets with the other accounts using __Resource Access Manager__
 
-AWS Resource Access Manager (RAM) is a service that enables you to easily and securely share AWS resources with any AWS account or within your AWS Organization. You can share AWS Transit Gateways, Subnets, AWS License Manager configurations, and Amazon Route 53 Resolver rules resources with RAM. RAM eliminates the need to create duplicate resources in multiple accounts, reducing the operational overhead of managing those resources in every single account you own. You can create resources centrally in a multi-account environment, and use RAM to share those resources across accounts in three simple steps: create a Resource Share, specify resources, and specify accounts. RAM is available to you at no additional charge.
+AWS Resource Access Manager (RAM) is a service that enables you to easily and securely share AWS resources with any AWS account or within your AWS Organization. 
+You can share AWS Transit Gateways, Subnets, AWS License Manager configurations, and Amazon Route 53 Resolver rules resources with RAM. 
+RAM eliminates the need to create duplicate resources in multiple accounts, reducing the operational overhead of managing those resources in every single account you own. 
+You can create resources centrally in a multi-account environment, and use RAM to share those resources across accounts in three simple steps: create a Resource Share, specify resources, and specify accounts. RAM is available to you at no additional charge.
 
 A Transit Gateway will work but will be an expensive solution.
 
+```
+provider "aws" {
+  alias  = "network"
+  region = "us-east-1"
+}
+
+resource "aws_vpc" "shared_vpc" {
+  provider   = aws.network
+  cidr_block = "10.0.0.0/16"
+}
+
+// shubnet to share
+resource "aws_subnet" "shared_subnet" {
+  provider          = aws.network
+  vpc_id            = aws_vpc.shared_vpc.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
+}
+
+// Create RAM Resource Share
+resource "aws_ram_resource_share" "vpc_share" {
+  provider                  = aws.network
+  name                      = "shared-vpc-subnet"
+  allow_external_principals = false
+}
+
+// Share Subnet via RAM
+resource "aws_ram_resource_association" "subnet_assoc" {
+  provider           = aws.network
+  resource_arn       = aws_subnet.shared_subnet.arn
+  resource_share_arn = aws_ram_resource_share.vpc_share.arn
+}
+
+// Share with AWS Organization
+resource "aws_ram_principal_association" "org_share" {
+  provider           = aws.network
+  principal          = "o-xxxxxxxxxx" # Organization ID
+  resource_share_arn = aws_ram_resource_share.vpc_share.arn
+}
+
+// Accept Share (Optional if auto-enabled)
+resource "aws_ram_resource_share_accepter" "accept" {
+  provider = aws.app_account
+  share_arn = aws_ram_resource_share.vpc_share.arn
+}
+
+// Launch EC2 in Shared Subnet (App Account)
+provider "aws" {
+  alias  = "app_account"
+  region = "us-east-1"
+}
+
+resource "aws_instance" "app_instance" {
+  provider      = aws.app_account
+  ami           = "ami-xxxxxxxx"
+  instance_type = "t3.micro"
+  subnet_id     = aws_subnet.shared_subnet.id
+
+  tags = {
+    Name = "shared-vpc-instance"
+  }
+}
+```
+
 #### You would like to migrate an AWS account from an AWS Organization A to an AWS Organization B. What are the steps do to it?
 
-To migrate accounts from one organization to another, you must have root or IAM access to both the member and master accounts. Here are the steps to follow: 1. Remove the member account from the old organization 2. Send an invite to the member account from the new Organization 3. Accept the invite to the new organization from the member account
+To migrate accounts from one organization to another, you must have root or IAM access to both the member and master accounts. 
+Here are the steps to follow: 
+1. Remove the member account from the old organization 
+2. Send an invite to the member account from the new Organization 
+3. Accept the invite to the new organization from the member account
 
 #### An AWS Organization is using Service Control Policies (SCPs) for central control over the maximum available permissions for all accounts in their organization. This allows the organization to ensure that all accounts stay within the organization’s access control guidelines. Which of the given scenarios are correct regarding the permissions described below?
 
@@ -1905,17 +1976,62 @@ Service control policy (SCP) does not affect any service-linked role.
 
 #### A company has migrated its application from a monolith architecture to a microservices based architecture. The development team has updated the Amazon Route 53 simple record to point "myapp.mydomain.com" from the old Load Balancer to the new one. The users are still not redirected to the new Load Balancer. What has gone wrong in the configuration?
 
-Amazon Route 53 is a highly available and scalable cloud Domain Name System (DNS) web service. Amazon Route 53 effectively connects user requests to infrastructure running in AWS – such as Amazon EC2 instances, Elastic Load Balancing load balancers, or Amazon S3 buckets – and can also be used to route users to infrastructure outside of AWS.
+Amazon Route 53 is a highly available and scalable cloud Domain Name System (DNS) web service. 
+Amazon Route 53 effectively connects user requests to infrastructure running in AWS – such as Amazon EC2 instances, Elastic Load Balancing load balancers, or Amazon S3 buckets – and can also be used to route users to infrastructure outside of AWS.
 
-You can use Amazon Route 53 to configure DNS health checks to route traffic to healthy endpoints or to independently monitor the health of your application and its endpoints. Amazon Route 53 Traffic Flow makes it easy for you to manage traffic globally through a variety of routing types, including Latency Based Routing, Geo DNS, Geoproximity, and Weighted Round Robin—all of which can be combined with DNS Failover to enable a variety of low-latency, fault-tolerant architectures.
+You can use Amazon Route 53 to configure DNS health checks to route traffic to healthy endpoints or to independently monitor the health of your application and its endpoints. 
+Amazon Route 53 Traffic Flow makes it easy for you to manage traffic globally through a variety of routing types, including Latency Based Routing, Geo DNS, Geoproximity, and Weighted Round Robin—all of which can be combined with DNS Failover to enable a variety of low-latency, fault-tolerant architectures.
 
 The Time To Live (TTL) is still in effect
 
-TTL (time to live), is the amount of time, in seconds, that you want DNS recursive resolvers to cache information about a record. If you specify a longer value (for example, 172800 seconds, or two days), you reduce the number of calls that DNS recursive resolvers must make to Amazon Route 53 to get the latest information for the record. This has the effect of reducing latency and reducing your bill for Route 53 service.
+TTL (time to live), is the amount of time, in seconds, that you want DNS recursive resolvers to cache information about a record. 
+If you specify a longer value (for example, 172800 seconds, or two days), you reduce the number of calls that DNS recursive resolvers must make to Amazon Route 53 to get the latest information for the record. 
+This has the effect of reducing latency and reducing your bill for Route 53 service.
 
-However, if you specify a longer value for TTL, it takes longer for changes to the record (for example, a new IP address) to take effect because recursive resolvers use the values in their cache for longer periods before they ask Route 53 for the latest information. If you're changing settings for a domain or subdomain that's already in use, AWS recommends that you initially specify a shorter value, such as 300 seconds, and increase the value after you confirm that the new settings are correct.
+However, if you specify a longer value for TTL, it takes longer for changes to the record (for example, a new IP address) to take effect because recursive resolvers use the values in their cache for longer periods before they ask Route 53 for the latest information. 
+If you're changing settings for a domain or subdomain that's already in use, AWS recommends that you initially specify a shorter value, such as 300 seconds, and increase the value after you confirm that the new settings are correct.
 
 For this use-case, the most likely issue is that the TTL is still in effect so you have to wait until it expires for the new request to perform another DNS query and get the value for the new Load Balancer.
+
+#### You attach an SCP with "Effect": "Allow", "Action": "*" — why might things still fail?
+
+Because SCPs use a deny-by-default model when any SCP is attached:
+- If you attach SCPs, you must explicitly allow required services
+- Missing services in SCP = implicitly denied
+
+#### Can SCPs restrict the root user of an account?
+
+Yes — SCPs apply to all principals, including root
+
+#### How should you structure Organizational Units (OUs)?
+
+Apply stricter SCPs as you go down toward production
+
+#### What does AWS Control Tower add on top of Organizations?
+
+Control Tower = prebuilt governance + automation layer
+
+| Feature             | Organizations | Control Tower |
+| ------------------- | ------------- | ------------- |
+| Account management  | ✅             | ✅             |
+| SCPs                | ✅             | ✅             |
+| Landing zone setup  | ❌             | ✅             |
+| Guardrails          | ❌             | ✅             |
+| Account vending     | ❌             | ✅             |
+| Audit/logging setup | ❌             | ✅             |
+
+#### What are guardrails in Control Tower?
+
+Guardrails = predefined governance rules implemented via:
+- SCPs (preventive controls)
+- Config rules (detective controls)
+
+#### How does Control Tower handle centralized logging?
+
+- Creates Log Archive account
+- Aggregates:
+  - CloudTrail logs
+  - AWS Config logs
 
 
 
@@ -2211,9 +2327,66 @@ Use a network ACL to deny access based on the source IP addresses.
 
 Create a Direct Connect connection. But you can't get encryption on a Direct Connect connection, so you have to run a site-to-site VPN over the top.
 
+- AWS Direct Connect → for consistent performance
+- AWS Site-to-Site VPN → for encryption + backup
+- AWS Transit Gateway → for scalable architecture
+
+Direct Connect HA
+- Use 2 separate DX connections
+- Ideally:
+  - Different locations
+  - Different providers
+
+VPN HA
+- Site-to-Site VPN provides:
+  - 2 tunnels automatically
+  - Each tunnel to different AWS endpoints
+
+```
+                    ┌────────────────────────────┐
+                    │     On-Prem Data Center    │
+                    │   (Router / Firewall)      │
+                    └─────────────┬──────────────┘
+                                  │
+                     ┌────────────┴────────────┐
+                     │                         │
+         Primary (Performance)        Encryption + Backup
+                     │                         │
+                     ▼                         ▼
+      ┌────────────────────────┐    ┌────────────────────────┐
+      │ Direct Connect Location│    │   Internet (Public)     │
+      │   (DX POP Facility)    │    └────────────┬───────────┘
+      └────────────┬───────────┘                 │
+                   │                             ▼
+                   ▼                 ┌────────────────────────┐
+        ┌──────────────────────┐     │ Site-to-Site VPN       │
+        │ Direct Connect GW    │     │ (IPsec - Encrypted)    │
+        └──────────┬───────────┘     └────────────┬───────────┘
+                   │                              │
+                   └──────────────┬───────────────┘
+                                  ▼
+                    ┌──────────────────────────┐
+                    │   Transit Gateway (TGW)  │
+                    │   (Regional, HA)         │
+                    └─────────────┬────────────┘
+                                  │
+                ┌─────────────────┼─────────────────┐
+                ▼                 ▼                 ▼
+        ┌────────────┐    ┌────────────┐    ┌────────────┐
+        │   VPC A    │    │   VPC B    │    │   VPC C    │
+        │ (Multi-AZ) │    │ (Multi-AZ) │    │ (Multi-AZ) │
+        └────────────┘    └────────────┘    └────────────┘
+```
+
 #### A company requires private connectivity between VPCs in different regions with full redundancy.
 
 Create VPC peering connection between the VPCs.
+
+AWS Transit Gateway with Inter-Region Peering
+
+Transit Gateway supports inter-region peering
+
+Enables VPC-to-VPC communication across regions
 
 #### Several remote office locations should be connected to an Amazon VPC and to each other over the internet with full encryption.
 
@@ -2241,6 +2414,8 @@ Use a single virtual private gateway (VGW) and two customer gateways (CGW). VGWs
 
 #### What capability can you use for auditing inbound and outbound traffic in your VPC?
 
+VPC Flow Logs capture detailed information about IP traffic going in and out of network interfaces in your VPC.
+
 #### How would you increase the availability of your Direct Connect link between on-premises and AWS Cloud?
 
 To avoid a single point of failure, you need to consider using two different direct connect locations for critical workloads. 
@@ -2251,17 +2426,69 @@ This will protect you from device failures and direct connect location outages
 - Resides in a public subnet
 - Scales inside one availability zone
 
-#### You are hired to help with migrating a customer's solution to the AWS Cloud.  Customer wants to perform a phased migration strategy and they would like to first run couple of webservers on AWS that points to existing on-premises database. Application requests should routed across webservers in AWS as well as webservers located on-premises.  Which load balancing product can be used for this requirement?
+#### You are hired to help with migrating a customer's solution to the AWS Cloud. Customer wants to perform a phased migration strategy and they would like to first run couple of webservers on AWS that points to existing on-premises database. Application requests should routed across webservers in AWS as well as webservers located on-premises.  Which load balancing product can be used for this requirement?
 
-Both Application and Network Load Balancers allow you to add targets by IP address. You can use this capability to register instances located on-premises and VPC to the same load balancer
+Both Application and Network Load Balancers allow you to add targets by IP address. You can use this capability to register instances located on-premises and VPC to the same load balancer.
+
+An AWS Application Load Balancer can route traffic to:
+- ✅ On-premises data center (via IP addresses)
+- ✅ Auto Scaling group in AWS (via instances)
+- BUT they must be in separate target groups.
 
 #### An e-commerce company operates multiple AWS accounts and has interconnected these accounts in a hub-and-spoke style using the AWS Transit Gateway. Amazon Virtual Private Cloud (Amazon VPCs) have been provisioned across these AWS accounts to facilitate network isolation. Which of the following solutions would reduce both the administrative overhead and the costs while providing shared access to services required by workloads in each of the VPCs?
 
 Build a shared services Amazon Virtual Private Cloud (Amazon VPC)
 
-Consider an organization that has built a hub-and-spoke network with AWS Transit Gateway. VPCs have been provisioned into multiple AWS accounts, perhaps to facilitate network isolation or to enable delegated network administration. When deploying distributed architectures such as this, a popular approach is to build a "shared services VPC, which provides access to services required by workloads in each of the VPCs. This might include directory services or VPC endpoints. Sharing resources from a central location instead of building them in each VPC may reduce administrative overhead and cost.
+Consider an organization that has built a hub-and-spoke network with AWS Transit Gateway. 
+VPCs have been provisioned into multiple AWS accounts, perhaps to facilitate network isolation or to enable delegated network administration. 
+When deploying distributed architectures such as this, a popular approach is to build a "shared services VPC, which provides access to services required by workloads in each of the VPCs. 
+This might include directory services or VPC endpoints. 
+Sharing resources from a central location instead of building them in each VPC may reduce administrative overhead and cost.
 
-A VPC endpoint allows you to privately connect your VPC to supported AWS services without requiring an Internet gateway, NAT device, VPN connection, or AWS Direct Connect connection. Endpoints are virtual devices that are horizontally scaled, redundant, and highly available VPC components. They allow communication between instances in your VPC and services without imposing availability risks or bandwidth constraints on your network traffic.
+A VPC endpoint allows you to privately connect your VPC to supported AWS services without requiring an Internet gateway, NAT device, VPN connection, or AWS Direct Connect connection. 
+Endpoints are virtual devices that are horizontally scaled, redundant, and highly available VPC components. 
+They allow communication between instances in your VPC and services without imposing availability risks or bandwidth constraints on your network traffic.
+
+A Shared Services VPC is a centralized VPC that hosts services used by multiple VPCs or accounts, such as:
+- Directory services (AD)
+- DNS resolvers
+- Bastion hosts / jump boxes
+- Logging / monitoring
+- CI/CD tools
+- Security appliances
+
+```
+                ┌──────────────────────────────┐
+                │  Shared Services VPC         │
+                │                              │
+                │  - AD / Directory            │
+                │  - DNS (Route 53 Resolver)   │
+                │  - Bastion / Jump Host       │
+                │  - Logging / Security Tools  │
+                └────────────┬─────────────────┘
+                             │
+                     Transit Gateway
+                             │
+     ┌───────────────┬───────────────┬───────────────┐
+     ▼               ▼               ▼
+ App VPC A      App VPC B      App VPC C
+ (Account A)    (Account B)    (Account C)
+```
+
+Steps:
+- Create Shared Services VPC
+  - CIDR: e.g. 10.0.0.0/16
+  - Multi-AZ subnets
+- Deploy Core Shared Services
+  - Bastion host (for admin access)
+  - Central logging agents
+- Create Transit Gateway (TGW)
+  - Attach: Shared Services VPC, All application VPCs
+- Connect Application VPCs
+- Use AWS Resource Access Manager to share:
+  - Subnets
+  - Transit Gateway
+  - Route 53 rules
 
 #### A national logistics company has a dedicated AWS Direct Connect connection from its corporate data center to AWS. Within its AWS account, the company operates 25 Amazon VPCs in the same Region, each supporting different regional distribution services. The VPCs were configured with non-overlapping CIDR blocks and currently use private VIFs for Direct Connect access to on-premises resources. As the architecture scales, the company wants to enable communication across all VPCs and the on-premises environment. The solution must scale efficiently, support full-mesh connectivity, and reduce the complexity of maintaining separate private VIFs for each VPC. Which combination of solutions will best fulfill these requirements with the least amount of operational overhead?
 
@@ -2277,6 +2504,23 @@ Create an AWS Transit Gateway with equal cost multipath routing and add addition
 VPN connection is a secure connection between your on-premises equipment and your VPCs. Each VPN connection has two VPN tunnels which you can use for high availability. A VPN tunnel is an encrypted link where data can pass from the customer network to or from AWS. The following diagram shows the high-level connectivity with virtual private gateways.
 
 With AWS Transit Gateway, you can simplify the connectivity between multiple VPCs and also connect to any VPC attached to AWS Transit Gateway with a single VPN connection. AWS Transit Gateway also enables you to scale the IPsec VPN throughput with equal cost multi-path (ECMP) routing support over multiple VPN tunnels. A single VPN tunnel still has a maximum throughput of 1.25 Gbps. If you establish multiple VPN tunnels to an ECMP-enabled transit gateway, it can scale beyond the default maximum limit of 1.25 Gbps. You also must enable the dynamic routing option on your transit gateway to be able to take advantage of ECMP for scalability.
+
+#### When would you use a VPC Endpoint instead of a NAT Gateway?
+
+VPC Endpoint: Private, internal-only access to AWS services (S3, DynamoDB, etc.)
+- Traffic never goes to the internet.
+- Lower latency and cost for large S3/DynamoDB traffic.
+
+NAT Gateway: Provides internet access for private subnets.
+- Charges per GB and per hour.
+- All outbound traffic goes via internet → potential exposure.
+
+#### How can you audit all traffic in your VPC? Can VPC Flow Logs capture all packets?
+
+- VPC Flow Logs capture metadata: source/destination IP, port, protocol, accept/reject.
+- Cannot capture payloads → for packet inspection, use traffic mirroring.
+- Can be published to CloudWatch Logs or S3 for auditing.
+- Works per ENI, subnet, or VPC level.
 
 
 
@@ -2848,9 +3092,19 @@ Directory Buckets: S3 directory buckets, which only support S3 Express One Zone 
 
 ### Architecture Patterns
 
-#### A  company is concerned about accidental deletion of Amazon S3 objects.
+#### A company is concerned about accidental deletion of Amazon S3 objects.
 
 Well, they might want to mitigate this by using S3 Versioning.
+
+1. Enable Versioning
+2. Enable MFA Delete
+   - Bucket must have versioning enabled
+   - Only root account can enable MFA Delete
+3. Use S3 Object Lock
+   - Compliance Mode – objects cannot be deleted until retention expires, even by root account
+   - Governance Mode – privileged users can override if needed
+4. Lifecycle Policies: Can prevent premature deletion of important data by setting minimum retention periods.
+5. Cross-Region Replication: Protects against regional failures or accidental deletion in the primary bucket.
 
 #### Data stored in S3 is frequently accessed for 30 days, then is rarely accessed, but must be immediately retrievable.
 
@@ -2878,22 +3132,61 @@ Configure an event notification that uses the SNS service.
 
 #### A group of customers without AWS credentials must be granted limited access to a software update that is stored in an S3 bucket.
 
-Generate a presigned URL and the users won't need an AWS account and it will be time limited.
+Generate a __presigned URL__ and the users won't need an AWS account and it will be time limited.
 
 #### Solutions architects require both programmatic and console access across AWS accounts.
 
 For that, you can configure cross account access using IAM roles.
 
-####  You want to put restrictions in an S3 bucket so that only your EC2 instances can access the bucket.
+#### You want to put restrictions in an S3 bucket so that only your EC2 instances can access the bucket.
 
 EC2 instances access S3 using Public IP Address and traffic is routed through internet gateway.
-If VPC endpoint is used, S3 is accessed using AWS private network. In this case, bucket policy can use VPC ID or VPC Endpoint ID to restrict access.
+If VPC endpoint is used, S3 is accessed using AWS private network. 
+In this case, bucket policy can use VPC ID or VPC Endpoint ID to restrict access.
 
-####  You want to distribute content in S3 bucket using CloudFront edge locations. You also want to restrict access to the content to only the users who are authorized by your application.
+#### You want to distribute content in S3 bucket using CloudFront edge locations. You also want to restrict access to the content to only the users who are authorized by your application.
 
 Configure content to be accessible only using signed URLs or signed cookies
 Create CloudFront user and grant read access to S3
 Remove permissions for anywone to directly access S3 bucket
+
+| Requirement                         | Solution                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| Distribute content globally         | **Amazon CloudFront** → edge caching for low latency                                  |
+| Restrict access to authorized users | **Private S3 bucket + CloudFront signed URLs or signed cookies**                      |
+| Prevent direct S3 access            | Use **S3 bucket policy** that allows **only CloudFront Origin Access Identity (OAI)** |
+
+Step-by-Step Implementation
+- 1️⃣ Make the S3 bucket private
+  - Default bucket access: private
+  - Remove public access
+- 2️⃣ Create a CloudFront distribution
+  - Set Origin as your S3 bucket
+  - Enable Origin Access Identity (OAI) → allows CloudFront to access S3
+  - Update S3 bucket policy to allow only OAI
+-3️⃣ Restrict access to authorized users
+  - Signed URLs
+    - Generate URL with expiration timestamp and cryptographic signature
+    - Only valid URLs can access content
+    - Best for per-object access control
+
+```
+// S3 Bucket Policy Example (OAI only)
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudFrontOAI",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity YOUR-OAI-ID"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::your-bucket-name/*"
+    }
+  ]
+}
+```
 
 #### An object of size 10 KB is stored in S3 using Standard - IA storage class. How is the pricing computed for this object?
 
@@ -2903,6 +3196,43 @@ If object is less than 128KB, it is still charged for 128KB​. There is also a 
 #### Account A grants S3 bucket access to Account B. An IAM user belonging to Account B needs access to that bucket. What steps need to be performed for this to work?
 
 Account B can delegate access to its users.
+
+1. Update the bucket policy in Account A (bucket owner)
+  - Allow access to IAM principals in Account B
+  - Example: allow s3:GetObject or s3:* depending on requirements
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "CrossAccountAccess",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::ACCOUNT_B_ID:root"
+        },
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::bucket-a/*"
+      }
+    ]
+  }
+  ```
+2. Ensure IAM user in Account B has a policy allowing S3 access
+  - IAM policies cannot override the bucket policy; both must allow the action
+  - Example IAM policy for the user:
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "s3:GetObject"
+        ],
+        "Resource": "arn:aws:s3:::bucket-a/*"
+      }
+    ]
+  }
+  ```
 
 #### A social media application needs to store 1000s of objects. The average size of each object is 20 KB size, and it needs to be immediately accessible when needed. The older objects are accessed less frequently. What storage would be suitable for this requirement at the lowest cost?
 
@@ -2937,7 +3267,7 @@ So, even when the bucket is made public, only the users who have access to the c
 
 With default keys, S3 automatically decrypts data for anyone who has permission to access the bucket
 
-####  Your legal department has asked your team to ensure that project documents are not deleted or tampered with.  They have further asked for a three year retention window.  Your team is currently using Glacier for storing the project documents.  What option would you pick to enforce this policy?
+#### Your legal department has asked your team to ensure that project documents are not deleted or tampered with.  They have further asked for a three year retention window. Your team is currently using Glacier for storing the project documents.  What option would you pick to enforce this policy?
 
 Configure a retention period of three years in Compliance Mode for each object. This will ensure current object versions are protected from modification and deletion.
 
@@ -2953,9 +3283,11 @@ In the File Gateway mode of the Storage Gateway, you can present an S3 bucket as
 
 Disable ACL-based permissions management for the bucket and ensure uploads are allowed only for authorized accounts in the organization
 
-ACL is a legacy way of managing permissions and is problematic with cross-account upload scenarios. A bucket owner cannot read the object in the bucket unless the uploading account grants permissions using ACL. When you disable Object ACL, the bucket owner automatically owns all the objects in the bucket, and permission can be effectively managed using identity-based and resource-based policies
+ACL is a legacy way of managing permissions and is problematic with cross-account upload scenarios. 
+A bucket owner cannot read the object in the bucket unless the uploading account grants permissions using ACL. 
+When you disable Object ACL, the bucket owner automatically owns all the objects in the bucket, and permission can be effectively managed using identity-based and resource-based policies
 
-#### You have enabled cross region replication for your S3 bucket.   When you delete an object in the source bucket, what is the behavior observed in replicated bucket?
+#### You have enabled cross region replication for your S3 bucket. When you delete an object in the source bucket, what is the behavior observed in replicated bucket?
 
 Delete Marker is not replicated
 
@@ -2966,9 +3298,49 @@ You can use versioning to keep the older version of the objects and life cycle p
 #### For disaster recovery, a customer needs to replicate the content of an existing S3 bucket to another bucket in a different region. Which option would meet the requirements?
 
 Answer:
-- S3 Batch Operations is a serverless solution that can inventory and transfer existing objects. For ongoing incremental transfer of changes to existing objects and newly created objects, we can use S3 Replication
+- __S3 Batch Operations__ is a serverless solution that can inventory and transfer existing objects. For ongoing incremental transfer of changes to existing objects and newly created objects, we can use S3 Replication
 Not correct:
-- When you enable S3 Replication, it does not transfer already existing objects. Only new changes are replicated
+- __When you enable S3 Replication, it does not transfer already existing objects. Only new changes are replicated__
+
+Amazon S3 Batch Operations is a managed feature that lets you perform large-scale, repetitive actions on millions or billions of S3 objects with a single request, instead of having to write custom scripts.
+
+```
+resource "aws_s3_batch_operations_job" "copy_job" {
+  account_id = "123456789012"  # Your AWS account
+  role_arn   = aws_iam_role.batch_role.arn
+
+  manifest {
+    spec {
+      format = "S3BatchOperations_CSV_20180820"
+      fields = ["Bucket", "Key"]
+    }
+    location {
+      object_arn = "arn:aws:s3:::manifest-bucket/inventory-manifest.csv"
+      etag       = "manifest-etag"  # Replace with actual ETag of CSV
+    }
+  }
+
+  operation {
+    # Copy objects to destination bucket
+    s3_put_object_copy {
+      target_resource = "arn:aws:s3:::destination-bucket"
+      # Optional: storage class, e.g., STANDARD_IA
+      metadata_directive = "COPY"
+    }
+  }
+
+  report {
+    bucket  = "arn:aws:s3:::report-bucket"
+    format  = "Report_CSV_20180820"
+    enabled = true
+    prefix  = "batch-copy-reports"
+  }
+
+  description = "Batch copy all objects from source to destination bucket in another region"
+  priority    = 10
+  status      = "Enabled"
+}
+```
 
 #### Compare storage cost of AWS S3 Standard storage class, provisions an Amazon EBS volume (General Purpose SSD (gp2)) with 100 gigabytes of provisioned storage and  lastly an Amazon EFS Standard Storage filesystem.
 
@@ -2980,7 +3352,7 @@ For Amazon EBS General Purpose SSD (gp2) volumes, the charges are $0.10 per GB-m
 
 For S3 Standard storage, the pricing is $0.023 per GB per month. Therefore, the monthly storage cost on S3 for the test file is $0.023.
 
-#### what is cheapest storage type on aws s3 to access  hundreds of Terabytes and should be available with millisecond latency but only 1/year?
+#### what is cheapest storage type on aws s3 to access hundreds of Terabytes and should be available with millisecond latency but only 1/year?
 
 S3 Glacier Instant Retrieval:
 - S3 Standard ~$0.023 Milliseconds None
@@ -2990,40 +3362,55 @@ S3 Glacier Instant Retrieval:
 #### what is the difference between aws s3 global accelarator and aws s3 transfer accelerator
 
 __S3 Transfer Acceleration__
--Purpose: Speeds up uploads and downloads to/from a specific S3 bucket from geographically distant clients.
+- Purpose: Speeds up uploads and downloads to/from a specific S3 bucket from geographically distant clients.
 - How it works:
-    Uses the Amazon CloudFront edge network to route traffic to the closest AWS edge location.
-    Then it forwards data over Amazon's private backbone network to the target S3 bucket.
-    Designed specifically for faster data transfer (e.g., large file uploads) to one S3 bucket.
+    - Uses the Amazon CloudFront edge network to route traffic to the closest AWS edge location.
+    - Then it forwards data over Amazon's private backbone network to the target S3 bucket.
+    - Designed specifically for faster data transfer (e.g., large file uploads) to one S3 bucket.
 - Use case examples:
-    Uploading large media files to an S3 bucket from users all over the world.
-    Accelerating backups or data ingestion into a central S3 bucket.
+    - Uploading large media files to an S3 bucket from users all over the world.
+    - Accelerating backups or data ingestion into a central S3 bucket.
 
 __AWS Global Accelerator (with S3)__
 - Purpose: Improves availability and performance of your global applications, not just S3, by providing static IPs and intelligent routing.
 - How it works:
-    Routes client traffic to the optimal AWS endpoint (could be a regional S3 endpoint, ALB, EC2, etc.) using the AWS global network.
-    Chooses the fastest path and closest region based on health, geography, and performance.
+    - Routes client traffic to the optimal AWS endpoint (could be a regional S3 endpoint, ALB, EC2, etc.) using the AWS global network.
+    - Chooses the fastest path and closest region based on health, geography, and performance.
 - For S3:
-    You can use Global Accelerator to route requests to different S3 buckets across multiple AWS Regions.
-    Helps implement multi-region redundancy and latency-based routing for S3 access (e.g., GET requests).
+    - You can use Global Accelerator to route requests to different S3 buckets across multiple AWS Regions.
+    - Helps implement multi-region redundancy and latency-based routing for S3 access (e.g., GET requests).
 - Use case examples:
-    Building a multi-region S3 application (e.g., read-only content delivery from multiple buckets).
-    Wanting high availability or region-based failover with consistent IPs.
+    - Building a multi-region S3 application (e.g., read-only content delivery from multiple buckets).
+    - Wanting high availability or region-based failover with consistent IPs.
 
 #### A company has historically operated only in the us-east-1 region and stores encrypted data in Amazon S3 using SSE-KMS. As part of enhancing its security posture as well as improving the backup and recovery architecture, the company wants to store the encrypted data in Amazon S3 that is replicated into the us-west-1 AWS region. The security policies mandate that the data must be encrypted and decrypted using the same key in both AWS regions.
 
-Create a new Amazon S3 bucket in the us-east-1 region with replication enabled from this new bucket into another bucket in us-west-1 region. Enable SSE-KMS encryption on the new bucket in us-east-1 region by using an AWS KMS multi-region key. Copy the existing data from the current Amazon S3 bucket in us-east-1 region into this new Amazon S3 bucket in us-east-1 region
-AWS KMS supports multi-region keys, which are AWS KMS keys in different AWS regions that can be used interchangeably – as though you had the same key in multiple regions. Each set of related multi-region keys has the same key material and key ID, so you can encrypt data in one AWS region and decrypt it in a different AWS region without re-encrypting or making a cross-region call to AWS KMS.
+- Create a new Amazon S3 bucket in the us-east-1 region with replication enabled from this new bucket into another bucket in us-west-1 region. 
+- Enable SSE-KMS encryption on the new bucket in us-east-1 region by using an AWS KMS multi-region key. 
+- Copy the existing data from the current Amazon S3 bucket in us-east-1 region into this new Amazon S3 bucket in us-east-1 region
+- AWS KMS supports multi-region keys, which are AWS KMS keys in different AWS regions that can be used interchangeably – as though you had the same key in multiple regions. 
+- Each set of related multi-region keys has the same key material and key ID, so you can encrypt data in one AWS region and decrypt it in a different AWS region without re-encrypting or making a cross-region call to AWS KMS.
 
-You can use multi-region AWS KMS keys in Amazon S3. However, Amazon S3 currently treats multi-region keys as though they were single-region keys, and does not use the multi-region features of the key.
+You can use multi-region AWS KMS keys in Amazon S3. 
+However, Amazon S3 currently treats multi-region keys as though they were single-region keys, and does not use the multi-region features of the key.
 However, you cannot convert an existing single-Region key to a multi-Region key.
 
 #### An e-commerce company has copied 1 petabyte of data from its on-premises data center to an Amazon S3 bucket in the us-west-1 Region using an AWS Direct Connect link. The company now wants to set up a one-time copy of the data to another Amazon S3 bucket in the us-east-1 Region. The on-premises data center does not allow the use of AWS Snowball. As a Solutions Architect, which of the following options can be used to accomplish this goal?
 
-- Copy data from the source bucket to the destination bucket using the aws S3 sync command The aws S3 sync command uses the CopyObject APIs to copy objects between Amazon S3 buckets. The sync command lists the source and target buckets to identify objects that are in the source bucket but that aren't in the target bucket. The command also identifies objects in the source bucket that have different LastModified dates than the objects that are in the target bucket. The sync command on a versioned bucket copies only the current version of the object—previous versions aren't copied.
-- Set up Amazon S3 batch replication to copy objects across Amazon S3 buckets in another Region using S3 console and then delete the replication configuration Amazon S3 Batch Replication provides you a way to replicate objects that existed before a replication configuration was in place, objects that have previously been replicated, and objects that have failed replication. This is done through the use of a Batch Operations job. You should note that batch replication differs from live replication which continuously and automatically replicates new objects across Amazon S3 buckets. You cannot directly use the AWS S3 console to configure cross-Region replication for existing objects. By default, replication only supports copying new Amazon S3 objects after it is enabled using the AWS S3 console. Replication enables automatic, asynchronous copying of objects across Amazon S3 buckets. Buckets that are configured for object replication can be owned by the same AWS account or by different accounts. 
+- Copy data from the source bucket to the destination bucket using the aws __S3 sync command__ 
+  - The aws S3 sync command uses the CopyObject APIs to copy objects between Amazon S3 buckets. 
+  - The sync command lists the source and target buckets to identify objects that are in the source bucket but that aren't in the target bucket.
+  - The command also identifies objects in the source bucket that have different LastModified dates than the objects that are in the target bucket. 
+  - The sync command on a versioned bucket copies only the current version of the object—previous versions aren't copied.
+- Set up Amazon __S3 batch replication__ to copy objects across Amazon S3 buckets in another Region using S3 console and then delete the replication configuration
+  - Amazon S3 Batch Replication provides you a way to replicate objects that existed before a replication configuration was in place, objects that have previously been replicated, and objects that have failed replication. 
+  - This is done through the use of a Batch Operations job. 
+  - You should note that batch replication differs from live replication which continuously and automatically replicates new objects across Amazon S3 buckets. 
+  - You cannot directly use the AWS S3 console to configure cross-Region replication for existing objects. 
+  - By default, replication only supports copying new Amazon S3 objects after it is enabled using the AWS S3 console. 
+  - Replication enables automatic, asynchronous copying of objects across Amazon S3 buckets. Buckets that are configured for object replication can be owned by the same AWS account or by different accounts. 
 - Amazon S3 Transfer Acceleration (Amazon S3TA) is a bucket-level feature that enables fast, easy, and secure transfers of files over long distances between your client and an Amazon S3 bucket. You cannot use Transfer Acceleration to copy objects across Amazon S3 buckets in different Regions using Amazon S3 console.
+
 
 
 
@@ -3396,7 +3783,7 @@ Multi-region replication architectures:
 
 #### An elastic load balancer must be resolvable using a company's public domain name, a Route 53 hosted zone already exists.
 
-create an alias record that maps the domain name to the ELB, and you must use an alias here rather than the CNAME.
+Create an __alias__ record that maps the __domain name to the ELB__ (ALB or NLB), and you must use an __alias__ here rather than the CNAME.
 A CNAME can be used for a subdomain. But in this case, it's not a sub domain and it's mapping to an ELB.
 
 #### A website runs across two AWS regions. All traffic goes to one region and should be redirected only if the website is unavailable.
@@ -3409,15 +3796,58 @@ use Route 53 geo-location routing and restrict distribution based on geographic 
 
 #### A CloudFront distribution has multiple S3 origins. Requests should be served from different regions based on file type being requested.
 
-use a behavior and configure a path pattern. You do that within your distribution.
+Use a behavior and configure a path pattern. You do that within your distribution.
+
+You can achieve this with Amazon CloudFront by using __cache behaviors and multiple origins__. 
+Essentially, CloudFront lets you route requests to different origins based on URL path patterns, which can correspond to your file types.
 
 #### Content is accessed using an application and CloudFront distribution. You need to control access to multiple files on the distribution.
 
 Configure signed cookies and then update the application so it processes those cookies.
 
+To control access to content being served via CloudFront, you have several options to ensure that only authorized users or applications can access specific file:
+- __Signed URLs__ (for specific files or paths): Use the private key to generate a signed URL, which gives access to a specific file on CloudFront for a limited time.
+- __Signed Cookies__ (for controlling access to multiple files): create a cookie with policies for access, allowing the user to access multiple files for a specified duration
+- Restricting Access to CloudFront with S3 (via __Origin Access Identity__): Attach the OAI to your CloudFront Distribution
+- __Lambda@Edge__ for Custom Authorization
+
+Signed URLs exmaple:
+- Create a CloudFront Key Pair
+- Generate a Signed URL for the Specific File: 
+  - You'll sign the URL using your CloudFront private key and a __policy document__, which defines access conditions such as expiration time and allowed resources
+  - this is done in a python script that runs as lambda or you server backend.
+  - Example of:
+    - Lambda Function: The Lambda will generate a signed URL for a specific CloudFront resource.
+    - You will also need API Gateway: API Gateway will trigger the Lambda function via an HTTP request.
+- Distribute the Signed URL
+
+A __normal signed URL__ allows you to grant access to a specific file for a limited period. The URL is signed using your private key and can be used directly to access that file on CloudFront or any other supported AWS service.
+
+A __signed URL with a policy document__ provides more flexibility and control over who can access the file and under what conditions. Instead of just signing the URL with an expiration time and file path, you use a policy document that defines additional parameters, such as the allowed IP addresses, time window, or multiple resources
+
 #### An application runs behind an application load balancer in multiple regions. You need to intelligently route traffic based on latency as well as availability.
 
-Create an AWS global accelerator and add the ALBs
+- Use AWS Route 53 with latency-based routing and health checks
+- Create an AWS global accelerator and add the ALBs
+  - global traffic management for your applications by directing traffic to the best-performing endpoints based on user location, health check
+  - When you create a Global Accelerator, AWS assigns two static IP addresses for your accelerator. These are used by clients to route traffic to your application.
+  - Create Regional Endpoints: For each region you want to route traffic to, you need to create an endpoint group.
+    - Choose a regional endpoint: You can choose between Application Load Balancer (ALB), Network Load Balancer (NLB), or EC2 instances
+    - Add endpoint groups
+    - Set Endpoint Weights
+  - Configure Health Checks
+  - Traffic Routing
+
+| Feature               | **Route 53**                               | **Global Accelerator**                                                                |
+| --------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| **Traffic Routing**   | Latency-based, Geolocation-based, Weighted | Latency-based, Health-based routing                                                   |
+| **Global Static IPs** | No                                         | Yes (2 global static IPs)                                                             |
+| **Failover**          | Yes (with health checks)                   | Yes (automatic health checks and failover)                                            |
+| **Performance**       | User traffic routed via DNS resolution     | Routes traffic to the region with **lowest latency** and health                       |
+| **DNS Caching**       | Yes (TTL based)                            | No (Global Static IPs, no DNS caching)                                                |
+| **Complexity**        | Simpler for basic setups                   | Ideal for high-performance, multi-region apps                                         |
+| **Cost**              | DNS requests cost, health checks cost      | Pricing based on the number of accelerators and data transfer, but no extra DNS costs |
+
 
 #### An application uses Geo Location Based Routing on Route 53. Route 53 receives a DNS Query and it is unable to detect requester’s Geo location. How will Route 53 respond in this case?
 
@@ -3442,7 +3872,7 @@ Use Alias record. To point Zone Apex Record (example.com is zone apex. www.examp
 
 MX Record is used for specifying mail servers in your domain
 
-#### Your application must be accessible only from certain countries.  What routing policy would you use?
+#### Your application must be accessible only from certain countries. What routing policy would you use?
 
 Route 53 Geolocation based routing can route based on Continent, Country and for some regions at State level
 
@@ -3515,7 +3945,8 @@ Since the application handles sensitive data, you must ensure SSL/TLS is turned 
 
 If you terminate SSL at the load balancer, communication between the load balancer and the web server is unencrypted, leading to sensitive data access by components other than billing. 
 
-CloudFront supports Field Level Encryption to protect sensitive data. With this capability, you can configure CloudFront to encrypt fields using the specified encryption keys. You would then configure the billing component to use the matching keys so that it can decrypt the sensitive data.
+CloudFront supports Field Level Encryption to protect sensitive data. 
+With this capability, you can configure CloudFront to encrypt fields using the specified encryption keys. You would then configure the billing component to use the matching keys so that it can decrypt the sensitive data.
 
 #### A popular SaaS application is hosted using an Application Load Balancer (ALB). A big corporate customer of this application is requesting that the application endpoints have a static IP address so that they can configure the firewall to allow traffic to the endpoint. The SaaS application technical team is heavily using ALB's routing features, and it is a non-trivial task to move to a different load balancer type. Which one of these options is most operationally efficient to meet the requirement?
 
@@ -3528,6 +3959,18 @@ Global Accelerator endpoint has two static IP addresses. Customer can configure 
 - Geolocation Routing, you can route traffic based on the requester's location. You can configure route 53 records based on Country and Continent. In the case of the USA, you can even configure it by State.
 - Geoproximity Routing – Similar to Geolocation, if you have resources in multiple regions, you can route traffic to the nearest location and, optionally, shift traffic from resources in one location to another. This allows for more complex traffic shaping; however, Geoproximity requires the use of Traffic Flow, and it involves additional monthly costs (USD 50/month)
 
+#### How to combine CloudFront, API Gateway caching, and ElastiCache?
+
+- CloudFront → caches content at edge for global users.
+- API Gateway caching → caches API responses in region, reduces Lambda/RDS calls.
+- ElastiCache → caches frequently accessed DB queries.
+
+### Combining multiple Route 53 routing policies like latency-based, weighted, and failover
+
+AWS Route 53 allows one routing policy per record, but you can combine policies using nested records and alias records.
+- Weighted + Failover: You can combine weighted routing with failover by creating multiple records under a failover setup, each with weighted sub-records.
+- Latency + Weighted: You can combine latency-based routing with weighted by creating multiple latency records per region and then applying weighted distribution within the region.
+
 #### A retail company has connected its on-premises data center to the AWS Cloud via AWS Direct Connect. The company wants to be able to resolve Domain Name System (DNS) queries for any resources in the on-premises network from the AWS VPC and also resolve any DNS queries for resources in the AWS VPC from the on-premises network.
 
 Create an inbound endpoint on Amazon Route 53 Resolver and then DNS resolvers on the on-premises network can forward DNS queries to Amazon Route 53 Resolver via this endpoint
@@ -3537,6 +3980,8 @@ Create an outbound endpoint on Amazon Route 53 Resolver and then Amazon Route 53
 Amazon Route 53 is a highly available and scalable cloud Domain Name System (DNS) web service. Amazon Route 53 effectively connects user requests to infrastructure running in AWS – such as Amazon EC2 instances – and can also be used to route users to infrastructure outside of AWS. By default, Amazon Route 53 Resolver automatically answers DNS queries for local VPC domain names for Amazon EC2 instances. You can integrate DNS resolution between Resolver and DNS resolvers on your on-premises network by configuring forwarding rules.
 
 To resolve any DNS queries for resources in the AWS VPC from the on-premises network, you can create an inbound endpoint on Amazon Route 53 Resolver and then DNS resolvers on the on-premises network can forward DNS queries to Amazon Route 53 Resolver via this endpoint.
+
+
 
 
 
@@ -3796,7 +4241,7 @@ Replication:
 - Annotate gateway can have up to 1,500 virtual tapes with a maximum aggregate capacity of one petabytes.
 - All data transferred between the gateway and AWS storage is encrypted using SSL.
 - all data stored by Tape Gateway in S3 is encrypted with server-side encryption using Amazon S3 managed encryption keys, SSE-S3
-- data is not permanently stored locally; it is buffered (cached) temporarily and then uploaded to AWS (Amazon S3 or S3 Glacier/Deep Archive).
+- data is not permanently stored locally; it is __buffered (cached) temporarily and then uploaded to AWS__ (Amazon S3 or S3 Glacier/Deep Archive).
 
 Tape Gateway enables you to replace using physical tapes on-premises with virtual tapes in AWS without changing existing backup workflows. Tape Gateway supports all leading backup applications and caches virtual tapes on-premises for low-latency data access. Tape Gateway encrypts data between the gateway and AWS for secure data transfer and compresses data while transitioning virtual tapes between Amazon S3 and Amazon S3 Glacier, or Amazon S3 Glacier Deep Archive, to minimize storage costs.
 
@@ -3844,7 +4289,8 @@ To connect to Amazon FSx from on-premises, you need to ensure network connectivi
 Use Data Lifecycle Manager to create a backup schedule.
 
 #### A distributed application has many nodes that each hold a copy of data that is synchronized between them, and you need the best performance for your storage subsystem.
-
+ 
+?????
 use instance stores for storing the data. That would give you great performance, and you don't have to worry about it being ephemeral because the data is synchronized.
 
 #### An application must start out quickly when launched by an ASG, but requires app dependencies and code to be installed.
@@ -3866,7 +4312,7 @@ use a storage gateway, volume gateway that's in stored volume mode.
 
 #### An Amazon EBS volume must be moved between regions.
 
-take a snapshot and copy the snapshot between regions.
+take a __snapshot__ and copy the snapshot between regions.
 
 #### Root EBS volumes for critical application must not be deleted on termination.
 
@@ -3880,22 +4326,12 @@ use a storage gateway, file gateway and that will give you the local cache and i
 
 Change the key during snapshot copy process. Another option is: from an EC2 instance, mount a new EBS volume with the desired key and copy data from old volume to new volume
 
-#### A company is evaluating use of AWS for backing up data in the cloud.  One important consideration is that data needs to be available even when connection over the internet is down
+#### A company is evaluating use of AWS for backing up data in the cloud. One important consideration is that data needs to be available even when connection over the internet is down
 
 The Volume Gateway runs in either a cached or stored mode.
 
 In the cached mode, your primary data is written to S3, while retaining your frequently accessed data locally in a cache for low-latency access.
 
-In the stored mode, your primary data is stored locally and your entire dataset is available for low-latency access while asynchronously backed up to AWS
-
-#### How can you change the encryption key associated with an EBS volume?
-There are couple of ways in which you change the encryption keys associated with an EBS volume: Change the key during snapshot copy process. 
-Another option is: from an EC2 instance, mount a new EBS volume with the desired key and copy data from old volume to new volume
-
-#### A company is evaluating use of AWS for backing up data in the cloud. One important consideration is that data needs to be available even when connection over the internet is down.
-
-The Volume Gateway runs in either a cached or stored mode. 
-In the cached mode, your primary data is written to S3, while retaining your frequently accessed data locally in a cache for low-latency access. 
 In the stored mode, your primary data is stored locally and your entire dataset is available for low-latency access while asynchronously backed up to AWS
 
 #### An organization has a pool of EC2 Linux and Windows instances running in region us-east-2. A multimedia production workload uses Linux instances for some of the tasks followed by a set of operations in Windows instances. The media files needs to be shared across Linux and Windows instances.
@@ -3905,7 +4341,15 @@ EFS is a file share for Linux instances.
 FSx for Lustre is a high performance file share and it currently supports only Linux instances. 
 FSx for Lustre also supports a link to S3 bucket where the objects can accessed and stored using file system commands
 
-#### Your customer is a small business that works with lot of images .  These images need to be backed up in a secure offsite location.  Images are accessed very often initially and then rarely accessed after few days.  However, when needed, it needs to be accessible as quickly as possible.  How can you use AWS Cloud Storage for this?
+Latest: 
+Amazon __Elastic File System (EFS)__ - Best for: Shared file system across Linux and Windows instances.
+- Amazon EFS is a fully managed, scalable, and shared file system that can be mounted by both Linux and Windows instances using different mount options.
+EFS supports NFS (Network File System) for Linux instances, and for Windows instances, you can use Amazon EFS for Windows via Amazon EFS Mount Helper or SMB (Server Message Block) protocol.
+
+Amazon FSx for Windows File Server: Windows-focused workload with access from Linux.
+- If you are looking for a solution that is optimized for Windows but still allows access from Linux, Amazon FSx for Windows File Server is a good option.
+
+#### Your customer is a small business that works with a lot of images. These images need to be backed up in a secure offsite location. Images are accessed very often initially and then rarely accessed after few days. However, when needed, it needs to be accessible as quickly as possible. How can you use AWS Cloud Storage for this?
 
 Use AWS Storage Gateway deployed as a File Gateway
 
@@ -3925,13 +4369,54 @@ Amazon EFS Infrequent Access (EFS IA) is a storage class that provides price/per
 
 Amazon FSx for Lustre is a file system better suited for distributed computing for HPC (high-performance computing) and is very expensive
 
+EFS types:
+- Amazon EFS Standard (General Purpose)
+- Amazon EFS Infrequent Access (EFS IA)
+- EFS One Zone Storage Class
+- EFS Lifecycle Management (Automatic Transition between Storage Classes)
+  - While this is not a storage class in itself, EFS Lifecycle Management enables you to automatically transition files between the EFS Standard and EFS IA storage classes based on their access patterns.
+
 #### A financial services company wants to move the Windows file server clusters out of their datacenters. They are looking for cloud file storage offerings that provide full Windows compatibility. Can you identify the AWS storage services that provide highly reliable file storage that is accessible over the industry-standard Server Message Block (SMB) protocol compatible with Windows systems? 
 
 - Amazon FSx for Windows File Server
 Amazon FSx for Windows File Server is a fully managed, highly reliable file storage that is accessible over the industry-standard Server Message Block (SMB) protocol. It is built on Windows Server, delivering a wide range of administrative features such as user quotas, end-user file restore, and Microsoft Active Directory (AD) integration.
 
+- To access Amazon FSx for Windows File Server from your on-premises data center, you can use AWS Direct Connect or a VPN connection
+
 - File Gateway Configuration of AWS Storage Gateway
 Depending on the use case, AWS Storage Gateway provides 3 types of storage interfaces for on-premises applications: File, Volume, and Tape. The File Gateway enables you to store and retrieve objects in Amazon S3 using file protocols such as Network File System (NFS) and Server Message Block (SMB).
+
+#### How do you ensure high availability and fault tolerance for Amazon EBS volumes?
+
+To ensure high availability and fault tolerance for Amazon EBS:
+- __Multi-AZ Deployments__: Use EBS volumes across different Availability Zones (AZs). This can be done by taking snapshots in one AZ and restoring them to volumes in other AZs in case of an AZ failure.
+- __Snapshots__: Regularly back up EBS snapshots to Amazon S3 for disaster recovery. Snapshots can be restored in any AZ or region.
+- __Elastic Volumes__: Dynamically scale EBS volumes up or down to meet changing workloads without downtime.
+- __Monitoring__: Use CloudWatch to monitor volume health, throughput, and performance. Set alarms for failures and performance degradation.
+
+#### How does Amazon EFS handle file locking and concurrent file access?
+
+Amazon EFS supports file locking and concurrent file access by using NFSv4.1 and NFSv4.2 protocols, which offer file locking mechanisms. The system supports read-write locks that can be used by multiple clients simultaneously to avoid data corruption.
+
+- File Locking: EFS supports NFS file locking to prevent concurrent modifications to the same file
+- Concurrency: EFS ensures that multiple EC2 instances or clients can read and write concurrently to the file system with minimal latency
+
+#### What are the trade-offs between using Amazon EFS vs. using Amazon S3 for file storage in terms of performance, cost, and use case suitability?
+
+- EFS provides real-time __file-based access__ (NFS), while S3 is suitable for object storage where data is accessed over __HTTP/S__.
+- Use EFS for applications requiring __shared file access__, and use __S3 for cheap storage__ of large datasets, backups, or media files that don’t need constant access.
+- S3 High-throughput object storage, but access is not as fast or __low-latency as file systems like EFS__.
+
+#### How would you migrate a large on-premises file system to Amazon EFS with minimal downtime?
+
+- Set up __Amazon EFS__: Deploy an EFS file system within your __VPC__ and create mount targets in the correct subnets.
+- __AWS DataSync__: Use AWS DataSync to automate the migration of data from on-premises to EFS. DataSync supports high-speed transfers and can sync data between on-premises storage and Amazon EFS with minimal downtime.
+- __Test Migration__: Conduct a pilot test with a subset of the data to verify the migration process before migrating the entire dataset.
+- __Cutover Phase__: During the cutover phase, ensure that file system access is directed to EFS and new data writes are directed to the cloud while synchronizing any final changes to EFS.
+- __Post-Migration__: Once the migration is complete, continue syncing any changes made during the migration period and verify the application works seamlessly on EFS.
+
+
+
 
 
 
@@ -4130,11 +4615,24 @@ ECS versus EKS
 
 #### application will be deployed on Amazon ECS and it must scale based on memory.
 
-use service auto scaling and use the memory utilization as the metric to follow.
+Use service auto scaling and use the memory utilization as the metric to follow. Configure auto-scaling policies for your ECS service
+- Define Memory Requirements for the Container in __Task Definition__
+- Enable ECS Service Auto Scaling: create Auto Scaling Policies for your ECS service
+  - CloudWatch alarm to monitor the memory usage of the ECS tasks
+  - configure Auto Scaling policies to scale the ECS service up or down based on the alarm.
+  - Attach Scaling Policies to the ECS Service
 
 #### An application will run on ECS tasks across multiple hosts and needs access to an S3 bucket.
 
 use a task execution IAM role to provide permissions to the S3 bucket. So remember this is task level, not host level.
+- Create an IAM Role for ECS Tasks
+- Configure ECS Task Networking
+  - If you're using Amazon ECS on __Fargate__, your tasks automatically get internet access. If they are launched in a VPC with a public subnet or through a NAT Gateway in a private subnet.
+  - If you're using Amazon ECS with EC2 instances, ensure that your EC2 instances (where ECS tasks run) have:
+    - Public IP (if using public subnets) or
+    - NAT Gateway (if using private subnets) for outbound internet access.
+    - Better: VPC Endpoint for S3
+- Configure S3 Bucket Permissions: Ensure that your S3 bucket policy allows access from the ECS task's IAM role.
 
 #### A company requires standard Docker container automation and management service to be used across multiple environments.
 
@@ -4142,8 +4640,9 @@ use Amazon EKS. If they're looking for industry standards rather
 
 #### A company plans to deploy Docker containers on AWS at the lowest cost.
 
-use ECS with a cluster of spot instances and enable spot instance draining.
-You might actually find that Fargate is cheaper because you're paying for the tasks themselves rather than the cluster hosts, but it really depends on your workload.
+- use ECS with a cluster of spot instances and enable spot instance draining.
+- You might actually find that Fargate is cheaper because you're paying for the tasks themselves rather than the cluster hosts, but it really depends on your workload.
+- Use AWS Lambda for Short-Lived Container Jobs
 
 #### A company plans to migrate Docker containers to AWS and does not want to manage operating systems.
 
@@ -4151,7 +4650,24 @@ use Fargate because it is serverless,
 
 #### Multiple microservices applications running on ECS need to route based on information in the HTTP header.
 
-use an ALB in front of ESC and use query string parameter-based routing.
+Use an __ALB__ in front of ESC and use query string parameter-based routing.
+- Set Up Your ECS Services: Each of your microservices should be deployed as an ECS service with a specific task definition
+- Create an Application Load Balancer (ALB)
+  - listeners
+  - securty groups
+  - target groups for each ECS
+- Define Routing Rules in ALB: listeners -> rules
+
+You can also use __Amazon API Gateway__ instead of Application Load Balancer (ALB) to route traffic to multiple microservices running on Amazon ECS based on HTTP headers.
+
+Attention: __ECS Service itself does not directly perform load balancing__, it can work in conjunction with AWS Load Balancers
+
+ECS Service:
+- An ECS service ensures that a __specified number of ECS tasks__ (containers) are running at any time.
+- It automatically __restarts__ tasks if they fail or stop.
+- It also supports __auto-scaling__, where the number of running tasks is increased or decreased based on demand.
+
+If you don't use an Application Load Balancer (ALB), but you have an ECS Service running with 3 ECS Tasks, all three tasks will be running, but only one of them may be directly accessible depending on how you expose the tasks to the outside world.
 
 #### A containerized app runs on Amazon EKS and you need to collect and centrally view metrics and logs including EKS namespaces and EKS services.
 
@@ -4162,6 +4678,8 @@ use the CloudWatch performance monitoring tool and it has a feature called Conta
 If you attach the lambda to a VPC, you'll loose internet access, which prevents you from accessing resources such S3 and Dynamo, and from making HTTP requests.
 
 ####  Lambda functions, by default, are allowed access to internet resources.
+
+Yes, Lambda functions, by default, are allowed to access internet resources. When a Lambda function is executed, it runs in an environment that has internet access unless explicitly configured otherwise.
 
 To access databases and other resources in your VPC, you need to configure Lambda function to run inside the context of a private subnet in your VPC.
 When this is done: your lambda function gets a private IP address and can reach resources in your VPC.
@@ -4182,7 +4700,7 @@ The __task role__ is used for granting permissions to your application code to a
 #### A distributed application uses many containers to process the pending work. The containers are short-lived, and after completing the work, they stop running. The container logs must be stored in CloudWatch logs to troubleshoot any issues. How would you send the logs to CloudWatch logs?
 
 Docker containers use log drivers to collect containers' standard output and standard error streams and forward the log to the configured destination. 
-The awslogs driver publishes the captured logs to the CloudWatch log group. 
+The __awslogs__ driver publishes the captured logs to the CloudWatch log group. 
 This is a straightforward setup to consolidate logs from containers
 
 #### A containerized application sees sustained high CPU and memory utilization. Which of these launch types may optimize the cost?
@@ -4191,13 +4709,23 @@ ECS Cluster with EC2 instance launch type
 
 #### A microservice deployment uses an Elastic Load Balancer to facilitate service-to-service communication. The caller sends the request to a load balancer endpoint, and the load balancer routes the request to healthy containers running in an ECS cluster. However, the drawback of this approach is that every micro service requires a load balancer, which increases the deployment cost. Which options would lower the cost and ensure the requests are forwarded only to healthy containers?
 
-We can minimize the number of load balancers using Application Load Balancer path-based routing capability. Here, we create one target group for each microservice and assign a unique path. Depending on the path used by the caller, the request is routed to the appropriate microservice. Another option is using App Mesh. With App Mesh, an envoy sidecar is deployed along with each container. App Mesh publishes services and their tasks to Envoy. Envoy performs a health check of tasks and routes the request to a healthy target. With App Mesh, we don't need an elastic load balancer.
+We can minimize the number of load balancers using Application Load Balancer __path-based routing__ capability. 
+Here, we create __one target group for each microservice__ and assign a unique path. 
+Depending on the path used by the caller, the request is routed to the appropriate microservice. 
+
+Another option is using App Mesh. 
+With App Mesh, an envoy sidecar is deployed along with each container. 
+App Mesh publishes services and their tasks to Envoy. 
+Envoy performs a health check of tasks and routes the request to a healthy target. 
+With App Mesh, we don't need an elastic load balancer.
 
 #### You have a docker container that is listening on Port 80. It is part of an ECS Task and managed using ECS. An Elastic Load Balancer routes the requests to the container. You want flexibility to launch multiple instances of this Task in a single EC2 Instance. What Elastic Load Balancer can you use for this?
 
-Application Load Balancer with Dynamic Port Mapping
+__Application Load Balancer with Dynamic Port Mapping__
 
-Dynamic Port mapping allows automatic mapping of unused EC2 instance port to container. When container is registered with ALB, it automatically tracks the instance and port combination. This will allow you to run multiple tasks belonging to same task definition in a single EC2 instance
+Dynamic Port mapping allows automatic mapping of unused EC2 instance port to container. 
+When container is registered with ALB, it automatically tracks the instance and port combination. 
+This will allow you to run multiple tasks belonging to same task definition in a single EC2 instance
 
 #### what is the pricing for using Amazon Elastic Container Service (Amazon ECS) with the EC2 launch type compared to the Amazon Elastic Container Service (Amazon ECS) with the Fargate launch type?
 
@@ -4206,16 +4734,39 @@ Dynamic Port mapping allows automatic mapping of unused EC2 instance port to con
 
 #### A media company operates a video rendering pipeline on Amazon EKS, where containerized jobs are scheduled using Kubernetes deployments. The application experiences bursty traffic patterns, particularly during peak streaming hours. The platform uses the Kubernetes Horizontal Pod Autoscaler (HPA) to scale pods based on CPU utilization. A solutions architect observes that the total number of EC2 worker nodes remains constant during traffic spikes, even when all nodes are at maximum resource utilization. The company needs a solution that enables automatic scaling of the underlying compute infrastructure when pod demand exceeds cluster capacity. Which solution should the architect implement to resolve this issue with the least operational overhead?
 
-Deploy the Kubernetes Cluster Autoscaler to the EKS cluster. Configure it to integrate with the existing EC2 Auto Scaling group to automatically launch or terminate nodes based on pending pod demands
+Deploy the Kubernetes Cluster Autoscaler to the EKS cluster. 
+Configure it to integrate with the existing EC2 Auto Scaling group to automatically launch or terminate nodes based on pending pod demands
 
-The Kubernetes Cluster Autoscaler is the recommended and most seamless solution to automatically manage the size of an EKS cluster's underlying compute resources. It works in tandem with the Kubernetes scheduler and continuously monitors the cluster for unschedulable pods—these are pods that cannot be scheduled due to a lack of available resources (CPU, memory, etc.) on the current set of EC2 nodes.
+The Kubernetes Cluster Autoscaler is the recommended and most seamless solution to automatically manage the size of an EKS cluster's underlying compute resources. 
+It works in tandem with the Kubernetes scheduler and continuously monitors the cluster for unschedulable pods—these are pods that cannot be scheduled due to a lack of available resources (CPU, memory, etc.) on the current set of EC2 nodes.
 
 When the Cluster Autoscaler detects unschedulable pods, it attempts to find an Auto Scaling group (ASG) attached to the EKS cluster that can satisfy the resource requirements of the pending pods. If it finds one, it automatically increases the desired capacity of that ASG, triggering the launch of new EC2 nodes. These new nodes register with the cluster and become available to host the previously unschedulable pods. In the same way, the Cluster Autoscaler also supports scale-in operations: it identifies underutilized nodes and safely drains and terminates them if their workloads can be moved elsewhere—leading to cost savings and higher resource efficiency.
 
 This approach ensures the EKS cluster is highly elastic, cost-effective, and operationally simple, making it the best fit for real-time, variable workloads with minimal administrative overhead.
 
+#### What is the difference between Amazon ECS Task Definitions and Kubernetes Pods?
 
+- ECS Task Definition:
+  - It is a blueprint for an ECS task, specifying the Docker images, environment variables, networking settings, resource allocations (CPU, memory), and IAM roles.
+  - A Task Definition is more like a deployment specification in ECS, and it describes how containers in a task should run and interact. When you create a service, ECS uses the task definition to launch and manage containers.
+  - ECS tasks can restart automatically, similar to Kubernetes Pods, but the mechanics of how they are restarted differ between Amazon ECS and Kubernetes.
+- Kubernetes Pod:
+  - A Pod is the smallest and simplest Kubernetes object. A pod can contain one or more containers that are deployed together on the same node and share resources (e.g., network namespace, storage).
+  - Pods are self-healing, which means if a container in a pod crashes, Kubernetes will automatically restart the container to maintain the desired state.
 
+#### How does ECS handle service discovery for containerized applications, and how is it different from EKS?
+
+- ECS Service Discovery: ECS provides built-in service discovery by integrating with AWS __Cloud Map__. The ECS service discovery allows tasks to discover each other by resolving DNS names without needing static IPs
+- EKS Service Discovery: service discovery is provided by CoreDNS
+
+#### How would you implement continuous deployment (CD) for a containerized application using ECS and EKS with github actions
+
+Continuous Deployment to ECS using GitHub Actions:
+- checkout
+- docker/setup-buildx-action@v1 : GitHub Action that sets up Docker Buildx - creates images for various platforms
+- login to Log in to Amazon ECR
+- Build and push Docker image to Amazon ECR
+- Update ECS service with new image: aws ecs update-service --cluster my-ecs-cluster --service my-ecs-service --forc
 
 
 
