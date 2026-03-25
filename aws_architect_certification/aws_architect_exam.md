@@ -187,23 +187,6 @@ __IAM Roles:__
 - __Users and services can assume a role to obtain temporary security credentials. And those are issued by the Security Token Service, the STS service__.
 - you __can share IAM roles between AWS accounts__ using cross-account IAM role assumption. 
 - you __cannot directly transfer or share IAM users or groups across AWS accounts__, __you can share IAM permissions__ (through roles and policies) between AWS accounts by using cross-account access.
-- A __trust policy__ in AWS Identity and Access Management is a special policy attached to an IAM Role that defines who (which entities) is allowed to assume the role.
-  - It only defines who is trusted to take on the role.
-  ```
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "ec2.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
-      }
-    ]
-  }
-  ``` 
-
 
 __IAM Policies__:
 - Policies are documents that define the permissions and they can be applied to users, groups, and roles
@@ -248,7 +231,7 @@ __IAM Policies__:
 
 ### IAM Policies <a id="IAMPolicies"></a>
 
-- Identity-Based Policies: Policies attached to IAM identities: Users, Groups, Roles
+- __Identity-Based Policies__: Policies attached to IAM identities: Users, Groups, Roles
   ```
   {
     "Version": "2012-10-17",
@@ -261,7 +244,7 @@ __IAM Policies__:
     ]
   }
   ```
-- Resource-Based Policies: Policies attached directly to a resource. They define who can access that resource.
+- __Resource-Based Policies__: Policies attached directly to a resource. They define who can access that resource.
   ```
   {
     "Effect": "Allow",
@@ -272,6 +255,22 @@ __IAM Policies__:
     "Resource": "arn:aws:s3:::shared-bucket/*"
   }
   ```
+- A __Trust Policy__ is a special policy attached to an IAM Role that defines who (which entities) is allowed to assume the role.
+  - It only defines who is trusted to take on the role.
+  ```
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "ec2.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }
+  ``` 
 - __permissions boundaries__. These set the maximum permissions that an identity-based policy can grant to an IAM entity. Created by IAM Administrators or Users with Necessary Permissions
   ```
   {
@@ -4987,7 +4986,9 @@ build APIs for services behind private ALBs, private NLBs, and IP-based services
 - fully managed service for publishing, maintaining, monitoring and securing APIs
 - An API endpoint type refers to the hostname of the API.
 - all of the APIs created with __API Gateway expose HTTPS endpoints only__.
-- The endpoint type can be edge-optimized if you've got a global user base, regional if your user base is within a region or private if you want to provide access only within a VPC or to computers connected over a Direct Connect connection.
+- The endpoint type can be __edge-optimized__ if you've got a global user base, regional if your user base is within a region or private if you want to provide access only within a VPC or to computers connected over a Direct Connect connection.
+  - they hit a nearby edge location (CloudFront
+  - Then AWS routes the request over its private network to your API’s region
 - API Gateway also has caching.
 - you can add caching to API calls by provisioning the cache and specifying its size in gigabytes. That means you can cache the end points response.
 - __Caching__ can reduce the number of API calls to your backend and improve latency.
@@ -5075,6 +5076,20 @@ you need SQS with a FIFO queue to preserve the record order.
 
 The cause of this could be that the throttle limit is set too low. So, you just need to increase that and that will hopefully resolve the issue.
 
+API Gateway Limits: 
+- throttle max 10,000 requests/sec, per account per region
+- Per-method: 1000 RPS
+
+AWS Lambda:
+- Concurrency limit: 1000 new executions / 10s
+- If Lambda exceeds concurrency: Requests are throttled by API Gateway that returns 502 or 429 http status code
+
+You should align: API Gateway throttling ≤ Lambda concurrency capacity
+
+You can configure __reserved concurrency for a Lambda function__:
+- ✅ Guarantees capacity: That number of concurrent executions is always available for this function
+- ✅ Caps scaling: The function cannot exceed that number
+
 #### EC2 instance processes images using JavaScript code and stores the results in S3. The load is highly variable and you need a more cost-effective solution.
 
 replace EC2 with a Lambda function.
@@ -5082,6 +5097,14 @@ replace EC2 with a Lambda function.
 #### An app uses an API Gateway Regional Rest API. It's just gone global and performance has suffered
 
 in that case, they might want to convert the API to an edge-optimized API to optimize for a global user base. And then it will use the CloudFront edge network and improve latency and performance.
+
+- Put Amazon CloudFront in front of your API.
+  - Uses global edge locations
+  - Caches responses (if possible)
+- Switch to Edge-Optimized API Gateway: Edge-optimized endpoint - This automatically uses CloudFront under the hood
+- Multi-region deployment (true global): For serious scale:
+  - Deploy API + Lambda in multiple regions
+  - Route users using: Amazon Route 53 latency-based routing
 
 #### A legacy application uses many batch scripts that process data and pass on to the next script. And it's complex and difficult to maintain.
 
@@ -5092,6 +5115,7 @@ Use Lambda functions along with step functions for coordinating and orchestratin
 For this, you can create an event source notification to notify Lambda to process the new objects.
 
 #### Your application has a Lambda function that needs access to both internet services and a database hosted in private subnet of your VPC.  What steps are needed to accomplish this?
+
 Lambda functions, by default, are allowed access to internet resources. 
 To access databases and other resources in your VPC, you need to configure Lambda function to run inside the context of a private subnet in your VPC. 
 When this is done: your lambda function gets a private IP address and can reach resources in your VPC. 
@@ -5106,31 +5130,268 @@ You would need to use a service like API Gateway to receive the requests and con
 
 S3 needs permission to invoke Lambda function; Lambda function needs permission to read S3 Objects and to put items in the DynamoDB table
 
+```
+// IAM role for Lambda
+// assume_role_policy = This is a trust policy, not a permission policy i.e. “Who is allowed to use (assume) this role?”
+resource "aws_iam_role" "lambda_role" {
+  name = "lambda_s3_dynamodb_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {                         // The AWS Lambda service is allowed to assume this role
+        Service = "lambda.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"             // This uses AWS Security Token Service: "log in” to this role, get temporary credentials
+    }]
+  })
+}
+
+// IAM policy (permissions)
+resource "aws_iam_policy" "lambda_policy" {
+  name = "lambda_s3_dynamodb_policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.bucket.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = ["dynamodb:PutItem"]
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+// Attach policy to role
+resource "aws_iam_role_policy_attachment" "attach" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_policy.arn
+}
+
+// Lambda
+resource "aws_lambda_function" "fn" {
+  function_name = "s3_to_dynamodb"
+
+  role    = aws_iam_role.lambda_role.arn
+  handler = "index.handler"
+  runtime = "nodejs18.x"
+
+  filename = "lambda.zip"
+}
+
+// Allow S3 to invoke Lambda
+resource "aws_lambda_permission" "allow_s3" {
+  statement_id  = "AllowExecutionFromS3"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.fn.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.bucket.arn
+}
+
+// S3 bucket
+resource "aws_s3_bucket" "my_bucket" {
+  bucket = "my-example-bucket"
+}
+
+// Attach a bucket policy (resource-based policy)
+resource "aws_s3_bucket_policy" "bucket_policy" {
+  bucket = aws_s3_bucket.my_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid = "AllowPublicRead"
+        Effect = "Allow"
+        Principal = "*"
+        Action = "s3:GetObject"
+        Resource = "${aws_s3_bucket.my_bucket.arn}/*"
+      }
+    ]
+  })
+}
+
+// S3 event notification
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = aws_s3_bucket.bucket.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.fn.arn
+    events              = ["s3:ObjectCreated:*"]
+  }
+
+  depends_on = [aws_lambda_permission.allow_s3]
+}
+```
+
 #### An S3 bucket is configured to invoke the Lambda function whenever a new object is added to the bucket. The Lambda function transforms the object and uploads the transformed object to the same bucket. Would you approve of this solution?
 
 No. This solution can unintentionally create an infinite loop and accumulate massive charges to your account.
 
 #### Your Lambda function needs access to a private web end point available in your VPC.  What steps do you need to enable such an access?
 
-Configure Lambda to run inside a private subnet of your VPC. Lambda function can only access private resources inside your VPC when you configure it to run inside your VPC. You need to specify the VPC, private subnets, and Security group as part of the Lambda configuration
+Configure Lambda to run inside a private subnet of your VPC. 
+Lambda function can only access private resources inside your VPC when you configure it to run inside your VPC. 
+You need to specify the VPC, private subnets, and Security group as part of the Lambda configuration
 
 #### Your application services are used by several third parties. To ensure quality of service for all customers and to prevent a single customer from consuming all the resources, you want to enforce limits on maximum requests per second that can be made by a single customer.
 
-API Gateway can act as a single point for your third parties to integrate with your services. API Gateway allows to throttle requests at specific method level and manage individual API Keys. It also allows you to cache the responses so that API Gateway can directly answer certain method calls without invoking your backend services for every request. You can configure your API methods to require authorization can support IAM based control, third party identity providers, custom authorizers and so forth.
+API Gateway can act as a single point for your third parties to integrate with your services. 
+API Gateway allows to throttle requests at specific method level and manage individual API Keys. 
+It also allows you to cache the responses so that API Gateway can directly answer certain method calls without invoking your backend services for every request. 
+You can configure your API methods to require authorization can support IAM based control, third party identity providers, custom authorizers and so forth.
+
+The best AWS-native way to solve this is using Amazon API Gateway Usage Plans + API Keys:
+- Each customer gets a unique API key
+  - This key is sent with each request (usually in header: x-api-key)
+- You attach that key to a Usage Plan
+- The usage plan enforces: Rate limit (requests per second)
+
+Client sends request:
+```
+GET /orders
+x-api-key: <customer-a-key>
+```
+
+Terraform:
+```
+resource "aws_api_gateway_method" "get_orders" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.resource.id
+  http_method   = "GET"
+  authorization = "NONE"
+
+  api_key_required = true  # 🔥 IMPORTANT       // enforces usage plans
+}
+
+// Create Usage Plan (limits)
+resource "aws_api_gateway_usage_plan" "basic_plan" {
+  name = "basic-plan"
+
+  throttle_settings {
+    rate_limit  = 100   # requests per second
+    burst_limit = 200
+  }
+
+  quota_settings {
+    limit  = 1000000
+    period = "DAY"
+  }
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.api.id
+    stage  = aws_api_gateway_stage.stage.stage_name
+  }
+}
+
+// Attach API Key to Usage Plan
+resource "aws_api_gateway_usage_plan_key" "customer_a_attach" {
+  key_id        = aws_api_gateway_api_key.customer_a.id
+  key_type      = "API_KEY"
+  usage_plan_id = aws_api_gateway_usage_plan.basic_plan.id
+}
+```
 
 #### Your Lambda function subscribes to an SNS topic, and the Lambda function is invoked asynchronously when a message arrives for that topic. When there is an error while processing a message, you want to ensure that the message is available for your team to troubleshoot. What configuration can you use for this?
 
 Configure Dead Letter Queue for Lambda function
 
-Using Dead Letter configuration, you can direct Lambda to send unprocessed events to SQS queue or SNS topic. This can be used for troubleshooting events that were unsuccessful. While you can catch errors in a Lambda function and push the events to SQS queue, Lambda does it automatically for you using Dead Letter config. SNS Topic itself does not have dead letter configuration. SQS has a dead letter option to move messages that were not processed after specified number of retries
+Using Dead Letter configuration, you can direct Lambda to send unprocessed events to SQS queue or SNS topic. 
+This can be used for troubleshooting events that were unsuccessful. 
+While you can catch errors in a Lambda function and push the events to SQS queue, Lambda does it automatically for you using Dead Letter config. 
+SNS Topic itself does not have dead letter configuration. 
+SQS has a dead letter option to move messages that were not processed after specified number of retries
+
+1. SNS publishes a message
+2. Lambda is invoked asynchronously
+3. If Lambda fails: AWS retries automatically (up to 2 times)
+4. If it still fails: Message is sent to the DLQ
 
 #### A startup is modernizing its monolithic Python-based analytics application by transitioning to a microservices architecture on AWS. As a pilot, the team wants to refactor one module into a standalone microservice that can handle hundreds of requests per second. They are seeking an AWS-native solution that supports Python, scales automatically with traffic, and requires minimal infrastructure management and operational overhead to build, test, and deploy the service efficiently.
 
-Use AWS Lambda to run the Python-based microservice. Integrate it with Amazon API Gateway for HTTP access and enable provisioned concurrency for performance during peak loads
+Use AWS Lambda to run the Python-based microservice. 
+Integrate it with Amazon API Gateway for HTTP access and enable provisioned concurrency for performance during peak loads
 
-AWS Lambda is a fully managed serverless compute service that natively supports Python runtimes. It is ideal for event-driven and API-based microservices. Lambda automatically scales based on request volume, requires no server provisioning or patching, and integrates easily with API Gateway for RESTful access. The company can also enable provisioned concurrency to reduce cold start latency for high-throughput workloads. 
+AWS Lambda is a fully managed serverless compute service that natively supports Python runtimes. 
+It is ideal for event-driven and API-based microservices. 
+Lambda automatically scales based on request volume, requires no server provisioning or patching, and integrates easily with API Gateway for RESTful access. 
+The company can also enable provisioned concurrency to reduce cold start latency for high-throughput workloads. 
 
-AWS Fargate is a serverless container service that works with ECS and supports auto scaling, but it requires containerization of the application, Dockerfile management, and more setup complexity than Lambda. Although suitable for microservices, it involves more operational overhead, especially during initial development and testing phases.
+AWS Fargate is a serverless container service that works with ECS and supports auto scaling, but it requires containerization of the application, Dockerfile management, and more setup complexity than Lambda. 
+Although suitable for microservices, it involves more operational overhead, especially during initial development and testing phases.
+
+#### How do you prevent one client from overwhelming your system?
+
+- Use Amazon API Gateway Usage Plans + API keys for per-client throttling
+- Add WAF rate limiting for IP-based protection
+- Buffer with Amazon SQS to decouple spikes
+- Set Lambda reserved concurrency to protect downstream systems
+
+#### How do you avoid duplicate processing with SQS + Lambda?
+
+- Use idempotency keys (e.g., request ID)
+- Store processed IDs in:
+- Amazon DynamoDB (with TTL):
+  - dynamodb is eventually consistent
+    - You do NOT rely on reads for correctness
+    - Use conditional write: ConditionExpression: "attribute_not_exists(id)"
+      - Two Lambdas try to process same message:
+        - Both attempt PutItem
+        - DynamoDB:
+          - First succeeds
+          - Second fails with ConditionalCheckFailedException
+- Make writes idempotent (e.g., conditional writes)
+
+What if Lambda crashes after write but before processing?
+- Store status field:
+  - IN_PROGRESS
+  - COMPLETED
+
+#### How do you reduce cold starts?
+
+- Use provisioned concurrency for critical paths
+- Keep functions small (reduce package size)
+- Avoid VPC unless needed
+- Use higher memory (faster CPU → faster init)
+
+#### DLQ vs Destinations
+
+Both are used with asynchronous Lambda invocations (like from Amazon SNS, S3, EventBridge).
+
+What should happen AFTER Lambda finishes (success or failure)?
+
+DLQ:
+- Original event payload
+- ❌ No execution details
+- ❌ No error message (minimal context)
+
+Lambda Destinations:
+- Works for: Success or Failure
+- SNS → Lambda → result → Destination (SQS/SNS/EventBridge/Lambda)
+- What gets sent?
+  - A rich execution record, including:
+  - Request payload
+  - Response (if success)
+  - Error message (if failure)
+  - Function name
+  - Timestamp
+  - Request ID
 
 
 
