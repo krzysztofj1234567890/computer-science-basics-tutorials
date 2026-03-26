@@ -5405,6 +5405,8 @@ Lambda Destinations:
 
 
 
+
+
 ## Database <a id="Database"></a>
 
 Different options:
@@ -6314,6 +6316,268 @@ Amazon RDS provides high availability and failover support for database instance
 
 The automated backup feature of Amazon RDS enables point-in-time recovery for your database instance. Amazon RDS will back up your database and transaction logs and store both for a user-specified retention period. If it’s a Multi-AZ configuration, backups occur on standby to reduce the I/O impact on the primary. Amazon RDS supports Cross-Region Automated Backups. Manual snapshots and Read Replicas are also supported across multiple Regions.
 
+#### Each Read Capacity Unit provisioned in a DynamoDB table translates to?
+
+1 RCU (≤ 4 KB):
+- 1 read/sec: Strongly consistent reads
+- 2 reads/sec: Eventually consistent reads
+- 0.5 reads/sec: Transactional reads
+
+1 WCU (≤ 1 KB):
+- 1 write/s: Standard writes
+- 0.5 writes/sec: Transactional writes
+
+#### Backup of rds, aurora, dynamodb, redshift and open search in another region
+
+| Service                   | Primary Cross-Region Backup Options                                                              | Real-time?              | Fully Managed? | Notes                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------- | -------------- | --------------------------------------------- |
+| Amazon RDS                | - Cross-region read replica<br>- Snapshot copy<br>- Automated backup replication<br>- AWS Backup | Replica: ✅<br>Others: ❌ | Yes            | Replica for DR, snapshots for periodic backup |
+| Amazon Aurora             | - Global Database<br>- Cross-region read replica<br>- Snapshot copy<br>- AWS Backup              | Global DB: ✅            | Yes            | Global DB = fastest cross-region replication  |
+| Amazon DynamoDB           | - Global Tables<br>- On-demand backup + cross-region copy via AWS Backup                         | Global Tables: ✅        | Yes            | Global Tables = active-active multi-region    |
+| Amazon Redshift           | - Snapshot copy to another region<br>- AWS Backup                                                | ❌                       | Yes            | No real-time replication across regions       |
+| Amazon OpenSearch Service | - Manual snapshots to Amazon S3 + replicate<br>- Cross-cluster replication                       | CCR: ✅                  | Partial        | Snapshot restore required in target region    |
+
+#### In a multi-AZ RDS Deployment, automatic failover will not happen under this condition
+
+Automatic failover will NOT happen in this condition:
+- If the primary DB is: Slow or Under heavy CPU/memory usage or Running long queries
+- RDS only triggers failover when there is a failure: Primary instance crash or AZ outage or Storage failure
+
+#### Import data to rds, aurora, dynamodb, redshift and open search
+
+| Service                   | Common Import Methods                                                                                    | Real-time Streaming? | Best For                    | Notes                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | --------------------------- | --------------------------------- |
+| Amazon RDS                | - Native DB tools (mysqldump, pg_restore)<br>- Import from Amazon S3<br>- AWS Database Migration Service | Partial              | Traditional DB migration    | Uses engine-specific tools        |
+| Amazon Aurora             | - Load from S3 (native integration)<br>- DMS<br>- mysqldump / pg_restore                                 | Partial              | Fast bulk import            | Aurora is optimized for S3 import |
+| Amazon DynamoDB           | - Import from S3 (CSV/JSON)<br>- BatchWriteItem API<br>- DMS                                             | Yes                  | NoSQL bulk + streaming      | Native S3 import is serverless    |
+| Amazon Redshift           | - **COPY command from S3**<br>- Kinesis Firehose<br>- DMS                                                | Yes                  | Large-scale analytics loads | COPY is fastest and most common   |
+| Amazon OpenSearch Service | - Bulk API<br>- Logstash / Beats<br>- Kinesis Firehose<br>- Reindex from remote                          | Yes                  | Logs, search data           | Streaming ingestion is common     |
+
+#### transactions in rds, aurora, dynamodb, redshift and open search
+
+| Service                   | Transaction Support                        | ACID Compliance        | Scope                  | Notes                                          |
+| ------------------------- | ------------------------------------------ | ---------------------- | ---------------------- | ---------------------------------------------- |
+| Amazon RDS                | ✅ Full support (BEGIN / COMMIT / ROLLBACK) | ✅ Yes                  | Multi-row, multi-table | Depends on DB engine (MySQL, PostgreSQL, etc.) |
+| Amazon Aurora             | ✅ Full support                             | ✅ Yes                  | Multi-row, multi-table | High performance, distributed storage          |
+| Amazon DynamoDB           | ✅ Supported (Transactional APIs)           | ✅ Yes                  | Up to 25 items / 4 MB  | Uses `TransactWriteItems`, `TransactGetItems`  |
+| Amazon Redshift           | ⚠️ Limited support                         | ✅ Yes (within session) | Single session         | Not designed for OLTP; more for analytics      |
+| Amazon OpenSearch Service | ❌ No traditional transactions              | ❌ No                   | N/A                    | Eventually consistent, not ACID                |
+
+#### explain database engine migration from older version for rds, aurora, dynamodb, redshift and open search
+
+| Service                   | Engine Version Upgrade Support | How It’s Done                                                                                                     | Downtime                | Notes                                     |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------- |
+| Amazon RDS                | ✅ Supported                    | - Modify DB → upgrade version<br>- Manual or automatic (minor versions)<br>- Snapshot + restore for major changes | ⚠️ Usually yes          | Can enable **auto minor version upgrade** |
+| Amazon Aurora             | ✅ Supported                    | - In-place upgrade<br>- Blue/Green deployment<br>- Snapshot restore                                               | ⚠️ Minimal (Blue/Green) | Faster upgrades vs RDS                    |
+| Amazon DynamoDB           | ❌ Not applicable               | Fully managed (no engine versions exposed)                                                                        | ❌ None                  | AWS handles everything automatically      |
+| Amazon Redshift           | ✅ Supported                    | - Automatic patching<br>- Manual maintenance window<br>- Cluster restore                                          | ⚠️ Minimal              | Versioning mostly abstracted              |
+| Amazon OpenSearch Service | ✅ Supported                    | - In-place upgrade<br>- Blue/Green deployment                                                                     | ⚠️ Minimal              | Blue/Green reduces downtime risk          |
+
+
+#### Aurora Blue-Green deployment
+
+- Create Green environment
+  - Aurora clones your production (Blue) cluster
+  - This includes: Schema, Data, Configuration
+- Continuous replication
+  - Changes from Blue → Green are replicated
+  - Keeps Green nearly up-to-date
+- Make changes safely on Green
+  - Upgrade engine version
+  - Modify schema, Change parameters
+- Test Green
+  - Run queries, validate performance, check compatibility
+- Switchover
+  - Switch endpoints from Blue → Green
+  - Takes seconds (minimal downtime)
+
+#### A finance research company needs to perform data analytics on real-time lab results provided by a partner organization. The partner stores these lab results in an Amazon RDS for MySQL instance within the partner’s own AWS account. The research company has a private VPC that does not have internet access, Direct Connect, or a VPN connection. However, the company must establish secure and private connectivity to the RDS database in the partner’s VPC. The solution must allow the research company to connect from its VPC while minimizing complexity and complying with data security requirements.
+
+- Use VPC Peering between the two VPCs.
+  - Amazon VPC Peering allows two VPCs (even across accounts) to communicate privately using AWS network.
+
+If you want to share a service in your VPC—like an Application Load Balancer (ALB)—with another AWS account or VPC, the best AWS-native solution is AWS PrivateLink:
+- Create a Network Load Balancer (NLB)
+  - Note: ALB cannot act as a PrivateLink endpoint itself, so traffic goes through an NLB in front of ALB.
+- Register your service
+  - Your NLB becomes the PrivateLink service endpoint
+  - Enable “accept VPC endpoint connections” for other accounts.
+- Other account creates a VPC Endpoint
+  - Type: Interface Endpoint → points to your service
+  - Connects securely to your NLB / service
+- Configure security
+  - Security groups allow only traffic from the VPC endpoint
+  - You control access per account
+- Other account uses private DNS
+  - Optional: endpoint can have a private DNS hostname pointing to your service
+
+#### If I use DAX with Dynamodb, will is cache new writes?
+
+- Writes go to DynamoDB first
+  - Any PutItem, UpdateItem, or DeleteItem operation is always written to the underlying DynamoDB table.
+- DAX updates the cache asynchronously
+  - After the write succeeds in DynamoDB, DAX invalidates or updates its cached item
+  - Ensures read-after-write consistency for DAX reads
+
+DAX is read-through / write-through for caching:
+- Reads → DAX returns cached data if available
+- Writes → DAX does not bypass DynamoDB; it updates its cache only after the DB write
+- Result: new writes are eventually reflected in the cache immediately or shortly after, depending on how DAX propagates the update.
+- Consistency mode:
+  - DAX provides eventually consistent reads by default
+  - Strongly consistent reads through DAX are not supported
+
+#### How does DynamoDB handle transactional writes and what are its limitations?
+
+DynamoDB supports ACID transactions using TransactWriteItems and TransactGetItems.
+
+Limitations 
+- Maximum 25 items per transaction
+- Maximum 4 MB total payload
+- Supports multi-table transactions
+- Cannot span multiple AWS regions — must be within the same region
+- High-latency if multiple items are in different partitions (partition-level locking occurs internally)
+
+#### Explain how Redshift handles ACID transactions and why it’s different from RDS.
+
+Redshift supports ACID transactions, but:
+- Primarily optimized for analytics (OLAP), not high-concurrency OLTP.
+- Transactions operate at the session level, using snapshot isolation.
+- Long-running transactions can block other queries if they hold table locks.
+
+#### relational database running on MySQL must be migrated to AWS and must be highly available.
+
+use RDS MySQL and Configure a Multi-AZ standby node for high availability.
+
+- Best option: Amazon RDS for MySQL
+- or Amazon Aurora MySQL
+
+Migration Strategy:
+- Minimal downtime → AWS Database Migration Service
+  - Replicates data continuously from source to AWS
+  - Keeps source DB running during migration
+  - Cutover happens with minimal downtime
+- Simple migration (longer downtime): mysqldump + restore
+
+#### An RDS DB has high query traffic that's causing performance degradation.
+
+that's great for a read replica, and you must configure the application to use the reader endpoint for any database queries.
+
+#### An RDS DB is approaching its storage capacity limits and or is suffering from high write latency.
+
+you have to scale up the DB instance to an instance type that has more storage and CPU.
+So that means changing the instance type rather than adding a read replica.
+
+Increase Storage (Fastest Fix)
+- Modify DB → increase allocated storage
+- Takes effect online (no downtime in most cases)
+
+Enable Storage Autoscaling
+- Automatically increases storage when nearing limit
+- Prevents future outages
+
+yes, you can change the storage type with little to no interruption: 
+- In most cases: No downtime (online modification)
+- RDS supports storage scaling and type changes online
+- Performance impact during modification
+- however, if you change instance type - you will have brief downtime (30s) - good to have Multi-AZ setup
+
+#### RDS database is unencrypted and you need a cross-region read replica, which must be encrypted.
+
+create an encrypted snapshot of the main DB, create a new encrypted DB instance from the encrypted snapshot and then create an encrypted cross-region read replica.
+
+or 
+Use AWS Database Migration Service:
+- Create new encrypted RDS
+- Use DMS to replicate data from old DB
+- Cut over with minimal downtime
+- Then create cross-region replica
+
+✔️ Yes, DMS can continuously synchronize data after the initial load.
+This is called Change Data Capture (CDC).
+
+#### Amazon Aurora DB deployed and requires a cross region replica.
+
+use the Aurora MySQL replica type in the second region.
+
+#### Aurora DB is deployed and requires a read replica in the same region with minimal synchronization latency.
+
+use an aurora replica rather than a MySQL replica. And it could be in a different availability zone. And that will help your paycheck.
+
+#### Aurora is deployed and an app in another region requires read only access with low latency. Synchronization latency must also be minimized.
+
+use the Aurora global database and configure the app in the second region to use the reader endpoint, and that will help with the latency issues.
+
+you can replicate Aurora data to another region without using Aurora Global Database, but there are some important caveats:
+- Cross-Region Aurora Replication Without Global Database
+  - Use case: DR or reporting.
+  - Limitation: Latency is higher (tens to hundreds of milliseconds), not suitable for real-time use.
+- If you need sub-second or fast cross-region replication, Aurora Global Database is the only native solution.
+  - Typical lag: less than 1 second for low-latency networks, but it is not synchronous.
+
+#### An application in DB migrated to Aurora and requires the ability to write to the DB across multiple nodes.
+
+use Aurora Multi-Master for an in-region multi-master database.
+
+#### An application requires a session state data store that provides low latency.
+
+either ElastiCache or DynamoDB.
+
+#### A multi-threaded in-memory datastore is required for unstructured data.
+
+use ElastiCache with Memcached and that would be needed for the multi-threaded application, you wouldn't be able to use Redis.
+
+#### An in-memory datastore required that offers microsecond performance for unstructured data.
+
+use DynamoDB DAX, the DynamoDB Accelerator.
+
+#### An in-memory datastore is required that supports data persistence and high availability.
+
+use ElastiCache and you would need to use the Redis engine.
+
+ElastiCache Memcached is not highly available (HA) by design
+
+ElastiCache using Terraform:
+```
+resource "aws_elasticache_subnet_group" "redis_subnet" {
+  name       = "redis-subnet-group"
+  subnet_ids = ["subnet-xxxxxx", "subnet-yyyyyy"]
+}
+
+resource "aws_elasticache_replication_group" "redis_cluster" {
+  replication_group_id          = "my-redis-cluster"
+  replication_group_description = "Redis replication group with Multi-AZ"
+  engine                        = "redis"
+  engine_version                = "7.0"
+  node_type                     = "cache.t3.medium"
+  number_cache_clusters         = 2
+  automatic_failover_enabled    = true
+  multi_az_enabled              = true
+  subnet_group_name             = aws_elasticache_subnet_group.redis_subnet.name
+  security_group_ids            = [aws_security_group.elasticache_sg.id]
+  parameter_group_name          = "default.redis7"
+}
+```
+
+#### A serverless database is required that supports a NoSQL key value store workload.
+
+Use Amazon DynamoDB.
+
+#### A serverless database is required that supports MySQL or PostgreSQL.
+
+use Amazon Aurora Serverless.
+
+#### A relational database is required for a workload with an unknown usage pattern.
+
+usage is expected to be low and variable., that would be Aurora Serverless
+
+#### An application requires a key value database that can be written to from multiple regions.
+
+DynamoDB Global Tables would be a good solution.
+
+
+
+
 
 
 
@@ -6489,74 +6753,30 @@ Both AWS Glue Workflows and AWS Step Functions are used to orchestrate workflows
 
 ### Architecture Patterns
 
-#### relational database running on MySQL must be migrated to AWS and must be highly available.
-
-use RDS MySQL and Configure a Multi-AZ standby node for high availability.
-
-#### An RDS DB has high query traffic that's causing performance degradation.
-
-that's great for a read replica, and you must configure the application to use the reader endpoint for any database queries.
-
-#### An RDS DB is approaching its storage capacity limits and or is suffering from high write latency.
-
-you have to scale up the DB instance to an instance type that has more storage and CPU.
-So that means changing the instance type rather than adding a read replica.
-
-#### And RDS database is unencrypted and you need a cross-region read replica, which must be encrypted.
-
-create an encrypted snapshot of the main DB, create a new encrypted DB instance from the encrypted snapshot and then create an encrypted cross-region read replica.
-
-#### Amazon Aurora DB deployed and requires a cross region replica.
-
-use the Aurora MySQL replica type in the second region.
-
-#### Aurora DB is deployed and requires a read replica in the same region with minimal synchronization latency.
-
-use an aurora replica rather than a MySQL replica. And it could be in a different availability zone. And that will help your paycheck.
-
-#### Aurora is deployed and an app in another region requires read only access with low latency. Synchronization latency must also be minimized.
-
-use the Aurora global database and configure the app in the second region to use the reader endpoint, and that will help with the latency issues.
-
-#### An application in DB migrated to Aurora and requires the ability to write to the DB across multiple nodes.
-
-use Aurora Multi-Master for an in-region multi-master database.
-
-#### An application requires a session state data store that provides low latency.
-
-either ElastiCache or DynamoDB.
-
-#### A multi-threaded in-memory datastore is required for unstructured data.
-
-use ElastiCache with Memcached and that would be needed for the multi-threaded application, you wouldn't be able to use Redis.
-
-#### An in-memory datastore required that offers microsecond performance for unstructured data.
-
-use DynamoDB DAX, the DynamoDB Accelerator.
-
-#### An in-memory datastore is required that supports data persistence and high availability.
-
-use ElastiCache and you would need to use the Redis engine.
-
-#### A serverless database is required that supports a NoSQL key value store workload.
-
-Use Amazon DynamoDB.
-
-#### A serverless database is required that supports MySQL or PostgreSQL.
-
-use Amazon Aurora Serverless.
-
-#### A relational database is required for a workload with an unknown usage pattern.
-
-usage is expected to be low and variable., that would be Aurora Serverless
-
-#### An application requires a key value database that can be written to from multiple regions.
-
-DynamoDB Global Tables would be a good solution.
-
 #### Amazon Athena is being used to analyze a large volume of data based on date ranges, and the performance must be optimized.
 
 you can store data using Apache Hive partitioning with a key based on the data. And you can use Apache Parquet and ORC storage formats.
+
+When using Amazon Athena on large datasets, especially when filtering by date ranges, you can optimize performance (and cost) using partitioning, bucketing, and file formats:
+- Partitioning by Date
+  - Athena reads all data in the table by default unless partitioned.
+  - For date-based queries, create partitions by date, e.g., year, month, day.
+  - Partitioning splits your table into folders on disk (e.g., year=2026/month=03/day=20/).
+  ```
+  s3://my-bucket/logs/year=2026/month=03/day=20/data1.parquet
+  ```
+- Use Columnar File Formats: Convert data to Parquet or ORC
+- Bucket or Cluster Data (Optional)
+  - For very large partitions, bucketing on high-cardinality columns (e.g., user_id) can help
+  - Bucketing splits data within each partition into multiple files based on the hash of a column (like user_id).
+  - reduces data scanned within large partitions (e.g., by user_id)
+- Optimize S3 Layout
+  - Avoid too many small files → increases query planning overhead.
+  - Too large files → slower reads.
+- Use Glue Data Catalog
+  - Partition metadata stored in AWS Glue Catalog allows Athena to discover partitions efficiently
+- Precompute Aggregates (Optional)
+  - For extremely frequent queries over date ranges:
 
 #### Lambda is processing streaming data from API Gateway and it's generating a too many requests exception as the volume increases.
 
@@ -6565,6 +6785,9 @@ stream the data into Kinesis data stream from API Gateway and then process it in
 #### A Lambda function is processing streaming data that must be analyzed with SQL.
 
 load the data into a Kinesis data stream and then analyze it with Kinesis Data Analytics to get that SQL analysis.
+
+to run SQL queries on data in a Kinesis stream, the format of the data matters
+- Each record in the stream must conform to the format consistently.
 
 #### Security logs generated by the AWS web application firewall must be sent to a third party auditing application.
 
@@ -6578,7 +6801,24 @@ use Kinesis data streams for the real time streaming and then Firehose to load t
 
 load the data from the OLTP databases into a Redshift data warehouse for OLAP.
 
-#### A Big Data analytics company wants to set up an AWS cloud architecture that throttles requests in case of sudden traffic spikes. The company is looking for AWS services that can be used for buffering or throttling to handle such traffic variations.Which of the following services can be used to support this requirement?
+Option A: Data Warehouse (Redshift / Redshift Spectrum)
+- Centralized analytics platform
+- Steps:
+  - ETL/ELT: Extract data from all production DBs → transform → load into Amazon Redshift
+  - Can use AWS Glue, AWS DMS, or custom pipelines
+  - Partition & optimize tables for large datasets
+  - Run complex SQL queries efficiently
+  - Connect BI tools (e.g., QuickSight, Tableau) for forecasting dashboards
+
+Lakehouse Approach (S3 + Athena / Redshift Spectrum / EMR)
+- Store all production data in S3 (raw or processed)
+- Transform into columnar formats like Parquet or ORC
+- Query with:
+  - Athena → serverless, pay-per-query
+  - Redshift Spectrum → integrates Redshift with S3 data
+  - EMR Spark / Hive → for very complex transformations
+
+#### A Big Data analytics company wants to set up an AWS cloud architecture that throttles requests in case of sudden traffic spikes. The company is looking for AWS services that can be used for buffering or throttling to handle such traffic variations. Which of the following services can be used to support this requirement?
 
 Amazon API Gateway, Amazon Simple Queue Service (Amazon SQS) and Amazon Kinesis
 
@@ -6596,13 +6836,43 @@ When requests come in faster than your Lambda function can scale, or when your f
 
 Use Enhanced Fanout feature of Amazon Kinesis Data Streams
 
-Amazon Kinesis Data Streams (KDS) is a massively scalable and durable real-time data streaming service. KDS can continuously capture gigabytes of data per second from hundreds of thousands of sources such as website clickstreams, database event streams, financial transactions, social media feeds, IT logs, and location-tracking events.
+Amazon Kinesis Data Streams (KDS) is a massively scalable and durable real-time data streaming service. 
+KDS can continuously capture gigabytes of data per second from hundreds of thousands of sources such as website clickstreams, database event streams, financial transactions, social media feeds, IT logs, and location-tracking events.
 
-By default, the 2MB/second/shard output is shared between all of the applications consuming data from the stream. You should use enhanced fan-out if you have multiple consumers retrieving data from a stream in parallel. With enhanced fan-out developers can register stream consumers to use enhanced fan-out and receive their own 2MB/second pipe of read throughput per shard, and this throughput automatically scales with the number of shards in a stream.
+By default, the 2MB/second/shard output is shared between all of the applications consuming data from the stream. 
+You should use enhanced fan-out if you have multiple consumers retrieving data from a stream in parallel. 
+With enhanced fan-out developers can register stream consumers to use enhanced fan-out and receive their own 2MB/second pipe of read throughput per shard, and this throughput automatically scales with the number of shards in a stream.
 
+#### what databases can aws athena connect to?
 
+Via Athena Federated Query (JDBC connectors), Athena can query some relational databases without moving all data to S3:
 
+| Database Type                    | How Athena Accesses It                  |
+| -------------------------------- | --------------------------------------- |
+| Amazon RDS MySQL / PostgreSQL    | JDBC connector (Athena Federated Query) |
+| Amazon Aurora MySQL / PostgreSQL | JDBC connector (Federated)              |
+| Amazon Redshift                  | Federated Query or Redshift Spectrum    |
+| SQL Server                       | JDBC connector (Federated)              |
+| Oracle                           | JDBC connector (Federated)              |
+| Teradata / other JDBC DBs        | Federated Query                         |
 
+Redshift spectrum - what other databases can it connect to:
+
+#### Your company has multiple relational databases (RDS MySQL, PostgreSQL, Aurora) and wants to run complex analytical queries across all of them. How would you design the solution on AWS?
+
+- Extract & Consolidate Data:
+  - Use AWS DMS to replicate data to S3 or Redshift.
+  - Use AWS Glue for ETL / transformations.
+- Storage:
+  - S3 Data Lake for raw and processed data.
+  - Redshift for structured, frequently queried analytics.
+- Query & Analytics:
+  - Use Athena for ad hoc queries directly on S3.
+  - Use Redshift for complex joins, aggregations, and BI dashboards.
+
+You can also use:
+- Using AWS Glue ETL
+- Using Redshift COPY Command directly: Export data from RDS/Aurora to S3 (CSV, Parquet, ORC).
 
 
 
@@ -6857,7 +7127,7 @@ Long polling also protects you from receiving empty responses from standard queu
 This can happen with short polling due to distribute queue implementation. 
 With short polling you have to simply repeat the request to receive message.
 
-#### An application needs to process new objects added to S3.  The average time taken to process an object is 24 hours.  The solution also needs to handle the fault in consumers and restart the job in a different consumer. What messaging service can you use for this requirement?
+#### An application needs to process new objects added to S3. The average time taken to process an object is 24 hours. The solution also needs to handle the fault in consumers and restart the job in a different consumer. What messaging service can you use for this requirement?
 
 Use Kinesis Data stream to store the new object details. 
 Since the average processing time is 24 hours, we cannot use an SQS queue. 
@@ -6866,7 +7136,16 @@ We also need to handle consumer faults.
 So, the message needs to be available until the object is fully processed. 
 While SNS can push the message to the consumer, it does not handle the scenario of a consumer crashing immediately after receiving the message.
 
-#### An enterprise uses a SaaS application to manage the ticketing process. When a ticket is created in the SaaS application, it must trigger a workflow on your AWS account.  What messaging service would you use for this requirement?
+or
+
+AWS Step Functions supports long-running workflows up to 1 year per execution (Standard Workflows).
+You can orchestrate your S3 object processing in a fault-tolerant way:
+S3 Event Notification → triggers a Step Function execution with the object key.
+Step Function starts a worker task (EC2/ECS/Batch).
+If the worker fails, Step Functions can retry or start the task on a different worker.
+Step Function tracks the state until processing completes (~24 hours).
+
+#### An enterprise uses a SaaS application to manage the ticketing process. When a ticket is created in the SaaS application, it must trigger a workflow on your AWS account. What messaging service would you use for this requirement?
 
 Amazon EventBridge provides native integrations with a number of SaaS platforms, giving you the ability to build rich event-driven applications without writing custom code
 
@@ -6877,6 +7156,77 @@ Queue owner can grant access using resource-based policy and then application ow
 Another option is to create an IAM role in queue owner account and add Account B as the trusted entity. 
 Account B can now delegate AssumeRole permission to the application. 
 PrivateLink is used for keeping the communication inside the AWS network. It does not address the permission issue asked in this question.
+
+```
+// Account A queue policy explicitly allows Account B to send messages.
+resource "aws_sqs_queue" "support_tickets" {
+  provider = aws.account_a
+  name     = "support-tickets-queue"
+}
+resource "aws_sqs_queue_policy" "cross_account_policy" {
+  provider = aws.account_a
+  queue_url = aws_sqs_queue.support_tickets.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowAccountBToSendMessage"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::ACCOUNT_B_ID:root"
+        }
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.support_tickets.arn
+      }
+    ]
+  })
+}
+
+// Account B role has permission to sqs:SendMessage to the SQS queue.
+provider "aws" {
+  alias  = "account_b"
+  region = "us-east-1"
+  profile = "account_b"
+}
+resource "aws_iam_role" "sender_role" {
+  name = "sqs-sender-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "sqs_send_policy" {
+  name   = "SQSAccessPolicy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = "arn:aws:sqs:us-east-1:ACCOUNT_A_ID:support-tickets-queue"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_send_policy" {
+  role       = aws_iam_role.sender_role.name
+  policy_arn = aws_iam_policy.sqs_send_policy.arn
+}
+```
 
 #### An SNS Topic needs to fanout message to a Lambda function and Kinesis Firehose. However, messages are not delivered to the subscribers. How will you troubleshoot this issue?
 
@@ -6933,6 +7283,16 @@ By default, FIFO queues support up to 3,000 messages per second with batching, o
 The name of a FIFO queue must end with the .fifo suffix. The suffix counts towards the 80-character queue name limit. To determine whether a queue is FIFO, you can check whether the queue name ends with the suffix.
 
 If you have an existing application that uses standard queues and you want to take advantage of the ordering or exactly-once processing features of FIFO queues, you need to configure the queue and your application correctly. You can't convert an existing standard queue into a FIFO queue. To make the move, you must either create a new FIFO queue for your application or delete your existing standard queue and recreate it as a FIFO queue.
+
+#### How do you implement exactly-once processing for messages in AWS?
+
+1. SQS FIFO Queues
+  - Support exactly-once message delivery and message ordering.
+  - Use MessageDeduplicationId to prevent duplicates.
+2. Idempotent Consumers
+  - Even with standard queues, make your consumer idempotent by storing processed message IDs in DynamoDB.
+3. Deduplication in Lambda / Worker
+  - Keep a cache or database of processed message IDs to ignore repeats.
 
 
 
