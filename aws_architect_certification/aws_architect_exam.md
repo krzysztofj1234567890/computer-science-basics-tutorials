@@ -7468,6 +7468,39 @@ Amazon Detective is an interactive tool to investigate security findings and ide
 Ensure IAM role has permission to access the KMS Keys used for secure string encryption
 SecureString parameter uses KMS keys for encryption. Ensure the Application IAM Role has permission to use the keys and access the parameter.
 
+#### What is the aws services to store and manage secrets, passwords etc? Tell me what should it be used for, use case, rotation, difference between them in table format
+
+- Secrets Manager → secrets + automatic rotation ✅
+- Parameter Store → config + secrets (cheaper) ✅
+- KMS → encryption only 🔐
+
+| Service                             | What It Stores                                  | When to Use                                           | Typical Use Cases                                         | Rotation                                                 | Key Differences                                                  |
+| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------- |
+| AWS Secrets Manager                 | DB credentials, API keys, tokens, OAuth secrets | When you need **secure storage + automatic rotation** | RDS/Aurora credentials, third-party API keys, app secrets | ✅ **Built-in automatic rotation (via Lambda)**           | Purpose-built for secrets, native rotation, tight DB integration |
+| AWS Systems Manager Parameter Store | Config values + secrets (SecureString)          | When you want **low-cost config + secrets storage**   | App configs, feature flags, simple secrets                | ⚠️ **Manual or custom rotation**                         | Cheaper than Secrets Manager, but no native rotation             |
+| AWS Key Management Service          | Encryption keys (KMS keys)                      | When you need to **encrypt secrets/data**             | Encrypting secrets in other services                      | ❌ Not applicable                                         | Does NOT store secrets, only manages encryption keys             |
+| AWS IAM                             | Access keys, roles, credentials                 | For **identity and access control**                   | Managing users, roles, service permissions                | ⚠️ Manual rotation (best practice: avoid long-term keys) | Not for app secrets; controls authentication/authorization       |
+| AWS CloudFormation (dynamic refs)   | References to secrets (not storage)             | When deploying infrastructure securely                | Inject secrets into stacks at deploy time                 | Depends on underlying service                            | Pulls from Secrets Manager/Parameter Store                       |
+| AWS Lambda (env vars)               | Small secrets/config                            | Simple or temporary secrets in serverless apps        | API keys, config values                                   | ❌ No built-in rotation                                   | Must use KMS encryption; not ideal for sensitive secrets         |
+| Amazon S3 (encrypted)               | Files containing secrets                        | Rare edge cases only                                  | Backup of secrets, encrypted blobs                        | ❌ No rotation                                            | Not recommended for active secret management                     |
+
+
+#### Enforce key and password expiration automatically
+
+Detect old access keys: AWS Config rule: access-keys-rotated
+
+Amazon Config + EventBridge + AWS Lambda
+- AWS Config - create event
+- EventBridge gets event and sends it to Lambda
+- Trigger Lambda:
+  - Disable old access key
+  - Notify user (SNS/email)
+  - Optionally delete key after grace period
+
+Prevent long-lived keys (best long-term fix)
+- Replace IAM user keys with: IAM Roles + STS
+
+
 
 
 
@@ -7719,6 +7752,261 @@ For the AWS Cloudtrail logs available in Amazon CloudWatch Logs, you can begin s
 Note: AWS CloudTrail Insights helps AWS users identify and respond to unusual activity associated with write API calls by continuously analyzing CloudTrail management events.
 
 Insights events are logged when AWS CloudTrail detects unusual write management API activity in your account. If you have AWS CloudTrail Insights enabled and CloudTrail detects unusual activity, Insights events are delivered to the destination Amazon S3 bucket for your trail. You can also see the type of insight and the incident time when you view Insights events on the CloudTrail console. Unlike other types of events captured in a CloudTrail trail, Insights events are logged only when CloudTrail detects changes in your account's API usage that differ significantly from the account's typical usage patterns.
+
+#### need to stream logs from Amazon EC2 instances in an auto scaling group.
+
+```
+[Auto Scaling EC2] --CloudWatch Agent--> [CloudWatch Logs Group]
+                          \
+                           --> [Kinesis Firehose] --> S3 / OpenSearch / Redshift
+```
+
+Default EC2 metrics (CPU, network, disk) are already collected by the EC2 infrastructure and visible in CloudWatch — these are basic EC2 metrics like CPUUtilization, NetworkIn, DiskReadOps
+
+Unified agent for:
+- Additional OS-level metrics: memory, disk usage, swap, TCP connections
+- Application logs streaming to CloudWatch Logs
+- Custom metrics via scripts or JSON config
+
+| Metric Type          | Granularity                | Notes                                                    |
+| -------------------- | -------------------------- | -------------------------------------------------------- |
+| Basic EC2 metrics    | 5 minutes                  | Free, default, CPU, disk, network                        |
+| Detailed monitoring  | 1 minute                   | Paid option, enables **1-minute metrics** via CloudWatch |
+| **1-second metrics** | ❌ Not available by default | Need **custom metrics** or high-resolution metrics       |
+
+#### CloudWatch logs entries must be transformed with Lambda and then loaded into S3
+
+- Step 1: Create CloudWatch Logs Group
+- Step 2: Create Lambda Function
+  - Decode CloudWatch Logs data (it is gzip + base64 in the subscription event)
+  - Transform/parse the log
+  - Write result to S3
+- Step 3: Create Subscription Filter (send logs to lambda or Kinessis firehose)
+  ```
+  aws logs put-subscription-filter \
+      --log-group-name MyAppLogs \
+      --filter-name LambdaTransform \
+      --filter-pattern "" \
+      --destination-arn arn:aws:lambda:us-east-1:123456789012:function:TransformLogsLambda
+  ```
+- Step 4: IAM Permissions: Lambda execution role must have
+  ```
+  {
+    "Effect": "Allow",
+    "Action": [
+      "s3:PutObject",
+      "logs:DescribeLogGroups"
+    ],
+    "Resource": "*"
+  }
+  ```
+
+#### Access auditing must be enabled and records must be stored for a minimum of five years. Any attempts to modify the log files must be identified.
+
+```
+[AWS Services / User Actions]
+        │
+        ▼
+[CloudTrail / CloudWatch Logs] 
+        │
+        ▼
+[Log Delivery to S3 Bucket with Object Lock / Versioning]
+        │
+        ▼
+[Glacier Deep Archive / Long-Term Storage]
+        │
+        ▼
+[Monitoring / Alerting]
+        ├─ AWS Config (detect changes)
+        └─ CloudWatch / EventBridge Alarms for unauthorized modifications
+```
+
+- Enable CloudTrail
+  - CloudTrail records all API activity, including PutObject, DeleteObject, ModifyBucketPolicy, etc.
+  - Create a multi-region trail and send logs to an S3 bucket.
+- Configure S3 Bucket for Immutable Storage
+  - Enable Object Lock (WORM) to prevent modifications:
+    - Must enable Object Lock at bucket creation
+    - Set Retention Mode: Compliance (prevents deletions even by root)
+- Enable Monitoring of Log Integrity
+  - CloudTrail Integrity Validation: CloudTrail supports log file validation, which ensures logs are not tampered with
+  - S3 Event Notifications
+    - Detect failed or unauthorized modification attempts
+    - Use EventBridge / CloudWatch to trigger alerts
+- Optional: AWS Config rules
+  - s3-bucket-versioning-enabled
+  - s3-bucket-object-lock-enabled
+- Optional Long-Term Storage: For cost optimization, move logs to: S3 Glacier Deep Archive for long-term retention
+
+S3 Object Lock requires versioning to be enabled. You cannot use Object Lock without versioning.
+
+#### API activity must be captured from all accounts in an AWS Organization. Admins in member accounts must not be able to modify or delete the trail.
+
+Create S3 bucket with Object Lock:
+```
+resource "aws_s3_bucket" "trail_bucket" {
+  bucket = "org-audit-logs-bucket"
+  acl    = "log-delivery-write"
+
+  force_destroy = false
+
+  versioning {
+    enabled = true
+  }
+
+  object_lock_configuration {
+    object_lock_enabled = "Enabled"
+    rule {
+      default_retention {
+        mode  = "COMPLIANCE"
+        days  = 1825   # 5 years
+      }
+    }
+  }
+
+  lifecycle_rule {
+    id      = "glacier-archive"
+    enabled = true
+    transition {
+      days          = 30
+      storage_class = "GLACIER_DEEP_ARCHIVE"
+    }
+  }
+}
+```
+
+Apply S3 bucket policy to block member account admins:
+```
+resource "aws_s3_bucket_policy" "trail_bucket_policy" {
+  bucket = aws_s3_bucket.trail_bucket.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "DenyDeleteForNonLoggingAccount"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = [
+          "s3:DeleteObject",
+          "s3:PutObjectAcl",
+          "s3:DeleteObjectVersion"
+        ]
+        Resource = "${aws_s3_bucket.trail_bucket.arn}/*"
+        Condition = {
+          StringNotEquals = {
+            "aws:PrincipalAccount" = "123456789012"  # Central logging account
+          }
+        }
+      }
+    ]
+  })
+}
+```
+
+Create Organization CloudTrail
+```
+resource "aws_cloudtrail" "org_trail" {
+  name                          = "org-audit-trail"
+  s3_bucket_name                = aws_s3_bucket.trail_bucket.id
+  is_multi_region_trail         = true
+  include_global_service_events = true
+  is_organization_trail         = true				// captures API activity from all accounts in the org
+  enable_logging                = true
+
+  event_selector {
+    read_write_type           = "All"
+    include_management_events = true
+    data_resource {
+      type = "AWS::S3::Object"
+      values = ["arn:aws:s3:::"] # optional: capture S3 object-level API
+    }
+  }
+}
+```
+
+#### A company requires API events that involve the root user account to generate a notification.
+
+- CloudTrail logs all API activity in the account.
+- CloudTrail can deliver logs to CloudWatch Logs.
+- EventBridge rule filters events where the userIdentity.type = Root.
+  ```
+  {
+    "source": ["aws.cloudtrail"],
+    "detail-type": ["AWS API Call via CloudTrail"],
+    "detail": {
+      "userIdentity": {
+        "type": ["Root"]
+      }
+    }
+  }
+  ```
+- EventBridge triggers a notification (SNS email, SMS, or Lambda).
+
+CloudTrail only records events; it doesn’t push alerts.
+
+#### For compliance reasons, all S3 buckets must have encryption enabled and any non-compliant buckets must be auto remediated
+
+- Enable AWS Config Rule: s3-bucket-server-side-encryption-enabled
+- AWS Config → Auto Remediation → Lambda
+- Configure Auto Remediation: Lambda Remediation
+- Optional: Prevent Non-Compliant Buckets (Proactive Control): AWS Organizations + SCP (Service Control Policies)
+
+#### To aggregate CloudWatch metrics across regions, the correct mechanism is:
+
+Use CloudWatch Cross-Region Dashboards:
+- CloudWatch dashboards are global (region-independent)
+- You can add widgets that pull metrics from:
+  - Multiple regions
+  - Multiple accounts (if enabled)
+- Dashboard queries multiple regions and displays them together
+
+If You Need True Aggregation (single metric):
+- Use Lambda or agent to push metrics into central region using PutMetricData
+  - to Republish metrics to a central region (real aggregation):
+    - Read metrics from Region A
+    - Push them as custom metrics into Region B using PutMetricData
+    - Region A metrics → Lambda → PutMetricData → Region B
+- Use CloudWatch metric math in dashboard: Sum or average metrics from different regions
+
+#### You need to monitor application latency across microservices. How do you design observability
+
+- Use distributed tracing with AWS X-Ray
+- Instrument all services (Lambda, ECS, EC2 apps)
+- Capture:
+  - Request flow
+  - Latency per service
+    - each lambda will create a log entry: latency = ... // use Embedded Metric Format (EMF) to Automatically converts logs → metrics
+  - Downstream calls
+- CloudWatch automatically aggregates based on: Namespace, Metric name, Dimensions
+- Combine with:
+  - Amazon CloudWatch metrics (latency percentiles p95/p99)
+  - Structured logs for debugging
+
+#### How do you monitor logs for specific patterns and trigger alerts?
+
+Logs → Metric Filter → CloudWatch Metric → Alarm → SNS
+
+#### You need near real-time log analytics at scale. What architecture?
+
+CloudWatch Logs → Amazon Kinesis Data Firehose → Amazon OpenSearch Service
+
+#### How do you debug intermittent failures in production?
+
+- When did it happen? (time correlation) = Metrics
+   - Error rate spikes
+ - Latency spikes (p95/p99)
+ - Throttles / saturation
+- What failed? (error signals) = Logs
+- Where did it fail? (service/component) = Trace
+- Why did it fail? (root cause) = Identify pattern (load, randon, region, data)
+- Reproduce
+
+I start by analyzing CloudWatch metrics to identify when the intermittent failure occurs, focusing on error rates and latency percentiles. Then I correlate logs in CloudWatch Logs using timestamps and request or correlation IDs to find specific errors. Next, I use AWS X-Ray to trace the request path and identify which service or dependency is causing the failure. Finally, I look for patterns such as load-related issues, throttling, or dependency failures, and validate by reproducing the issue if possible.
+
+
+
+
+
 
 
 
@@ -8085,7 +8373,24 @@ For this, you need to create a data encryption key using the CMK to encrypt the 
 
 #### A mobile app requires authorized access to AWS services. Users authenticate using social IDPs and a preconfigured web UI is required for logging in.
 
-use a Cognito user pool that leverages the social IDPs and an identity pool for gaining temporary credentials for AWS. And the user pool will give you that pre-configured web UI, it has that out of the box.
+use a Cognito user pool that leverages the social IDPs and an identity pool for gaining temporary credentials for AWS. 
+And the user pool will give you that pre-configured web UI, it has that out of the box.
+
+- User authentication with social IDPs
+  - Cognito supports federated login via providers like: Google, Facebook, Apple and others via OpenID Connect / SAML
+- Preconfigured web UI for login
+  - Cognito provides a Hosted UI, which is a ready-to-use, customizable login page. No need to build your own frontend for authentication.
+- Authorized access to AWS services
+  - After login:
+    - Cognito issues tokens (ID, access, refresh)
+    - You can exchange these for AWS credentials via Cognito Identity Pools
+    - These credentials allow controlled access to services like Amazon S3 or Amazon DynamoDB
+
+oAuth2:
+- Resource Owner → the user of your mobile app
+- Client → your mobile app
+- Authorization Server → Amazon Cognito (User Pool + Hosted UI)
+- Resource Server → your AWS services (e.g., Amazon S3, Amazon DynamoDB)
 
 #### A company has an on-premises Microsoft AD and a Direct Connect connection. They require the ability to join EC2 instances to the on-premises domain.
 
@@ -8095,6 +8400,14 @@ use an AD connector that uses
 
 Every year when automatic rotation is enabled.
 
+Does the customer need to provide a new key?
+- No — not in normal automatic rotation.
+  - AWS handles everything:
+    - Generates new cryptographic material
+    - Associates it with the same KMS key
+
+If you are using imported key material: Automatic rotation is NOT supported
+
 #### A web application uses Network Load Balancer (NLB) to route traffic to the compute instances. Which of these configurations would offer comprehensive protection against Layer 7 attacks?
 
 With AWS __WAF__, you can subscribe to ready-to-use managed rule groups provided by AWS and marketplace sellers. 
@@ -8102,7 +8415,7 @@ With this option, you get comprehensive protection against known application lay
 AWS WAF does not support NLB. 
 One option is to configure CloudFront distribution with NLB as the origin and associate AWS WAF to the CloudFront distribution
 
-#### A financial company needs to limit access to the web application only for users from specific regions where they have a presence.  Which of these options would enable you to that?
+#### A financial company needs to limit access to the web application only for users from specific regions where they have a presence. Which of these options would enable you to that?
 
 AWS __WAF__ has the option to __allow or block based on the request originating countries__. 
 With this option, AWS automatically manages the IP to country mapping and keeps the information up-to-date. 
@@ -8121,30 +8434,41 @@ Security Group has a limit of a few hundred entries, and Network ACL has a limit
 
 With AWS __Shield Advanced__, you get access to real-time metrics and reports for extensive visibility into attacks on your AWS resources. 
 You can also configure CloudWatch alarms to notify you of an attack in progress. 
-WAF provides full visibility into rules and requests that match your rules using CloudWatch metrics. 
+
+__WAF__ provides full visibility into rules and requests that match your rules using CloudWatch metrics. 
 These metrics are useful for tracking the application layer (Layer 7) attacks that were blocked by your rules
 
 #### An organization wants to rotate database credentials automatically. The credentials must be stored in a secure data store. Which of these services provides built-in credential rotation support for this requirement?
 
 With __Secrets manager__, you can easily __rotate__, manage, and retrieve secrets. 
+
 Secrets Manager __encrypts the secrets using KMS keys__ that you specify. 
 
-Systems Manager Parameter Store supports the storage of encrypted passwords; however, by default, they store unencrypted. 
-Parameter Store does not have an automated mechanism for credential rotation
+Systems Manager __Parameter Store__ supports the storage of encrypted passwords; however, by default, they store unencrypted. 
+- Parameter Store does not have an automated mechanism for credential rotation
+- Parameter Store has two main parameter types:
+  - String (default): Stored as plain text (unencrypted)
+    - This is what you get if you don’t specify encryption
+  - SecureString: Stored encrypted using AWS Key Management Service
 
 #### I need a tool that automatically scans CloudTrail Logs, VPC Flow Logs, and DNS logs and identifies suspicious events that are not part of normal baseline activities in my account. Which service should I use?
 
-Guard Duty is a managed threat detection service. It learns by reviewing the CloudTrail events, VPC Flow Log, and DNS logs to build a baseline of normal activities. It checks network activity, data access patterns, account behavior. Any abnormal and suspicious activities are flagged and reported by Guard Duty. You can use CloudWatch Events and Lamda for automated remediation.
+__Guard Duty__ is a managed threat detection service. 
+It learns by reviewing the CloudTrail events, VPC Flow Log, and DNS logs to build a baseline of normal activities. 
+It checks network activity, data access patterns, account behavior. 
+Any abnormal and suspicious activities are flagged and reported by Guard Duty. 
+You can use CloudWatch Events and Lamda for automated remediation.
 
 #### Our application requires several third-party and open-source software libraries. How do I automatically check for vulnerabilities in these libraries? The solution should also check for any newly reported vulnerabilities. What capability can I use for this?
 
-Inspector can analyze your instance and application libraries for known vulnerability reported in the CVE database, CIS host hardening standards, network reachability assessment, and processes reachable over the exposed ports.
+__Inspector__ can analyze your instance and application libraries for known vulnerability reported in the CVE database, CIS host hardening standards, network reachability assessment, and processes reachable over the exposed ports.
 
 #### Developers require a new version of the framework installed on the servers. I need to make sure all development servers have the latest version installed. What service should I use for this?
 
-With the Systems Manager’s Patch Manager capability, you can define baseline patch levels, and patch manager automatically patches the instances.
+With the Systems Manager’s __Patch Manager__ capability, you can define baseline patch levels, and __patch manager automatically patches the instances__.
 
 #### Web Application Firewall allows for access limitation by IP address. However, it's important to highlight that WAF integration is exclusive to Application Load Balancer, CloudFront distribution, and API Gateway.
+
 Any of these:
 - Enable Advanced Shield on Network Load Balancer
 - Protect CloudFront using AWS WAF: A common strategy is to use CloudFront in front of NLB and protect CloudFront with WAF
@@ -8155,13 +8479,15 @@ Cannot use:
 
 #### An online retailer is looking for an automated solution to alert about fraudulent transactions, fake and spam accounts. Which solution would you recommend?
 
-Amazon Fraud Detector can detect online frauds with machine learning. For example, this service can flag suspicious online payments, detect new account fraud and incorporate additional verification steps, account takeover detection, and so forth
+Amazon __Fraud Detector__ can detect online frauds with machine learning. 
+For example, this service can flag suspicious online payments, detect new account fraud and incorporate additional verification steps, account takeover detection, and so forth
 
 #### Apache Log4j vulnerability, which allows remote code execution and the ability to download and run arbitrary code on your servers. Let’s assume an issue like this vulnerability is reported and you want to assess the impact to your environment consisting of 1000s of servers and containers. What tools would you use to identify vulnerable systems and apply the fix?
 
 Use:
-- Inspector can scan hosts and container images and report Security exposures and vulnerabilities. This tool assigns a risk score to prioritize your remediation.
-- Systems Manager Patch Manager, you can automatically patch the vulnerable systems at scale. For patching container image, you may need additional CI/CD pipeline and tools to build a new image.
+- __Inspector__ can scan hosts and container images and report Security exposures and vulnerabilities. This tool assigns a risk score to prioritize your remediation.
+- Systems Manager __Patch Manager__, you can automatically patch the vulnerable systems at scale. For patching container image, you may need additional CI/CD pipeline and tools to build a new image.
+
 The following will not help:
 - GuardDuty is an intrusion detection system that alerts about malicious activities in your environment.
 - Control Tower provides a blueprint that follows AWS security and compliance best practices and sets up a multi-account environment for you, called a Landing Zone.
@@ -8182,15 +8508,123 @@ VPC Flow Logs, Domain Name System (DNS) logs, AWS CloudTrail events
 
 Subscribe to AWS Shield Advanced to gain proactive DDoS protection. Engage the AWS DDoS Response Team (DRT) to analyze traffic patterns and apply mitigations. Use the built-in logging and reporting to maintain an audit trail of detected events
 
-AWS Shield Advanced provides advanced, always-on DDoS protection for resources like ALBs, CloudFront, and Route 53. It includes detailed telemetry, real-time detection, automated application-layer DDoS mitigation, and most importantly, access to the AWS DDoS Response Team (DRT). The DRT can assist with rule creation and response during active events. Shield Advanced also supports detailed logging and event reports through AWS CloudWatch and AWS WAF logs, enabling complete auditing of DDoS attempts.
+AWS Shield Advanced provides advanced, always-on DDoS protection for resources like ALBs, CloudFront, and Route 53. It includes detailed telemetry, real-time detection, automated application-layer DDoS mitigation, and most importantly, access to the AWS DDoS Response Team (DRT). 
+The DRT can assist with rule creation and response during active events. Shield Advanced also supports detailed logging and event reports through AWS CloudWatch and AWS WAF logs, enabling complete auditing of DDoS attempts.
 
 #### A global insurance company is modernizing its infrastructure by migrating multiple line-of-business applications from its on-premises data centers to AWS. These applications will be deployed across several AWS accounts, all governed under a centralized AWS Organizations structure. The company manages all user identities, groups, and access policies within its on-premises Microsoft Active Directory and wants to continue doing so. The goal is to enable seamless single sign-in across all AWS accounts without duplicating user identity stores or manually provisioning accounts. Which solution best meets these requirements in the most operationally efficient manner?
 
-Deploy AWS IAM Identity Center and configure it to use AWS Directory Service for Microsoft Active Directory (Enterprise Edition). Establish a two-way trust relationship between the managed directory and the on-premises Active Directory to enable federated authentication across all AWS accounts
+Deploy AWS __IAM Identity Center__ and configure it to use AWS Directory Service for Microsoft Active Directory (Enterprise Edition). 
+Establish a two-way trust relationship between the managed directory and the on-premises Active Directory to enable federated authentication across all AWS accounts
 
 This solution meets all key requirements: centralized SSO across multiple AWS accounts, integration with AWS Organizations, and continued use of the on-premises Active Directory. AWS Directory Service for Microsoft Active Directory (Enterprise Edition) supports two-way forest trust relationships with the company’s self-managed Active Directory. Once the trust is established, AWS IAM Identity Center can be configured to use the AWS Managed AD as its identity source, allowing federated login with on-prem AD users and groups. IAM Identity Center then centrally manages SSO access and permission sets across all AWS accounts—without duplicating identities.
 
+#### you need to enable a custom domain name and encryption in transit for an application that's running behind an ALB.
 
+- Register a Domain Name
+- Create / Import an SSL/TLS Certificate. Use AWS Certificate Manager (ACM)
+  - Region: same as your ALB
+- Configure ALB to Use HTTPS and Add HTTPS Listener
+- Update DNS to Point to ALB
+  - Hosted Zone → Create Record
+  - Record type: A (alias)
+  - Alias target → ALB DNS name
+  - TTL: Optional, e.g., 60s
+- Encryption in Transit: TLS terminates at ALB by default
+  - ALB → backend (EC2 / Lambda / ECS) options: HTTP (unencrypted, simplest) OR  HTTPS (encrypted end-to-end) → requires certificates on backend
+
+#### A company needs to encrypt large volumes of data using a CMK in AWS KMS.
+
+For encrypting large volumes of data with a CMK in AWS KMS, the standard approach is envelope encryption, because KMS cannot encrypt large data directly (max 4 KB per request)
+
+- Generate a data key using the CMK.
+Use the data key to encrypt the large data locally (AES-256 or AES-GCM).
+Store the encrypted data key alongside the encrypted data.
+When decrypting:
+Use KMS to decrypt the data key.
+Use the decrypted key to decrypt the data.
+
+#### How do you securely grant a mobile app access to AWS resources without embedding credentials?
+
+1. User logs in (Authentication): The mobile app redirects to Cognito Hosted UI:
+  - ID Token (JWT)
+  - Access Token
+2. Exchange token for AWS credentials
+  - The app sends the ID token to Cognito Identity Pool.
+  - Identity Pool calls STS that returns: AccessKeyId, SecretAccessKey, SessionToken
+3. App accesses AWS resources:
+  - The mobile app uses temporary credentials to call AWS: Upload file to S3
+
+#### How would you protect against data exfiltration from S3?
+
+- Block Public Access (account + bucket level)
+- Use bucket policies with explicit deny (e.g., deny non-TLS, deny outside VPC)
+- Enable VPC endpoints for private access
+- Use AWS CloudTrail + S3 access logs
+- Add Amazon Macie for sensitive data detection
+- Restrict via IAM conditions (IP, VPC, MFA)
+
+#### How do you securely allow cross-account access?
+
+Create IAM Role in Target Account (Account B)
+```
+resource "aws_iam_role" "cross_account_role" {
+  name = "cross-account-access-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::ACCOUNT_A_ID:root"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+```
+
+Attach Least-Privilege Policy (Target Account)
+```
+resource "aws_iam_role_policy" "s3_access" {
+  name = "s3-access-policy"
+  role = aws_iam_role.cross_account_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject"]
+        Resource = "arn:aws:s3:::my-secure-bucket/*"
+      }
+    ]
+  })
+}
+```
+
+Allow AssumeRole in Source Account (Account A)
+```
+resource "aws_iam_policy" "assume_role_policy" {
+  name = "allow-assume-cross-account-role"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = "sts:AssumeRole",
+        Resource = "arn:aws:iam::ACCOUNT_B_ID:role/cross-account-access-role"
+      }
+    ]
+  })
+}
+resource "aws_iam_user_policy_attachment" "attach" {
+  user       = "app-user"
+  policy_arn = aws_iam_policy.assume_role_policy.arn
+}
+```
 
 
 
@@ -8358,15 +8792,23 @@ Use AWS Snowball to transfer data
 
 ####  AWS Transfer Family: Your environment has several existing clients that use SFTP, FTP, FTPS, and AS2 protocols for file transfer. Which service offers a fully managed solution to move data into and out of AWS Storage services using these protocols?
 
-#### Customer needs to migrate 50 TB of data from on-premises systems to AWS cloud Incremental data needs to be in sync until  cutover to cloud What cloud storage and data transfer service would you use for this?
+#### Customer needs to migrate 50 TB of data from on-premises systems to AWS cloud Incremental data needs to be in sync until cutover to cloud What cloud storage and data transfer service would you use for this?
 
 DataSync for initial transfer (if network is not a constraint) and for incremental loading
 
+| Factor                | File Gateway                                                                                   | DataSync                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Initial bulk transfer | Can do it, but **writes happen via network over time**, so 50 TB could take **weeks** over WAN | Optimized for large-scale transfer, uses **parallelization** and **incremental updates**, much faster |
+| Incremental sync      | File Gateway uploads changes as they happen, but scheduling large batch syncs is less flexible | DataSync supports **scheduled, incremental, and bandwidth-controlled syncs**                          |
+| Cutover planning      | File Gateway is meant for **ongoing hybrid storage**, not one-time migrations                  | DataSync + S3 allows a clean **initial sync + repeated incremental sync + final cutover**             |
+| Large datasets        | Could be slow over WAN; high upfront traffic might overwhelm local network                     | Handles large datasets efficiently; supports **encryption and compression**                           |
+
+
 #### Customer needs to migrate 50 TB from on-premises file shares to AWS cloud and make data available to on-premises applications. Customer is interested in reducing the storage footprint on-premises. What storage service and data transfer solution would you use?
 
-DataSync for initial transfer (if network is not a constraint)
+__DataSync__ for initial transfer (if network is not a constraint)
 
-Storage Gateway  for incremental loading and for replacing on-premises storage (block, file share, tape)
+__Storage Gateway__ for incremental loading and for replacing on-premises storage (block, file share, tape)
 
 #### Customer has on-premises Linux and windows applications that use NFS, SMB file shares. Customer is migrating the application to cloud. What storage service and data transfer service would you use that minimizes changes to the application?
 
@@ -8391,7 +8833,7 @@ AWS Transfer Family supports transferring data from or to the following AWS stor
 
 #### You are consolidating data from multiple SaaS partners like Salesforce, SAP, and Zendesk. Which service would you use for this?
 
-AWS AppFlow.
+__AWS AppFlow__.
 
 AppFlow is a no-code solution to automate data flow by securely integrating third-party applications and AWS services and securely transferring data from SaaS applications like Salesforce, SAP, Zendesk, Slack, and ServiceNow.
 
