@@ -178,7 +178,7 @@ ORDER BY START_TIME DESC;
 
 Traditional: add indexes, primary keys, partition data, analyze query plan
 
-In snowflake: everything is managed in micro-partitions.
+__In snowflake: everything is managed in micro-partitions__.
 
 Optimization in snowflake:
 * assign appropriate data types
@@ -205,14 +205,59 @@ Snowflake optimizes most queries automatically, but you can still make improveme
 
 Clustering and partitioning are key for optimizing performance, especially when dealing with large datasets. Snowflake uses micro-partitioning by default, but you can optimize it further using clustering keys.
 
+You don’t manually “partition” data the way you do in MongoDB or Cosmos DB. Instead, Snowflake uses automatic micro-partitioning, and your job is to guide how data is organized so queries prune as much data as possible.
+
+How Snowflake Partitioning Actually Works: Micro-partitions
+- Size: ~50–500 MB (compressed)
+- Stored in columnar format
+- Contains metadata:
+  - min/max values per column
+  - distinct values
+  - null counts
+
+How You “Partition” Data in Snowflake (Indirectly): Control Data Ingestion Order
+- Snowflake creates micro-partitions based on insert order.
+  ```
+  ORDER BY company_id, event_date
+  ```
+
+Snowflake does NOT update micro-partitions in place. Instead, it uses an __immutable storage model__.
+
 Clustering Keys:
 - Define the columns that Snowflake should use to cluster the data at a physical level. This helps reduce the need for Snowflake to scan entire partitions during a query.
 - If your queries often filter or group by a specific column, clustering by that column can speed up the query execution.
 
+Clustering example:
+```
+CREATE TABLE employees (
+  company_id STRING,
+  employee_id STRING,
+  field_1 STRING,
+  field_2 STRING,
+  field_3 STRING,
+  created_at TIMESTAMP
+)
+CLUSTER BY (company_id, field_1, field_2, field_3);
+```
+
+- Organizes micro-partitions around these columns
+- Improves pruning
+
+Choosing Good Clustering Keys:
+- Based on your queries:
+  - Put most selective columns first
+  - Use columns in: WHERE, JOIN, ORDER BY
+
+
 ### Scaling the Virtual Warehouse
 
 - __Scale Virtual Warehouses__: Snowflake allows you to scale virtual warehouses vertically (by increasing the size) or horizontally (by adding clusters).
+  - Heavy queries
+  - Large joins
+  - Complex aggregations
 - __Multi-Cluster Warehouses__: Use multi-cluster virtual warehouses to handle large concurrent workloads. Snowflake automatically scales the number of clusters based on the number of queries running
+  - More concurrent queries
+  - No queueing
 
 
 ### Caching
@@ -1109,6 +1154,10 @@ SELECT
     event_data:event_time::TIMESTAMP AS event_time
 FROM raw_events;
 ```
+
+Trade-offs:
+- slower queries
+- Less optimization
 
 ### How do you load semi-structured data?
 

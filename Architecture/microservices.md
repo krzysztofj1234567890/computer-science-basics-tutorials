@@ -131,7 +131,7 @@ Challenges to using asynchronous messaging effectively:
 
 ### Patterns
 
-#### Strangler Fit pattern
+#### Strangler Fig pattern
 
 We recommend that you incrementally refactor your monolithic application. 
 When you incrementally refactor an application, you gradually build a new application that consists of microservices, and run the application along with your monolithic application. 

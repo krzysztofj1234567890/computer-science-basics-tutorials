@@ -67,6 +67,13 @@
     Consumption (BI, ML, Apps)
     ```
 
+| Concept  | Data Lakehouse                                                                                                                                   | Data Fabric                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Purpose  | **Store and query all enterprise data** in one place, combining features of data lakes (cheap storage) and data warehouses (structured querying) | **Unify and integrate data** across multiple sources and locations; provide a consistent, governed access layer |
+| Focus    | **Storage + analytics**                                                                                                                          | **Integration + access + governance**                                                                           |
+| Examples | Snowflake, Databricks Lakehouse, Delta Lake                                                                                                      | Informatica, Talend, IBM Cloud Pak for Data                                                                     |
+
+
 ### Ingestion: batch + streaming (Kafka, CDC, APIs)
 
 ### Storage:

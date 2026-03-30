@@ -9,7 +9,7 @@ https://oden.utexas.edu/media/pending_reports/9780429120930_webpdf.pdf
 Guidelines:
 - __Enterprise Data__: Data that is applicable to the enterprise. Data that is acted on by a single business unit is also relevant to the remainder of the enterprise.
 - __Subject Orientation__: Data will be grouped by subject: all manufacturing data goes together, and the sales data...
-- Data Integration: 
+- __Data Integration__: 
     - __Form__: if data elements (e.g., phone numbers) have different layouts (e.g., 123-123-1234 and (123) 123-1234), __one layout__ will be super-imposed on both of them
     - __Function__: When two data elements identify the same thing (e.g., a hammer) with two different names (e.g., part 32G and part B49), these two names will be replaced with __one name__
     - __Grain__: When two data elements apply different hierarchies (e.g., region and district) to the same thing, or different levels of detail (e.g., miles and feet), the two data elements will be  esolved to the __same level of hierarchy__ or detail
@@ -38,7 +38,7 @@ Facts are also known as Events or Transactions. A Fact is something that happene
 
 ##### Fact tables
 
-In the middle is a Fact table (a Fact is an event,transaction, or something that happens at a single moment in time). 
+In the middle is a Fact table (a Fact is an event, transaction, or something that happens at a single moment in time). 
 
 A Fact is something that happened.
 
@@ -52,8 +52,6 @@ Typically, fact includes:
 - Why: Sometimes, but not always, a reason for the action is provided
 
 A Fact table joins to the surrounding Dimension tables using Primary Key/Foreign Key relations.
-
-
 
 #### Dimension tables
 
