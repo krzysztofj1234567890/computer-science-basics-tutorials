@@ -5522,25 +5522,39 @@ Combining Multi-AZ and Read Replicas
 
 __Authentication and access controls__:
 - use __AWS Secrets Manager__ to handle management of master credentials automatically. It automatically rotates credentials (and updates db credentials)
-```
-AWSSecretsManager client = AWSSecretsManagerClientBuilder.defaultClient();
-GetSecretValueRequest request = new GetSecretValueRequest().withSecretId("my-db-credentials");
-GetSecretValueResult result = client.getSecretValue(request);
-String json = result.getSecretString();  // contains username/password
-```
+  ```
+  aws secretsmanager create-secret \
+    --name prod/myapp/db \
+    --description "RDS credentials for myapp" \
+    --secret-string '{"username":"app_user","password":"StrongPassword123!"}' \
+    --tags Key=Environment,Value=Production
+
+  // later  
+  AWSSecretsManager client = AWSSecretsManagerClientBuilder.defaultClient();
+  GetSecretValueRequest request = new GetSecretValueRequest().withSecretId("my-db-credentials");
+  GetSecretValueResult result = client.getSecretValue(request);
+  String json = result.getSecretString();  // contains username/password
+  ```
 - __environment variables__ - Good for containers/EC2. Store credentials as environment variables injected at deployment time
 - __AWS Systems Manager Parameter Store__ (with encryption): store the credentials as SecureString parameters.
-```
-AWSSimpleSystemsManagement ssm = AWSSimpleSystemsManagementClientBuilder.defaultClient();
-GetParameterRequest request = new GetParameterRequest().withName("/my/db/password").withWithDecryption(true);
-String password = ssm.getParameter(request).getParameter().getValue();
-```
+  ```
+  AWSSimpleSystemsManagement ssm = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+  GetParameterRequest request = new GetParameterRequest().withName("/my/db/password").withWithDecryption(true);
+  String password = ssm.getParameter(request).getParameter().getValue();
+  ```
 - __IAM Authentication for RDS__ (Best for short-lived access): Use temporary IAM tokens instead of passwords to connect. Only works with RDS MySQL and PostgreSQL.
-```
-String token = RdsIamTokenGenerator.generate(...);
-String jdbcUrl = "jdbc:mysql://mydb.cluster-xyz.rds.amazonaws.com:3306/mydb";
-Connection conn = DriverManager.getConnection(jdbcUrl, "iam_user", token);
-```
+  ```
+  {
+    "Effect": "Allow",
+    "Action": "rds-db:connect",
+    "Resource": "arn:aws:rds-db:us-east-1:123456789012:dbuser:db-ABCDEFGHIJ/app_user"
+  }
+
+  // later
+  String token = RdsIamTokenGenerator.generate(...);
+  String jdbcUrl = "jdbc:mysql://mydb.cluster-xyz.rds.amazonaws.com:3306/mydb";
+  Connection conn = DriverManager.getConnection(jdbcUrl, "iam_user", token);
+  ```
 - password __Kerberos authentication__ - when using AD
 
 
@@ -5764,13 +5778,21 @@ instances in a database cluster and operate with higher availability.
 
 designed to achieve high availability and __ACID transactions across a cluster of database nodes__ with configurable __read after write consistency__
 
+- Maximum writer nodes: 16 writer instances per cluster. 
+- You can also have additional read replicas (up to 15 per cluster in Aurora MySQL).
+- All writer nodes share a single, distributed storage layer.
+- Writes from any node go to the same underlying table.
+- Aurora handles conflict detection at the storage layer.
+- application-level conflicts may still happen if multiple writers update the same row simultaneously
+
 ##### Aurora Serverless
 
 On-demand, auto-scaling configuration for Amazon Aurora.
 
 Available for MySQL-compatible and PostgreSQL-compatible editions.
 
-You only pay for database storage and the database capacity and I/O your database consumes while it is active. Pay on a per-second basis for the database capacity you use when the database is active.
+You only pay for database storage and the database capacity and I/O your database consumes while it is active. 
+Pay on a per-second basis for the database capacity you use when the database is active.
 
 Storage and Processing are separate – scale down to zero processing and pay only for storage
 
@@ -5799,6 +5821,9 @@ steps involved in migrating a database to RDS using AWS DMS:
 - Download the backup file from S3 to your RDS Custom for SQL Server DB instance.
 - Restore a database using the downloaded backup file on the RDS Custom for SQL Server DB instance.
 
+Importing RDS MySQL → Aurora MySQL:
+- Using a Snapshot: Supported if Aurora MySQL version >= the RDS MySQL version
+- Using Logical Backup (mysqldump)
 
 ### ElastiCache <a id="ElastiCache"></a>
 
@@ -6133,6 +6158,7 @@ __DynamoDB Export to S3__: you want to analyze it  or share data
 - You can use Spectrum for direct access of S3 objects in a data lake.
 - it's a managed data warehouse solution with automated provisioning, configuration and patching, data durability with continuous backup to S3 and it scales with simple API calls.
 - It also offers exabyte scale query capability.
+- Redshift has a serverless option
 
 Option to query directly from data __files on S3 via Amazon RedShift Spectrum__
 
