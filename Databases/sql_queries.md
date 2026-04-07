@@ -7,6 +7,10 @@
 - __outer__ joins return all the rows in one table, plus matching rows in the other table(s). 
 - The exception is __FULL JOIN__, which returns all rows from __both tables__.
 
+- INNER JOIN: Returns only matching rows from both tables
+- LEFT JOIN: Returns all rows from the left table + matches from the right
+- FULL OUTER JOIN: Returns everything from both tables, matched where possible
+
 Left join:
 ```
 SELECT
@@ -22,6 +26,77 @@ ON fp.national_team_id = nt.id
 ORDER BY fp.id;
 ```
 
+Example 2:
+```
+SELECT
+    c.customer_id,
+    c.name,
+    o.order_id,
+    o.order_date,
+    p.payment_id,
+    p.amount
+FROM customers c
+LEFT OUTER JOIN orders o
+    ON c.customer_id = o.customer_id
+LEFT OUTER JOIN payments p
+    ON o.order_id = p.order_id;
+```
+- Returns all customers
+- If a customer has no orders → order_* columns = NULL
+- If an order has no payment → payment_* columns = NULL
+
+### ON vs WHERE in LEFT JOIN
+
+```
+LEFT JOIN orders o
+ON c.customer_id = o.customer_id AND o.status = 'completed'
+```
+- Filters during the join
+- Keeps all customers
+- Only joins completed orders
+
+```
+LEFT JOIN orders o
+ON c.customer_id = o.customer_id
+WHERE o.status = 'completed'
+```
+- Filters after the join
+- Removes NULLs → behaves like INNER JOIN
+
+### Row Explosion
+
+If you run:
+```
+SELECT *
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN payments p ON o.order_id = p.order_id;
+```
+
+You created a multiplicative join (row explosion): customer × orders × payments
+
+Fix (aggregate before join):
+```
+WITH payment_totals AS (
+    SELECT order_id, SUM(amount) AS total_paid
+    FROM payments
+    GROUP BY order_id
+)
+SELECT *
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN payment_totals p ON o.order_id = p.order_id;
+```
+
+### Find customers who do NOT have any orders
+
+```
+SELECT c.*
+FROM customers c
+LEFT JOIN orders o
+    ON c.customer_id = o.customer_id
+WHERE o.order_id IS NULL;
+```
 
 ## What are What Window Functions?
 
@@ -223,6 +298,8 @@ SELECT COUNT(merchant_id) AS payment_count
 FROM payments 
 WHERE minute_difference <= 10;
 ```
+- EXTRACT pulls a specific component from a date/time or interval. 
+- EPOCH: Give me the total time in second
 
 ### How Do You Filter GROUP BY Groups
 
@@ -258,6 +335,12 @@ WHERE salary_rank <= 3
 ORDER BY department, salary_rank;
 ```
 
+- DENSE_RANK: assigns a rank based on salary within each department
+- PARTITION BY department
+  - Resets ranking for each department
+  - Each department is ranked independently
+- ORDER BY salary DESC: Highest salary gets rank = 1
+
 ### Compute the Difference Between Two Rows (Delta) Using Window Functions
 
 You need to show the actual revenue, time period, and monthly difference (delta) between the actual and the previous month.
@@ -270,6 +353,9 @@ SELECT
 FROM revenue
 ORDER BY period;
 ```
+- LAG() returns the previous row’s value based on the ordering.
+- ORDER BY period ASC:  Defines the sequence of rows
+
 
 ## Tests
 

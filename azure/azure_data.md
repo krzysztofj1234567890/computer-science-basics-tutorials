@@ -6,6 +6,82 @@
 
 # Questions and Aswers  <a id="QandA"></a>
 
+## I have 1 primary, 3 replica and 1 arbiter mongo servers or nodes. I have 10 collections. I want to have 2 replicas of each collection. Tell me: what nodes will my shards run in? Can I have multiple primary nodes? Can a node be primary node for one collection and replica for another collection? Will all chunks of a shard run on the same node? Can a shard be split into multiple nodes? Collection is split into multiple shards and one shard contains items from only one collection? Can one collection have one primary shard on one server and another primary shard on another server?
+
+Mongodb setups:
+- Standalone Server: 
+  - A single MongoDB node
+  - No replication, no sharding
+- Replica Set: A group of nodes that all store the same data
+  - 1 Primary → handles writes
+  - Secondaries * 3 → replicate data
+  - Automatic failover
+  - All collections are replicated equally
+  - You cannot choose replication per collection
+- Sharded Cluster: Data is split across multiple replica sets (shards)
+  - Shards → store data (each is a replica set)
+    - A shard = a replica set (multiple nodes): Node A (Primary) + Node B (Secondary) + Node C (Secondary)
+    - collection is split into chunks
+      - Chunks are distributed across shards. each shard contains:
+        - Data from multiple collections
+        - Only a subset of each collection
+  - Config servers → store metadata
+  - mongos → query router
+- Replica Set + Sharding
+  - Each shard = replica set
+  - Config servers = replica set
+  - Multiple mongos routers
+
+## Difference between sql server adn azureSQL ?
+
+| Feature     | SQL Server                         | Azure SQL                    |
+| ----------- | ---------------------------------- | ---------------------------- |
+| Deployment  | Installed on your own server or VM | Fully managed cloud service  |
+| OS Access   | Full control                       | No OS access                 |
+| Maintenance | Manual patching and upgrades       | Automatic updates & patching |
+
+
+Azure SQL: 
+- Microsoft handles updates, backups, HA, and some scaling automatically.
+- Built-in replication, geo-replication, and failover support.
+- Pay-as-you-go; billed for compute, storage, and usage
+
+| Option                     | Control | Management | HA/Backups | Best Use Case                                   |
+| -------------------------- | ------- | ---------- | ---------- | ----------------------------------------------- |
+| On-Prem SQL Server         | Full    | You        | You        | Legacy/on-prem systems                          |
+| SQL Server on Azure VM     | Full    | You        | You        | Lift-and-shift to cloud                         |
+| Azure SQL Managed Instance | High    | Microsoft  | Managed    | Modernizing apps, near full SQL Server features |
+| Azure SQL Database         | Limited | Microsoft  | Managed    | Cloud-native apps, auto-scaling, minimal ops    |
+
+| Feature                            | Azure SQL Database (Single DB / Elastic Pool)                                               | Azure SQL Managed Instance                                      | SQL Server on Azure VM                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Cost**                           | Pay-as-you-go, compute + storage; serverless option reduces cost for intermittent workloads | Higher than single DB; pay for provisioned compute & storage    | OS + SQL license + VM costs; less flexible                          |
+| **On-demand / Auto Scaling**       | Yes, serverless auto-scales compute; elastic pools scale multiple DBs                       | No true serverless; can scale vCores manually                   | No, scale VM size manually                                          |
+| **High Availability (HA)**         | Built-in, SLA 99.99% for single DB; geo-redundancy optional                                 | Built-in HA, patching, SLA 99.99%; supports failover groups     | You must configure Always On or clustering                          |
+| **Scalability**                    | Vertical (compute tier), horizontal (elastic pools, Hyperscale option)                      | Vertical scaling of vCores; Hyperscale for MI supports huge DBs | Vertical scaling by VM size; horizontal via sharding/manual methods |
+| **Geo-replication**                | Active geo-replication supported; multiple readable secondary replicas                      | Supports auto-failover groups, geo-replication                  | Manual replication setup required                                   |
+| **Throughput**                     | High; depends on compute tier; Hyperscale handles TBs of data                               | High; similar to single DB but handles larger DBs               | Depends on VM/SQL edition; limited by VM specs                      |
+| **Latency**                        | Very low (managed by Microsoft), typically <10ms within region                              | Low; slightly higher than single DB due to MI overhead          | Depends on VM network; usually lowest for local apps                |
+| **Failover**                       | Automatic failover within region; geo-failover optional                                     | Automatic failover with failover groups                         | Manual or configured; can take minutes                              |
+| **RTO (Recovery Time Objective)**  | < 1 min for region failover; configurable                                                   | < 1 min with failover groups                                    | Depends on configuration; manual failover may take minutes          |
+| **RPO (Recovery Point Objective)** | Seconds; fully managed backups                                                              | Seconds; fully managed backups                                  | Depends on backup & log shipping setup                              |
+
+| Service                                         | Data Model          | Cost                                                                    | On‑demand / Auto‑scaling                             | HA                                         | Scalability                                  | Geo‑Replication                                   | Throughput            | Latency                    | Failover                   | RTO / RPO                                                     |
+| ----------------------------------------------- | ------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------ | -------------------------------------------- | ------------------------------------------------- | --------------------- | -------------------------- | -------------------------- | ------------------------------------------------------------- |
+| **Azure SQL Database**                          | Relational          | Consumption/Provisioned; serverless reduces cost for variable workloads | Yes (serverless)                                     | Built‑in SLA (99.99%)                      | Vertical scaling; Hyperscale for larger apps | Active geo‑replication / failover groups          | High (OLTP workloads) | Moderate/low               | Automated regional & local | Minutes / seconds with geo‑replication ([Microsoft Azure][1]) |
+| **Azure SQL Managed Instance**                  | Relational          | Higher than single DB (provisioned vCores)                              | No serverless                                        | Built‑in HA                                | Vertical scaling of compute                  | Failover groups                                   | High                  | Moderate/low               | Automated within region    | Seconds/minutes with failover groups ([Microsoft Azure][1])   |
+| **Azure Database for PostgreSQL**               | Relational          | Moderate (provisioned)                                                  | Varies by tier (Flexible Server supports stop/start) | Built‑in across zones (99.99%)             | Vertical; Hyperscale (Citus)                 | Extensions possible (not native geo‑multi‑region) | Good                  | Low/medium                 | Managed via replicas       | Dependent on setup/built‑in backups ([Microsoft Learn][2])    |
+| **Azure Database for MySQL**                    | Relational          | Moderate (provisioned)                                                  | Flexible Server supports stop/start                  | Built‑in HA (99.99%)                       | Vertical scaling                             | Limited native multi‑region                       | Good                  | Low/medium                 | Standard failover          | Based on backups/replicas ([Microsoft Azure][3])              |
+| **Azure Cosmos DB**                             | Multi‑model (NoSQL) | Higher (provisioned RUs / autoscale)                                    | Automatic horizontal                                 | Extremely high (multi‑region SLA 99.999%+) | Unlimited (horizontal)                       | Native global distribution                        | Very high (elastic)   | Very low (single‑digit ms) | Multi‑master & local       | Very low RTO/RPO due to distribution ([StackShare][4])        |
+| **Azure Managed Instance for Apache Cassandra** | NoSQL column        | Moderate/high (provisioned)                                             | Automatic partitioning                               | Very high (multi‑region)                   | Horizontal                                   | Multi‑region distribution                         | High                  | Low/medium                 | Built‑in failover          | Low (region distributed) ([Microsoft Azure][3])               |
+| **Azure Managed Redis**                         | Key‑value in‑memory | Moderate (provisioned)                                                  | Auto‑scales shards                                   | Built‑in (high)                            | Horizontal cache scaling                     | Geo‑replication (Premium)                         | Very high             | Extremely low              | Fast failover              | Very quick (in‑memory replication) ([Microsoft Azure][3])     |
+
+[1]: https://azure.microsoft.com/en-us/solutions/databases/?utm_source=chatgpt.com "Managed Databases | Microsoft Azure"
+[2]: https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-considerations?utm_source=chatgpt.com "Prepare to Choose a Data Store in Azure - Azure Architecture Center | Microsoft Learn"
+[3]: https://azure.microsoft.com/en-us/solutions/databases?utm_source=chatgpt.com "Cloud Databases | Microsoft Azure"
+[4]: https://stackshare.io/stackups/azure-cosmos-db-vs-azure-sql-database?utm_source=chatgpt.com "Azure Cosmos DB vs Azure SQL Database | What are the differences? | StackShare"
+
+
 ## I have databricks cluster on azure. How can I process data updates using it?
 
 Processing data updates (inserts, updates, deletes, or incremental changes) on a Databricks cluster in Azure is best handled with __Delta Lake__, the default table format in Azure Databricks. Delta provides ACID transactions, scalable metadata, and built-in support for upserts, change data capture (CDC), and streaming.

@@ -203,9 +203,11 @@ Snowflake optimizes most queries automatically, but you can still make improveme
 
 ### Clustering and Partitioning
 
-Clustering and partitioning are key for optimizing performance, especially when dealing with large datasets. Snowflake uses micro-partitioning by default, but you can optimize it further using clustering keys.
+Clustering and partitioning are key for optimizing performance, especially when dealing with large datasets. 
+Snowflake uses micro-partitioning by default, but you can optimize it further using clustering keys.
 
-You don’t manually “partition” data the way you do in MongoDB or Cosmos DB. Instead, Snowflake uses automatic micro-partitioning, and your job is to guide how data is organized so queries prune as much data as possible.
+You don’t manually “partition” data the way you do in MongoDB or Cosmos DB. 
+Instead, Snowflake uses automatic micro-partitioning, and your job is to guide how data is organized so queries prune as much data as possible.
 
 How Snowflake Partitioning Actually Works: Micro-partitions
 - Size: ~50–500 MB (compressed)
@@ -353,7 +355,7 @@ UNDROP TABLE my_table BEFORE (STATEMENT => '2023-01-05 10:00:00');
 ## Table types <a id="tabletypes"></a>
 
 * __Permanent__: 'CREATE TABLE'. default, normal type with time travel and fail-safe
-* __Transient__: 'CREATE TANSIENT TABLE'. No fail-safe. It is used where "data persistence" is required but doesn't need "data retention" for a longer period.
+* __Transient__: 'CREATE TANSIENT TABLE'. No fail-safe, no time-travel. It is used where "data persistence" is required but doesn't need "data retention" for a longer period.
 * __Temporary__: 'CREATE TEMPORARY TABLE'. No fail-safe. Exists only in __current session__ i.e. other users or sessions do not see it. Mostly used for transitory data like ETL/ELT
 * __Dynamic__: 'CREATE DYNAMIC TABLE': Continously materlizes the results of the query you provide.
 
@@ -364,6 +366,30 @@ UNDROP TABLE my_table BEFORE (STATEMENT => '2023-01-05 10:00:00');
 * __Standard View__
 * __Secure View__: accessed only by authorized users
 * __Materialized View__: These views store the result from the main source using filter conditions. Materialized view is auto-refreshed
+
+### Snowflake Dynamic Tables vs Materialized Views
+
+Dynamic Table:
+- Think: “auto-updating table”
+- Acts like a normal table, but Snowflake keeps it in sync automatically when source tables change
+- Ideal for staging, data pipelines, or slowly changing aggregates
+
+Materialized View
+- Think: “query cache”
+- Limited to single query logic
+- Great for accelerating repeated queries (like a precomputed aggregate)
+- Snowflake incrementally updates it on writes to base table, but not as flexible as dynamic tables
+
+| Feature                              | **Dynamic Table**                                                                                          | **Materialized View (MV)**                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Definition**                       | A table whose data is **automatically maintained** based on a SQL query (like an auto-updating ETL output) | A **stored precomputed result of a query**, updated incrementally         |
+| **Storage**                          | Physical table with actual data                                                                            | Physical storage of query result (internal)                               |
+| **Refresh**                          | Automatic, continuous refresh when base tables change                                                      | Incremental refresh happens on write to base tables, managed by Snowflake |
+| **Queryable**                        | Fully queryable like a normal table                                                                        | Fully queryable like a normal table                                       |
+| **Supports Complex Transformations** | Yes, can handle multi-step logic in SQL                                                                    | Limited to **single SELECT statements**, cannot reference other MVs       |
+| **Performance**                      | Can be partitioned/clustering optimized for large data; good for heavy ETL pipelines                       | Optimized for small-to-medium aggregation/query speed                     |
+| **Time Travel / Fail-safe**          | Yes (inherits table properties)                                                                            | Yes (inherits table properties)                                           |
+| **Use Case**                         | Auto-updating ETL pipelines, aggregations, data marts                                                      | Accelerating frequently run queries, caching aggregates                   |
 
 
 ## Zero-copy cloning <a id="zerocopycloning "></a>
@@ -455,7 +481,8 @@ Follows CDC pattern: insert, update, delete statements are propagated.
 
 Streams are most commonly __used together with Tasks__ to build continuous / incremental data pipelines inside Snowflake.
 
-A stream does not store the changed data rows itself. It __only stores an offset__ (a pointer) in the table's version history.
+A stream does not store the changed data rows itself. 
+It __only stores an offset__ (a pointer) in the table's version history.
 When you query the stream → Snowflake computes the delta (what changed) since the last offset by looking at historical micro-partitions.
 
 
@@ -1197,7 +1224,8 @@ FILE_FORMAT = (TYPE = CSV);
 
 ### How does Snowflake handle duplicate data?
 
-Snowflake does not automatically prevent or remove duplicate data. How duplicates are handled depends on how you load, query, and design your pipelines. Snowflake gives you tools—but you control deduplication logic.
+Snowflake does not automatically prevent or remove duplicate data. 
+How duplicates are handled depends on how you load, query, and design your pipelines. Snowflake gives you tools—but you control deduplication logic.
 
 File-level deduplication (default behavior)
 - When loading from stages, Snowflake tracks file metadata (file name + checksum).
@@ -1260,7 +1288,8 @@ WHERE order_amount < 0
 
 ### How does Snowflake optimize joins?
 
-Snowflake optimizes joins using a combination of metadata, micro-partition pruning, cost-based optimization, and distributed execution. Unlike traditional databases, it does not use indexes—everything is optimized automatically.
+Snowflake optimizes joins using a combination of metadata, micro-partition pruning, cost-based optimization, and distributed execution. 
+Unlike traditional databases, it does not use indexes—everything is optimized automatically.
 
 1. When you run a query with joins, Snowflake’s cost-based optimizer decides:
 - Join order (which table joins first)
