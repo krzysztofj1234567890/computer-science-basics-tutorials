@@ -86,7 +86,7 @@ models:
 
 ##### Source tables
 
-tables loaded into the warehouse by an EL process
+tables loaded into the warehouse by an ELT process
 
 Sources are defined in .yml files nested under a sources: key.
 
@@ -123,7 +123,8 @@ left join {{ source('jaffle_shop', 'customers') }} using (customer_id)
 
 A way to capture the state of your mutable tables so you can refer to it later.
 
-slowly changing dimension tables (type 2) using the snapshot feature. dbt creates a snapshot table on the first run, and on consecutive runs will check for changed values and update older rows
+slowly changing dimension tables (type 2) using the snapshot feature. 
+dbt creates a snapshot table on the first run, and on consecutive runs will check for changed values and update older rows
 
 snapshots/orders_snapshot.yml:
 ```
@@ -221,6 +222,104 @@ dbt test
 
 ```
 dbt run
+```
+
+## Example
+
+### Project Structure
+
+```
+models/
+├── staging/
+│   ├── stg_orders.sql
+│   ├── stg_order_items.sql
+│   ├── stg_product.sql
+│   ├── stg_payment.sql
+│   └── stg_address.sql
+│
+├── dimensions/
+│   ├── dim_person.sql
+│   ├── dim_product.sql        -- SCD Type 2
+│   ├── dim_payment.sql
+│   ├── dim_address.sql
+│   ├── dim_state.sql
+│   └── dim_country.sql
+│
+├── marts/
+│   └── fct_order_items.sql
+```
+
+### Fact Model: fct_order_items.sql
+
+```
+SELECT
+    oi.order_item_id,
+    o.order_id,
+    p.person_id,
+
+    -- SCD product key
+    pr.product_key,
+
+    oi.quantity,
+    oi.unit_price,
+
+    -- Payment
+    pay.payment_id,
+
+    -- Address
+    addr.shipping_addr_id,
+
+    o.order_date
+
+FROM {{ ref('stg_order_items') }} oi
+
+JOIN {{ ref('stg_orders') }} o
+    ON oi.order_id = o.order_id
+
+JOIN {{ ref('dim_person') }} p
+    ON o.person_id = p.person_id
+
+-- SCD join (important: business key → versioned dim)
+JOIN {{ ref('dim_product') }} pr
+    ON oi.product_id = pr.product_id
+    AND o.order_date BETWEEN pr.effective_start_dt AND pr.effective_end_dt
+
+JOIN {{ ref('dim_payment') }} pay
+    ON o.payment_id = pay.payment_id
+
+JOIN {{ ref('dim_address') }} addr
+    ON o.shipping_addr_id = addr.shipping_addr_id
+```
+
+### SCD Type 2 Product in dbt
+
+```
+{{ config(
+    materialized='incremental',
+    unique_key='product_key'
+) }}
+
+WITH source AS (
+    SELECT * FROM {{ ref('stg_product') }}
+),
+
+scd AS (
+
+    SELECT
+        product_id,                -- business key
+        product_name,
+        category_id,
+
+        -- SCD fields
+        CURRENT_TIMESTAMP AS effective_start_dt,
+        NULL AS effective_end_dt,
+        TRUE AS is_current
+
+    FROM source
+
+)
+
+SELECT * FROM scd
 ```
 
 ## deploy

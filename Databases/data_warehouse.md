@@ -94,6 +94,127 @@ Factless Fact: A business event may not necessarily transact dollars, move units
 - A store opens (and closes) its doors
 - A truck arrives at a warehouse
 
+##### Example 2:
+
+Snowflake data model for your scenario (Person → Orders → Order Items → Product, with shipping address)
+
+Fact Table:
+- Order Items
+  ```
+  order_item_id (PK)
+  order_id (FK)
+  product_key -> ✅ Use surrogate key instead of product_id
+  quantity
+  unit_price
+  total_price
+  ```
+
+Dimension Tables:
+- Person Dimension
+  ```
+  person_id (PK)
+  name
+  email
+  ```
+- Snowflaked Address Table
+  ```
+  address_id (PK)
+  person_id (FK)
+  street
+  city
+  state
+  zip
+  ```
+- Orders Dimension:
+  ```
+  order_id (PK)
+  person_id (FK)
+  order_date
+  shipping_address_id (FK → Address)
+  payment_id (FK) → Payment Dimension
+  ```
+- Product Dimension (Versioned, SCD Type 2)
+  ```
+  product_key (PK) -> Surrogate key
+  product_id (PK)	-> Business ID (stable)
+  product_name	
+  category_id (FK)	→ Product Category
+  effective_start_dt	
+  effective_end_dt	
+  is_current	flag
+  ```
+- Product Category Dimension
+  ```
+  category_id (PK)	
+  category_name
+  ```
+- Payment Dimention
+  ```
+  payment_id (PK)	
+  payment_type	(credit card, PayPal, etc.)
+  payment_status	(paid, pending, failed, refunded)
+  provider	(Visa, Stripe, etc.)
+  ```
+
+SQL query pulls a fully enriched order view:
+```
+SELECT
+    o.order_id,
+    o.order_date,
+
+    -- Customer
+    p.first_name,
+    p.last_name,
+    p.email,
+
+    -- Product (SCD Type 2)
+    pr.product_name,
+    pc.category_name,
+
+    -- Fact values
+    oi.quantity,
+    oi.unit_price,
+    oi.quantity * oi.unit_price AS total_price,
+
+    -- Payment
+    pay.payment_type,
+    pay.payment_status,
+
+    -- Shipping hierarchy (snowflake joins)
+    sa.street,
+    sa.city,
+    st.state_name,
+    c.country_name
+
+FROM order_items oi
+JOIN orders o              ON oi.order_id = o.order_id
+JOIN person p              ON o.person_id = p.person_id
+
+-- SCD product join (IMPORTANT: use surrogate key)
+JOIN product pr            ON oi.product_key = pr.product_key
+JOIN product_category pc   ON pr.category_id = pc.category_id
+
+-- Payment
+JOIN payment_dim pay       ON o.payment_id = pay.payment_id
+
+-- Snowflaked address
+JOIN shipping_address sa   ON o.shipping_addr_id = sa.shipping_addr_id
+JOIN state st              ON sa.state_id = st.state_id
+JOIN country c             ON st.country_id = c.country_id;
+```
+
+Revenue by Product Category:
+```
+SELECT
+    pc.category_name,
+    SUM(oi.quantity * oi.unit_price) AS revenue
+FROM order_items oi
+JOIN product pr          ON oi.product_key = pr.product_key
+JOIN product_category pc ON pr.category_id = pc.category_id
+GROUP BY pc.category_name
+ORDER BY revenue DESC;
+```
+
 #### Snowflake Schema
 
 Sometimes a Dimension, or part of a Dimension, is too complex or volatile to work well in a single Dimension row. 
