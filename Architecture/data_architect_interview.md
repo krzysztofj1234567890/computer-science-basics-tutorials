@@ -40,6 +40,18 @@
       - Governance + Security: AWS IAM, Macie, LakeFormation
       - Observability: CloudWatch
       - AI: Sagemaker, Bedrock
+    - Data Fabric on Azure:
+      - Storage: Azure Data Lake Storage Gen2: bronze->silver->gold
+        - ADLS Gen2: enhanced mode of Blob Storage: +Hierarchical namespace, Fine-grained security
+      - metadata catalog: Microsoft Purview: ADLS Gen2, Blob Storage, AzureSQL, CosmosDB: automated scanning, scehma extraction, lineage
+      - federation (query across data):
+        - Azure Synapse Analytics (serverless SQL, external tables)
+        - Azure Databricks (Delta Lake, SQL endpoints)
+      - integration (ETL / pipelines): Azure Data Factory, Azure Functions
+      - semantic layer: power BI (semantic models) or dbt (runs on Synapse / Databricks)
+      - governance + security: Microsoft Purview, Azure Active Directory, Azure Key Vault
+      - observability: Azure Monitor, Azure Log Analytics
+      - AI / ML: Azure Machine Learning, Azure OpenAI Service
 
     | Component                 | Purpose                                                            | Typical Tech Examples (2026)                                 |
     |---------------------------|--------------------------------------------------------------------|--------------------------------------------------------------|
@@ -401,11 +413,37 @@ AWS Options for Data Versioning:
 
 ### “How do you influence product teams?”
 
+- requirements, __goals__, vision: What decisions are you trying to make?
+- Translate data work into __product impact__: This ensures your feature usage data is always queryable and doesn’t break dashboards
+- Reduce friction: Provide self-service pipeline
+- Create opinionated standards: 
+- Embed with teams: Join sprint discussions, Sit in product reviews
+
 ### “How do you handle disagreements with leadership?”
+
+- Start by understanding why they think differently
+- Reframe your argument in business terms: “This isn’t scalable” vs risk, cost, time-to-market
+- Bring options, not objections
 
 ### “How do you define a data strategy?”
 
+A data strategy is a plan for how your organization uses data to make better decisions and build better products.
+
+- Start with business outcomes (always): What decisions do we want to improve?
+- Define the critical data domains: you need the right data
+- Build the capabilities (the “how”): ingestion, storage, processing+integration, consumption, governance
+- operating model: who owns data, how are data sets created, 
+- Establish metrics for the data strategy itself: data quality scores, time to access, 
+
 ### Driving architecture decisions
+
+- Anchor every decision in a clear problem: We need to process 5TB/day with low latency and support data science workflows.
+- Make trade-offs explicit: Fast to deliver, harder to scale
+- Bring structured options: Option B: Azure Databricks (pros/cons): cost, time-to-deliver, risk, long term implications
+- Create “default patterns” instead of one-off decisions: All raw data lands in Azure Data Lake Storage Gen2
+- Involve stakeholders early: Bring engineers, product, and analytics into the discussion early
+- Use data and examples to support decisions
+- Document decisions (lightweight but clear)
 
 ### Scaling a data platform
 
