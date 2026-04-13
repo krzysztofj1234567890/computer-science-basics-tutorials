@@ -489,6 +489,40 @@ A data strategy is a plan for how your organization uses data to make better dec
 - Serving
 - Governance & Observability
 
+### Data Governance for one of your projects
+
+It’s about controlling data quality, lineage, security, and accountability across every hop:
+
+1. Start with a Governance Model (not tools): define ownership and rules:
+  - Data owners: Who owns each dataset (e.g., product, user, logs)?
+  - Data stewards: Who ensures quality and definitions?
+  - Policies: 
+    - Retention (e.g., Kafka topics kept 7 days, ES indices 30 days)
+    - PII handling (masking, encryption)
+2. Schema Governance (CRITICAL for Kafka pipelines): Use a schema registry
+3. Data Lineage: Know where data came from
+   - there are tools (databricks unity calatlog)
+   - manually - logging: 
+   ```
+    lineage = {
+      "job": "sales_etl",
+      "source": "kafka.sales_topic",
+      "target": "prod.sales",
+      "timestamp": current_timestamp()
+    }
+    spark.createDataFrame([lineage]).write.mode("append").saveAsTable("governance.lineage_log")
+   ```
+     - later store the log file in azure storage account (parquet)
+     - Use Azure Synapse Analytics to run SQL queries on it
+   - Tag Data with Metadata
+4. Data Quality Checks: At ingestion (null checks, field validation), Kafka consumers (schema validation, deduplication), ES (mappings)
+5. Access Control & Security: Control who can access to Mongo, ES etc.
+6. Data Classification: public, internal, PII
+7. Retention & Lifecycle Policies
+8. Observability & Auditing
+9. Handle Schema Evolution Properly: 
+10. Data Contracts
+
 ### Design a data platform for a company with microservices and ML use cases.
 
 ### “Design a real-time analytics platform.”
