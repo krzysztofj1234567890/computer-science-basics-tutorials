@@ -280,6 +280,14 @@ Serving & inference (real-time API / batch scoring)
 
 ### Feature stores
 
+In machine learning, a feature is simply an input variable used by a model to make predictions.
+
+Example: Predicting house prices. Features might be:
+- square_feet
+- num_bedrooms
+- location
+- year_built
+
 | Characteristic                              | Description                                                             |
 | ------------------------------------------- | ----------------------------------------------------------------------- |
 | **Online & Offline stores**                 | Separate low-latency (real-time) and batch (training) stores            |

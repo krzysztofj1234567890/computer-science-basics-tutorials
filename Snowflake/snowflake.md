@@ -134,6 +134,7 @@ Each document will be a new row and later you need to use 'dot notation', 'table
 OR
 
 * There is a Kafka-Snowflake connector
+  - Kafka produces events → connector reads them → buffers/stages them → Snowflake loads them in micro-batches into tables
 
 #### Using Snowpipe for Continuous Data Loading
 
@@ -173,7 +174,6 @@ WHERE PIPE_NAME = 'MY_PIPE'
 ORDER BY START_TIME DESC;
 ```
 
-
 ## Performance Optimization <a id="performanceoptimization"></a>
 
 Traditional: add indexes, primary keys, partition data, analyze query plan
@@ -199,6 +199,11 @@ Snowflake optimizes most queries automatically, but you can still make improveme
 - __Use JOIN Conditions Efficiently__: Avoid unnecessary joins and filter out data as early as possible in your query
 - __Use WITH Clauses (CTE)__: Common Table Expressions (CTEs) can improve query readability and simplify complex queries, but avoid excessive use of them in very large datasets, as __it could create performance overhead__. Instead, consider using temporary tables or subqueries for complex operations.
 - __Minimize the Use of DISTINCT and GROUP BY__
+  - SELECT DISTINCT customer_id FROM events;
+    - Scan all relevant micro-partitions, 
+    - Extract customer_id
+    - Redistribute rows across nodes so identical values end up together
+    - Sort or hash values, Remove duplicates
 - Use __EXPLAIN__ to Analyze Query Plans
 
 ### Clustering and Partitioning
@@ -243,7 +248,9 @@ CLUSTER BY (company_id, field_1, field_2, field_3);
 ```
 
 - Organizes micro-partitions around these columns
-- Improves pruning
+  - Partition P1 will contain company_id = A
+  - Partition P2 will contain company_id = B
+- Improves pruning (skip reading large portions of storage)
 
 Choosing Good Clustering Keys:
 - Based on your queries:
@@ -266,6 +273,12 @@ Choosing Good Clustering Keys:
 
 Snowflake’s caching mechanism automatically stores the results of queries and the data in result cache and metadata cache.
 
+In Snowflake, the “query cache” is mostly automatic:
+- If you run an identical query again, Snowflake can return the exact previous result instantly without re-scanning data. Stored for 24 hours
+- Even if query text is identical, cache is skipped if:
+  - Underlying data changed
+  - You use non-deterministic functions
+
 ### Data Compression
 
 Snowflake uses columnar storage to compress data and improve I/O performance. Snowflake automatically applies compression algorithms like ZSTD, Snappy, and LZ4 for optimal storage and query performance.
@@ -274,6 +287,20 @@ Snowflake uses columnar storage to compress data and improve I/O performance. Sn
 
 Monitoring your queries, virtual warehouses, and storage is key to understanding where your performance bottlenecks lie.
 
+Snowflake Monitoring focuses on:
+- warehouses: 
+  - look at: CPU pressure, concurrency, queueing, credit consumption, auto-suspend behavior
+  - Common issues: queries waiting in queue, warehouse too small, warehouse constantly restarting
+  - Key metrics: queued queries, running queries, load percentage
+  - Increase warehouse size when: spills (to storage), queueing, slow joins
+  - Increase number of warehouses when: queued overload time, high parallel query counts
+- query history: execution time, queued time, bytes scanned, rows produced
+- storage: table storage, time travel storage, fail-safe storage, stage usage
+- concurrency
+- costs
+- failures
+- load patterns
+
 - __Query Profiling__: Use Snowflake’s Query History and Query Profile tools to identify slow queries, unnecessary table scans, or missing indexes.
 ```
 SELECT * 
@@ -281,9 +308,28 @@ FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
 WHERE QUERY_TEXT LIKE '%SELECT%'
 ORDER BY START_TIME DESC;
 ```
+  - Most Important Query Profile Operators: table scan, filter, joins, repartitions (group by), aggregates, sort
 - __Warehouse Monitoring__: Monitor warehouse usage and performance to ensure you're not over-provisioning or under-provisioning your compute resources.
 - __Resource Monitoring__: Use Snowflake's Resource Monitors to track compute usage and prevent overages.
 
+### Snowflake development
+
+- One shared DEV database and isolated schemas per engineer, use zero-copy cloning, shared and personal schemas
+- One STAGE (uintegration testing, data validation, performance) and PROD database
+- Medallion architecture on snowflake: One production database with separate schemas for each layer: easier governance, cleaner CI/CD, lineage, cross-layer queries simpler
+- CI/CD for snowflake: 
+  - automated testing, validation, deployment
+  - tools: git, dbt, github actions
+  - feature branch + test in dev
+  - git PR -> github action -> dbt compile + dbt test + dbt run -> git PR approved
+  - deploy to STAGE env + more/manual validate
+  - deploy to PROD
+  - Zero copy clone of schema 
+    - zero-copy clone copies the metadata pointers to objects and data
+    - once you create a zero-copy clone, the clone becomes an independent writable environment.
+    - you can add tables and data without affecting original
+- can different showflake warehouses and have them to use the same storage i.e. database?
+  - Yes: Compute (warehouses) and storage (databases/tables) are completely separated.
 
 ## Snowpipe <a id="snowpipe"></a>
 
@@ -293,9 +339,65 @@ It loads data from staged files in micro-batches (instead of COPY statements tha
 
 Steps:
 * CREATE STAGE object
+  ```
+  CREATE OR REPLACE STAGE analytics.raw.events_stage
+  URL = 's3://my-event-bucket/events/'
+  STORAGE_INTEGRATION = my_s3_integration
+  FILE_FORMAT = analytics.raw.json_format;
+  ```
 * CREATE PIPE object AS COPY INTO ...
-* Create AWS S3 Event Notification on create events
-* Create AWS SQS queue containing events
+  ```
+  CREATE PIPE my_pipe
+  AS
+  COPY INTO my_table
+  FROM @my_stage
+  FILE_FORMAT = (TYPE = 'JSON');
+  ```
+* Create AWS S3 Event Notification on create events = Snowflake INTEGRATION
+  - secure, credential-free connection between Snowflake and cloud storage
+  - Create it like this:
+    ```
+    CREATE STORAGE INTEGRATION s3_int
+    TYPE = EXTERNAL_STAGE
+    STORAGE_PROVIDER = S3
+    ENABLED = TRUE
+    STORAGE_ALLOWED_LOCATIONS = ('s3://my-data-bucket/events/');
+    ```
+  - Snowflake will generate a trust relationship
+  - Create AWS IAM role and attach policy
+  - check it: DESC INTEGRATION my_s3_integration;
+  - creates AWS SQS queue containing events
+- Check Pipe Status: 
+  ```
+  SELECT SYSTEM$PIPE_STATUS('analytics.raw.events_pipe');
+  ```
+Key Production Considerations:
+- Idempotency. Snowpipe handles retries but you should: include event_id, deduplicate in CURATED layer if needed
+  - You usually do NOT clean RAW directly. You deduplicate while loading into CURATED
+  - Method 1: Use ROW_NUMBER(): 
+    ```
+    CREATE OR REPLACE TABLE analytics.curated.events AS
+    SELECT *
+    FROM (
+        SELECT *,
+              ROW_NUMBER() OVER (
+                  PARTITION BY event_id
+                  ORDER BY event_time DESC
+              ) AS rn
+        FROM analytics.raw.events
+    )
+    WHERE rn = 1;
+    ```
+    - groups by business key (event_id)
+    - keeps latest record
+    - removes duplicates
+  - Method 2: QUALIFY
+  - Method 3: GROUP BY (only if simple aggregation)
+    ```
+    SELECT DISTINCT * FROM analytics.raw.events;
+    ```
+- File sizing: Best practice: 10–100 MB files
+- Error handling: ON_ERROR = 'CONTINUE' ?
 
 Snowpipe keeps the state of processing and it will not load the same file again.
 
@@ -358,7 +460,6 @@ UNDROP TABLE my_table BEFORE (STATEMENT => '2023-01-05 10:00:00');
 * __Transient__: 'CREATE TANSIENT TABLE'. No fail-safe, no time-travel. It is used where "data persistence" is required but doesn't need "data retention" for a longer period.
 * __Temporary__: 'CREATE TEMPORARY TABLE'. No fail-safe. Exists only in __current session__ i.e. other users or sessions do not see it. Mostly used for transitory data like ETL/ELT
 * __Dynamic__: 'CREATE DYNAMIC TABLE': Continously materlizes the results of the query you provide.
-
 
 
 ## View types <a id="viewtypes"></a>
@@ -485,7 +586,6 @@ A stream does not store the changed data rows itself.
 It __only stores an offset__ (a pointer) in the table's version history.
 When you query the stream → Snowflake computes the delta (what changed) since the last offset by looking at historical micro-partitions.
 
-
 ```
 CREATE OR REPLACE STREAM <name> ON TABLE <table name>
 
@@ -552,7 +652,6 @@ Types of streams:
 * insert only: same as append-only but for external tables
 
 CREATE STREAM ... ON TABLE ....
-
 
 The 'stream' table contains the original table plus metadata (like if it was an update etc.)
 
@@ -1321,6 +1420,8 @@ Each micro-partition stores metadata:
 
 ### What EXPLAIN Is Good For?
 
+EXPLAIN shows the logical execution plan Snowflake intends to use for a query.
+
 Verify Join Order & Join Type
 - Broadcast vs distributed joins
 - Whether small tables are joined first
@@ -1336,6 +1437,8 @@ Detect Obvious Problems
 - Missing join conditions
 
 ### What is query profile?
+
+The Query Profile is a full runtime breakdown of an executed query.
 
 After running the query:
 - Open Query Profile in the Snowflake UI.
@@ -1509,6 +1612,136 @@ When you submit a query, Snowflake’s engine:
 - Rewrites queries internally if it improves performance
 
 All of this happens automatically
+
+### pros and cons for snowflake variant fields
+
+Example:
+```
+CREATE TABLE events (
+  id STRING,
+  payload VARIANT
+);
+
+// example row
+{
+  "user_id": 123,
+  "device": "iphone",
+  "cart": {
+    "items": 3
+  }
+}
+
+// query:
+SELECT
+  payload:user_id,
+  payload:cart.items
+FROM events;
+```
+
+Pros:
+- Flexible schema evolution: You can ingest changing JSON without constantly altering tables
+  ```
+  // day 1
+  {"a":1}
+  // day 2
+  {"a":1,"b":2,"c":{"d":3}}
+  ```
+- Faster ingestion pipelines
+- JSON query support
+  ```
+  SELECT
+    payload:user.id::STRING,
+    payload:items[0].price::NUMBER
+  FROM orders;
+  ```
+- Good compression
+
+Cons:
+- Worse query performance
+- Poor pruning and clustering
+- SQL becomes ugly
+
+### How to you process new data inserts into snowflake tables
+
+1. Streams → detect row-level changes
+```
+// Raw ingestion table
+CREATE TABLE raw_events (
+  payload VARIANT,
+  ingest_ts TIMESTAMP
+);
+
+// create stream
+CREATE STREAM raw_events_stream
+ON TABLE raw_events;
+
+// curated table
+CREATE TABLE curated_events (
+  user_id NUMBER,
+  event_type STRING,
+  event_ts TIMESTAMP
+);
+
+// processing task
+CREATE TASK process_events
+WAREHOUSE = transform_wh
+WHEN SYSTEM$STREAM_HAS_DATA('raw_events_stream')
+AS
+INSERT INTO curated_events
+SELECT
+  payload:user_id::NUMBER,
+  payload:event_type::STRING,
+  payload:event_ts::TIMESTAMP
+FROM raw_events_stream;
+```
+2. Tasks → schedule SQL execution
+3. Dynamic Tables → incremental materialization
+4. Snowpipe / Streaming → ingest new data
+```
+MERGE INTO customers tgt
+USING customers_stream src
+ON tgt.customer_id = src.customer_id
+WHEN MATCHED THEN
+  UPDATE SET name = src.name
+WHEN NOT MATCHED THEN
+  INSERT (customer_id, name)
+  VALUES (src.customer_id, src.name);
+```
+
+### how snowflake handles transactions
+
+Snowflake uses a fully ACID transactional model with MVCC (Multi-Version Concurrency Control),
+
+Snowflake separates compute from storage and uses immutable micro-partitions + metadata versioning to implement transactions efficiently.
+
+Multi-Version Concurrency Control (MVCC). Instead of modifying data in place:
+- Snowflake creates new versions of data
+- readers see consistent snapshots
+- writers don’t block readers
+
+### how to handle schema changes in snowflake?
+
+The biggest mistake teams make is either:
+- enforcing rigid schemas too early OR
+- letting uncontrolled JSON spread everywhere
+
+```
+Source Systems
+      ↓
+Raw/Bronze (flexible schema)
+      ↓
+Normalization / CDC handling
+      ↓
+Curated/Silver (stable schema)
+      ↓
+Business/Gold models
+```
+
+### Snowflake - kafka connector: how does it work?
+
+Use Snowpipe Streaming: Kafka → Connector → Snowpipe Streaming API → Snowflake table
+- Raw VARIANT table
+- Ingestion into Snowflake: 
 
 
 ### How do Streams work internally?

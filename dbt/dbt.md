@@ -106,7 +106,7 @@ sources:
       - name: payments
 ```
 
-Once a source has been defined, it can be referenced from a model using the {{ source()}} function.
+Once a source has been defined, it can be referenced from a model using the {{ source() }} function.
 
 ```
 select
@@ -230,7 +230,7 @@ dbt run
 
 ```
 models/
-├── staging/
+├── staging/  
 │   ├── stg_orders.sql
 │   ├── stg_order_items.sql
 │   ├── stg_product.sql
@@ -248,6 +248,26 @@ models/
 ├── marts/
 │   └── fct_order_items.sql
 ```
+
+### Staging layer
+
+This model cleans raw data.
+
+```
+-- models/staging/stg_orders.sql
+
+SELECT
+    order_id,
+    customer_id,
+    order_date,
+    amount
+FROM raw.orders
+WHERE order_id IS NOT NULL
+```
+
+### intermediate models
+
+intermediate models → joins + transformations
 
 ### Fact Model: fct_order_items.sql
 
@@ -273,7 +293,7 @@ SELECT
 
 FROM {{ ref('stg_order_items') }} oi
 
-JOIN {{ ref('stg_orders') }} o
+JOIN {{ ref('stg_orders') }} o          // relationship
     ON oi.order_id = o.order_id
 
 JOIN {{ ref('dim_person') }} p
@@ -321,6 +341,15 @@ scd AS (
 
 SELECT * FROM scd
 ```
+
+materialized='incremental':
+- dbt will not rebuild the whole table every run
+- Instead, it:
+  - inserts new rows
+  - optionally updates existing rows (depending on logic)
+
+unique_key='product_key':
+- This tells dbt how to identify duplicates during incremental runs
 
 ## deploy
 

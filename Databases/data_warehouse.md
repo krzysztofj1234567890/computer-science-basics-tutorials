@@ -69,7 +69,16 @@ Thing Dimention table
 Thing         ----- foreign key --- Thing 
 ```
 
-Dimension tables are very flexible. Attributes, hierarchies, and hierarchical levels can be added, removed, or changed by simply modifying the columns in a Dimension table
+Dimension tables are very flexible. Attributes, hierarchies, and hierarchical levels can be added, removed, or changed by simply modifying the columns in a Dimension table.
+
+You usually should not go down to the second level in a time dimension.
+In a classic star schema the date dimension (dim_date) is almost always at the day level:
+```
+date_key | full_date  | year | month | day | day_of_week
+-------------------------------------------------------
+20260425 | 2026-04-25 | 2026 | 4     | 25  | Saturday
+```
+If you need intra-day analysis, you typically create a separate time dimension (dim_time), but: granularity is hour or minute.
 
 Join Strategies:
 - Source Native Key
