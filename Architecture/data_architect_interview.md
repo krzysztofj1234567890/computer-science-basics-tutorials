@@ -531,6 +531,8 @@ It’s about controlling data quality, lineage, security, and accountability acr
 9. Handle Schema Evolution Properly: 
 10. Data Contracts
 
+
+
 ### Design a data platform for a company with microservices and ML use cases.
 
 ### “Design a real-time analytics platform.”

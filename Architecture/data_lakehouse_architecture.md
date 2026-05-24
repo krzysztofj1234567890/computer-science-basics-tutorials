@@ -587,4 +587,14 @@ _delta_log/
 - PII / __sensitive data__ classification + masking / anonymization pipeline
 - RAG / agent-friendly retrieval patterns
 
+# Re:Invent
 
+## Open and Secure Lakehouse
+
+- Zero ETL
+- Query Federation
+- Catalog Federation: glue to connect to Polaris Catalog, Databricks Unity etc.
+- Polaris metadata catalog and snowflake
+- Tag db columns to identify pii data
+- Apache Iceberg: ACID + Scalable metadata + Schema enforcment and evolution + Time-Travel
+  . issues with iceberg: loading small files, new versions of data (more files, often not used)

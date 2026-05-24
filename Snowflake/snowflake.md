@@ -1743,6 +1743,18 @@ Use Snowpipe Streaming: Kafka → Connector → Snowpipe Streaming API → Snowf
 - Raw VARIANT table
 - Ingestion into Snowflake: 
 
+### how to govern Snowflake at enterprise scale
+
+1. Security & Access Control
+2. Data Organization & Architecture
+  - medallion
+  - domain based ownership
+3. Data Quality & Lineage
+  - dbt
+  - etc
+  - lineage
+4. Cost & Resource Governance
+5. Operational Governance (process + tooling)
 
 ### How do Streams work internally?
 
